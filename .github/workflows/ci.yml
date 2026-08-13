@@ -41,6 +41,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks scans history, so the full history must be present.
+          fetch-depth: 0
+
+      # Secrets must never enter history — git rm --cached does not undo a push.
+      - name: Secret scan (full history)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
 
       - uses: actions/setup-node@v4
         with:
