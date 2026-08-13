@@ -8,8 +8,9 @@
  * around it. F1.1 duplicates the rule in the service layer for a better error
  * message; this is the backstop.
  */
-import { sql } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 import {
+  customType,
   boolean,
   check,
   index,
@@ -28,6 +29,16 @@ import {
   problemStatusEnum,
   problemTagTypeEnum,
 } from './enums';
+
+/**
+ * `tsvector` has no first-class Drizzle type, so it is declared here rather
+ * than smuggled in as raw SQL at every call site.
+ */
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
 
 /** Shape of one worked example on an ORIGINAL problem. Never populated for external links. */
 export type ProblemExample = {
@@ -68,9 +79,34 @@ export const problems = pgTable(
 
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+
+    /**
+     * F1.1 full-text search over the title.
+     *
+     * A GENERATED column, not a trigger-maintained one: Postgres recomputes it
+     * from `title` on every write, so it cannot drift. A trigger can be dropped
+     * or bypassed by a bulk load and nobody notices until search quietly stops
+     * returning new rows.
+     *
+     * 'english' rather than 'simple' so stemming works — a search for "sorting"
+     * should match "Sort Colors".
+     */
+    searchVector: tsvector('search_vector').generatedAlwaysAs(
+      (): SQL => sql`to_tsvector('english', ${problems.title})`,
+    ),
   },
   (table) => [
     uniqueIndex('problems_slug_key').on(table.slug),
+
+    /**
+     * Serves: title search —
+     *   SELECT ... FROM problems
+     *   WHERE search_vector @@ websearch_to_tsquery('english', $1)
+     *   ORDER BY ts_rank(search_vector, ...) DESC
+     * GIN is the right index for a tsvector column that is read far more often
+     * than written.
+     */
+    index('problems_search_vector_idx').using('gin', table.searchVector),
 
     /**
      * Serves: the catalog list filtered by difficulty, restricted to visible
