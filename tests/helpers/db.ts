@@ -65,6 +65,7 @@ export async function setupTestDb(): Promise<TestContext> {
 export async function truncateAll(client: ReturnType<typeof postgres>): Promise<void> {
   await client.unsafe(`
     TRUNCATE TABLE
+      auth_verification_tokens, auth_sessions, auth_accounts,
       daily_sessions, daily_goals, user_problems,
       problem_tags, problems,
       verification_methods, user_profiles, users

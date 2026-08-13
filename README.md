@@ -188,6 +188,56 @@ up → down → up leaves no orphaned table, enum type or function.
 
 ---
 
+## Auth & verification (F0.3)
+
+**Sign-in** is an Auth.js email magic link delivered by Resend, with **database
+sessions** (not JWTs) so a session can actually be revoked — required by
+"log out all devices" and by forced invalidation on email change. Cookies are
+`httpOnly`, `SameSite=Lax` (a magic link is a top-level GET, so `Strict` would
+break it) and `Secure` in production. Every sign-in rotates the session,
+dropping prior ones.
+
+**Verification levels** are _derived_, not stored authoritatively:
+
+| Level | Meaning                               |
+| ----- | ------------------------------------- |
+| 0     | email only                            |
+| 1     | email + phone verified                |
+| 2     | level 1 + an active paid subscription |
+
+`users.verification_level` is a cache. `computeVerificationLevel()` is the
+definition and `recomputeVerificationLevel()` rebuilds the column from actual
+state — it repairs drift in both directions and is idempotent.
+
+**Phone OTP** sits behind an `OtpProvider` interface (MSG91 in production, a
+console provider locally, selected by whether credentials exist rather than by
+`NODE_ENV`). Codes are 6 digits, HMAC-SHA256 hashed with `AUTH_SECRET` as a
+pepper, compared in constant time, and never logged. Limits:
+
+| Rule                           | Value              | Enforced where                       |
+| ------------------------------ | ------------------ | ------------------------------------ |
+| Code lifetime                  | 10 minutes         | database                             |
+| Verify attempts per code       | 5, then burned     | database                             |
+| Code requests per phone        | 3 per rolling hour | database **and** Redis               |
+| Requests per IP                | 10 per hour        | Redis                                |
+| One phone → one active account | ever               | partial unique index + service check |
+
+The durable limits live in Postgres deliberately: Redis absorbs floods cheaply,
+but a Redis outage or a flushed key must not hand an attacker unlimited
+attempts. The Upstash limiter **fails closed**, and refuses to fall back to the
+in-process limiter in production (per-process counters would not limit anything
+on serverless).
+
+**Authorization** splits by layer, and the split is what avoids a redirect loop:
+
+- `middleware.ts` (edge) asks only _"is there a session?"_ → redirect to sign-in.
+- `app/admin/layout.tsx` (Node) asks _"is this an admin?"_ → `forbidden()`, a
+  real **403**. Redirecting an already-authenticated user back to sign-in is
+  exactly the loop the ticket warns about.
+
+`getCurrentUser()` is the only session read in the codebase; it is
+request-deduped with React `cache`.
+
 ## Conventions
 
 - Branch: `feat/<ID>-<slug>` · Commit: `feat(<slug>): <summary>` ·
