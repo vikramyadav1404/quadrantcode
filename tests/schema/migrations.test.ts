@@ -17,6 +17,9 @@ const DOWN_DIR = 'server/db/migrations/down';
 const UP_DIR = 'server/db/migrations';
 
 const EXPECTED_TABLES = [
+  'auth_accounts',
+  'auth_sessions',
+  'auth_verification_tokens',
   'daily_goals',
   'daily_sessions',
   'problem_tags',

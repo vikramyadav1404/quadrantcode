@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
 
   experimental: {
     typedRoutes: true,
+    // Enables `forbidden()` / `unauthorized()`, which render a real 403/401
+    // instead of redirecting. F0.3 requires a non-admin hitting /admin to get
+    // 403 rather than a redirect loop back through sign-in.
+    authInterrupts: true,
   },
 };
 
