@@ -7,14 +7,14 @@
 import NextAuth from 'next-auth';
 import Resend from 'next-auth/providers/resend';
 import { getDb } from '@/server/db';
-import { getEnv } from '@/lib/env';
+import { getServerEnv } from '@/server/env';
 import { createTraceLoopAdapter } from './adapter';
 
 /** 30 days, refreshed daily — long enough to be usable, short enough to expire. */
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const SESSION_UPDATE_AGE_SECONDS = 24 * 60 * 60;
 
-const env = () => getEnv();
+const env = () => getServerEnv();
 
 export const { handlers, signIn, signOut, auth } = NextAuth(() => {
   const config = env();

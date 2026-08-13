@@ -21,14 +21,14 @@ import { users } from '@/server/db/schema';
 export type VerificationLevel = 0 | 1 | 2;
 
 export type VerificationInputs = {
-  emailVerifiedAt: Date | null;
+  emailVerified: Date | null;
   phoneVerifiedAt: Date | null;
   hasActiveSubscription: boolean;
 };
 
 /** Pure. This is the definition of a verification level; everything else caches it. */
 export function computeVerificationLevel(inputs: VerificationInputs): VerificationLevel {
-  const emailVerified = inputs.emailVerifiedAt !== null;
+  const emailVerified = inputs.emailVerified !== null;
   const phoneVerified = inputs.phoneVerifiedAt !== null;
 
   if (emailVerified && phoneVerified && inputs.hasActiveSubscription) return 2;
@@ -52,7 +52,7 @@ export async function recomputeVerificationLevel(
 ): Promise<{ level: VerificationLevel; drifted: boolean }> {
   const [user] = await db
     .select({
-      emailVerifiedAt: users.emailVerifiedAt,
+      emailVerified: users.emailVerified,
       phoneVerifiedAt: users.phoneVerifiedAt,
       cached: users.verificationLevel,
     })
@@ -63,7 +63,7 @@ export async function recomputeVerificationLevel(
   if (!user) throw new Error(`recomputeVerificationLevel: no user ${userId}`);
 
   const level = computeVerificationLevel({
-    emailVerifiedAt: user.emailVerifiedAt,
+    emailVerified: user.emailVerified,
     phoneVerifiedAt: user.phoneVerifiedAt,
     hasActiveSubscription: await hasActiveSubscription(userId),
   });

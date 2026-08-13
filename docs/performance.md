@@ -13,16 +13,19 @@ nothing about production. The fixture therefore loads ~50k problems with a
 
 ## Table sizes at capture time
 
-| Table                  | Live rows |
-| ---------------------- | --------- |
-| `daily_goals`          | 0         |
-| `daily_sessions`       | 802       |
-| `problem_tags`         | 150084    |
-| `problems`             | 50030     |
-| `user_problems`        | 50030     |
-| `user_profiles`        | 0         |
-| `users`                | 1         |
-| `verification_methods` | 6000      |
+| Table                      | Live rows |
+| -------------------------- | --------- |
+| `auth_accounts`            | 0         |
+| `auth_sessions`            | 0         |
+| `auth_verification_tokens` | 0         |
+| `daily_goals`              | 0         |
+| `daily_sessions`           | 802       |
+| `problem_tags`             | 150084    |
+| `problems`                 | 50030     |
+| `user_problems`            | 50030     |
+| `user_profiles`            | 0         |
+| `users`                    | 1         |
+| `verification_methods`     | 6000      |
 
 ## Plans
 
@@ -36,16 +39,16 @@ SELECT * FROM user_problems WHERE user_id = $1 AND status = 'solved'
 ```
 
 ```
-Limit  (cost=0.29..8.73 rows=50 width=96) (actual time=0.027..0.185 rows=50.00 loops=1)
-  Buffers: shared hit=45
-  ->  Index Scan using user_problems_user_status_idx on user_problems  (cost=0.29..1688.06 rows=9998 width=96) (actual time=0.027..0.182 rows=50.00 loops=1)
-        Index Cond: ((user_id = '99b7696a-426c-40ed-915b-8d046000a818'::uuid) AND (status = 'solved'::user_problem_status))
+Limit  (cost=0.29..8.79 rows=50 width=96) (actual time=0.038..0.238 rows=50.00 loops=1)
+  Buffers: shared hit=41
+  ->  Index Scan using user_problems_user_status_idx on user_problems  (cost=0.29..1685.82 rows=9914 width=96) (actual time=0.037..0.234 rows=50.00 loops=1)
+        Index Cond: ((user_id = '94dbe176-cb94-4f87-8129-7809f897315a'::uuid) AND (status = 'solved'::user_problem_status))
         Index Searches: 1
-        Buffers: shared hit=45
+        Buffers: shared hit=41
 Planning:
-  Buffers: shared hit=124
-Planning Time: 3.084 ms
-Execution Time: 0.209 ms
+  Buffers: shared hit=128
+Planning Time: 2.484 ms
+Execution Time: 0.271 ms
 ```
 
 ### F0.2-2 · Problems filtered by difficulty + topic tag
@@ -61,25 +64,25 @@ SELECT p.* FROM problems p
 ```
 
 ```
-Limit  (cost=0.71..356.47 rows=50 width=334) (actual time=0.129..1.200 rows=50.00 loops=1)
-  Buffers: shared hit=515
-  ->  Nested Loop  (cost=0.71..9250.51 rows=1300 width=334) (actual time=0.128..1.195 rows=50.00 loops=1)
-        Buffers: shared hit=515
-        ->  Index Only Scan using problem_tags_type_value_idx on problem_tags t  (cost=0.42..2277.01 rows=3896 width=16) (actual time=0.050..0.543 rows=128.00 loops=1)
+Limit  (cost=0.71..389.19 rows=50 width=349) (actual time=0.118..1.367 rows=50.00 loops=1)
+  Buffers: shared hit=635
+  ->  Nested Loop  (cost=0.71..9487.43 rows=1221 width=349) (actual time=0.118..1.363 rows=50.00 loops=1)
+        Buffers: shared hit=635
+        ->  Index Only Scan using problem_tags_type_value_idx on problem_tags t  (cost=0.42..2259.36 rows=3661 width=16) (actual time=0.041..0.614 rows=158.00 loops=1)
               Index Cond: ((tag_type = 'topic'::problem_tag_type) AND (tag_value = 'graphs'::text))
-              Heap Fetches: 128
+              Heap Fetches: 158
               Index Searches: 1
-              Buffers: shared hit=131
-        ->  Index Scan using problems_pkey on problems p  (cost=0.29..1.79 rows=1 width=334) (actual time=0.005..0.005 rows=0.39 loops=128)
+              Buffers: shared hit=161
+        ->  Index Scan using problems_pkey on problems p  (cost=0.29..1.97 rows=1 width=349) (actual time=0.004..0.004 rows=0.32 loops=158)
               Index Cond: (id = t.problem_id)
               Filter: ((difficulty = 'medium'::difficulty) AND (status = 'published'::problem_status))
               Rows Removed by Filter: 1
-              Index Searches: 128
-              Buffers: shared hit=384
+              Index Searches: 158
+              Buffers: shared hit=474
 Planning:
-  Buffers: shared hit=287
-Planning Time: 4.342 ms
-Execution Time: 1.243 ms
+  Buffers: shared hit=294
+Planning Time: 4.244 ms
+Execution Time: 1.399 ms
 ```
 
 ### F0.2-3 · A user's daily_sessions for the last 90 days
@@ -92,22 +95,22 @@ SELECT * FROM daily_sessions WHERE user_id = $1 AND local_date >= current_date -
 ```
 
 ```
-Sort  (cost=14.99..15.22 rows=91 width=59) (actual time=0.089..0.093 rows=91.00 loops=1)
+Sort  (cost=14.99..15.22 rows=91 width=59) (actual time=0.058..0.060 rows=91.00 loops=1)
   Sort Key: local_date DESC
   Sort Method: quicksort  Memory: 32kB
   Buffers: shared hit=7
-  ->  Bitmap Heap Scan on daily_sessions  (cost=5.21..12.03 rows=91 width=59) (actual time=0.058..0.065 rows=91.00 loops=1)
-        Recheck Cond: ((user_id = '99b7696a-426c-40ed-915b-8d046000a818'::uuid) AND (local_date >= (CURRENT_DATE - 90)))
+  ->  Bitmap Heap Scan on daily_sessions  (cost=5.21..12.03 rows=91 width=59) (actual time=0.038..0.044 rows=91.00 loops=1)
+        Recheck Cond: ((user_id = '94dbe176-cb94-4f87-8129-7809f897315a'::uuid) AND (local_date >= (CURRENT_DATE - 90)))
         Heap Blocks: exact=2
         Buffers: shared hit=4
-        ->  Bitmap Index Scan on daily_sessions_user_date_idx  (cost=0.00..5.19 rows=91 width=0) (actual time=0.019..0.020 rows=91.00 loops=1)
-              Index Cond: ((user_id = '99b7696a-426c-40ed-915b-8d046000a818'::uuid) AND (local_date >= (CURRENT_DATE - 90)))
+        ->  Bitmap Index Scan on daily_sessions_user_date_idx  (cost=0.00..5.19 rows=91 width=0) (actual time=0.018..0.018 rows=91.00 loops=1)
+              Index Cond: ((user_id = '94dbe176-cb94-4f87-8129-7809f897315a'::uuid) AND (local_date >= (CURRENT_DATE - 90)))
               Index Searches: 1
               Buffers: shared hit=2
 Planning:
-  Buffers: shared hit=98
-Planning Time: 2.372 ms
-Execution Time: 0.119 ms
+  Buffers: shared hit=102
+Planning Time: 2.217 ms
+Execution Time: 0.077 ms
 ```
 
 ### F0.2-4 · An unconsumed verification code by (user_id, method)
@@ -121,22 +124,22 @@ SELECT * FROM verification_methods
 ```
 
 ```
-Limit  (cost=55.14..55.14 rows=1 width=83) (actual time=0.214..0.215 rows=1.00 loops=1)
-  Buffers: shared hit=47
-  ->  Sort  (cost=55.14..55.29 rows=60 width=83) (actual time=0.214..0.214 rows=1.00 loops=1)
+Limit  (cost=64.63..64.63 rows=1 width=102) (actual time=0.200..0.200 rows=1.00 loops=1)
+  Buffers: shared hit=56
+  ->  Sort  (cost=64.63..64.78 rows=60 width=102) (actual time=0.199..0.199 rows=1.00 loops=1)
         Sort Key: created_at DESC
         Sort Method: top-N heapsort  Memory: 25kB
-        Buffers: shared hit=47
-        ->  Bitmap Heap Scan on verification_methods  (cost=8.76..54.84 rows=60 width=83) (actual time=0.029..0.181 rows=60.00 loops=1)
-              Recheck Cond: ((user_id = '99b7696a-426c-40ed-915b-8d046000a818'::uuid) AND (method = 'phone'::verification_method) AND (consumed_at IS NULL))
-              Heap Blocks: exact=43
-              Buffers: shared hit=44
-              ->  Bitmap Index Scan on verification_methods_active_idx  (cost=0.00..8.74 rows=60 width=0) (actual time=0.014..0.014 rows=60.00 loops=1)
-                    Index Cond: ((user_id = '99b7696a-426c-40ed-915b-8d046000a818'::uuid) AND (method = 'phone'::verification_method))
+        Buffers: shared hit=56
+        ->  Bitmap Heap Scan on verification_methods  (cost=8.76..64.33 rows=60 width=102) (actual time=0.024..0.177 rows=60.00 loops=1)
+              Recheck Cond: ((user_id = '94dbe176-cb94-4f87-8129-7809f897315a'::uuid) AND (method = 'phone'::verification_method) AND (consumed_at IS NULL))
+              Heap Blocks: exact=52
+              Buffers: shared hit=53
+              ->  Bitmap Index Scan on verification_methods_active_idx  (cost=0.00..8.74 rows=60 width=0) (actual time=0.010..0.010 rows=60.00 loops=1)
+                    Index Cond: ((user_id = '94dbe176-cb94-4f87-8129-7809f897315a'::uuid) AND (method = 'phone'::verification_method))
                     Index Searches: 1
                     Buffers: shared hit=1
 Planning:
-  Buffers: shared hit=62
-Planning Time: 1.786 ms
-Execution Time: 0.228 ms
+  Buffers: shared hit=65
+Planning Time: 1.712 ms
+Execution Time: 0.211 ms
 ```

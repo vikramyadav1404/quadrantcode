@@ -21,7 +21,14 @@ export const users = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     email: text().notNull(),
-    emailVerifiedAt: timestamp({ withTimezone: true }),
+
+    /**
+     * Property name is `emailVerified` because @auth/drizzle-adapter requires
+     * that exact key; the SQL column stays `email_verified_at` as F0.2
+     * specifies. Drizzle decouples the two, so the library gets its shape and
+     * the schema keeps ours.
+     */
+    emailVerified: timestamp('email_verified_at', { withTimezone: true }),
 
     /** E.164, e.g. +919876543210. NULL until the F0.3 OTP flow completes. */
     phoneNumber: text(),

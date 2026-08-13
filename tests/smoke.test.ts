@@ -4,7 +4,8 @@
  * feature flags default to off.
  */
 import { describe, expect, it } from 'vitest';
-import { __testing } from '@/lib/env';
+import { __testing as publicEnv } from '@/lib/env';
+import { __testing as serverEnv } from '@/server/env';
 import {
   FEATURE_FLAGS,
   FeatureDisabledError,
@@ -19,9 +20,9 @@ const validEnv = {
   NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
 };
 
-describe('lib/env', () => {
+describe('server/env + lib/env', () => {
   it('parses a valid environment', () => {
-    const env = __testing.parseEnv(validEnv);
+    const env = serverEnv.parseServerEnv(validEnv);
     expect(env.DATABASE_URL).toBe(validEnv.DATABASE_URL);
     expect(env.NODE_ENV).toBe('test');
   });
@@ -29,20 +30,29 @@ describe('lib/env', () => {
   it('throws a readable error when a required variable is missing', () => {
     const { DATABASE_URL: _removed, ...withoutDatabase } = validEnv;
 
-    expect(() => __testing.parseEnv(withoutDatabase)).toThrowError(
+    expect(() => serverEnv.parseServerEnv(withoutDatabase)).toThrowError(
       /Invalid environment configuration[\s\S]*DATABASE_URL/,
     );
   });
 
   it('rejects a malformed variable rather than passing it through', () => {
     expect(() =>
-      __testing.parseEnv({ ...validEnv, DATABASE_URL: 'mysql://localhost/traceloop' }),
+      serverEnv.parseServerEnv({ ...validEnv, DATABASE_URL: 'mysql://localhost/traceloop' }),
     ).toThrowError(/postgres:\/\/ or postgresql:\/\//);
   });
 
   it('defaults the public app URL instead of failing a fresh checkout', () => {
     const { NEXT_PUBLIC_APP_URL: _removed, ...withoutUrl } = validEnv;
-    expect(__testing.parseEnv(withoutUrl).NEXT_PUBLIC_APP_URL).toBe('http://localhost:3000');
+    expect(serverEnv.parseServerEnv(withoutUrl).NEXT_PUBLIC_APP_URL).toBe(
+      'http://localhost:3000',
+    );
+  });
+
+  it('the shared half parses without any secret present', () => {
+    // lib/env.ts must stay usable in a client bundle: no DATABASE_URL needed.
+    expect(publicEnv.parsePublicEnv({ NODE_ENV: 'test' }).NEXT_PUBLIC_APP_URL).toBe(
+      'http://localhost:3000',
+    );
   });
 });
 

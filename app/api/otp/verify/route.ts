@@ -7,7 +7,7 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getEnv } from '@/lib/env';
+import { getServerEnv } from '@/server/env';
 import { assertFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { RATE_LIMITS, checkAll, createRateLimiter } from '@/server/lib/ratelimit';
@@ -41,7 +41,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, message: genericOtpErrorMessage() }, { status: 400 });
   }
 
-  const env = getEnv();
+  const env = getServerEnv();
   const gate = await checkAll([
     { limiter: createRateLimiter(RATE_LIMITS.otpVerifyPerUser, env), key: user.id },
     { limiter: createRateLimiter(RATE_LIMITS.otpVerifyPerIp, env), key: clientIp(request) },
