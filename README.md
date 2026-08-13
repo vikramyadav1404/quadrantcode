@@ -58,17 +58,29 @@ Monaco Editor · Razorpay · Resend · Telegram Bot API · Sentry + structured J
 
 Importing `server/**` from a client component fails **twice**, deliberately:
 
-1. **Lint** — `no-restricted-imports` in `eslint.config.mjs` blocks the import from
-   `components/`, `lib/` and client files under `app/`, with a message pointing at the
-   fix. This runs in the pre-commit hook and in CI.
-2. **Build** — server entrypoints `import 'server-only'`, so Next.js fails the build if
-   one reaches a client bundle even with the lint rule disabled.
+1. **Lint** — `no-restricted-imports` is **deny-by-default** across all files, with
+   server paths (`server/`, `worker/`, `jobs/`, `scripts/`, `tests/`, and server
+   components) exempted by path. Runs in the pre-commit hook and in CI.
+2. **Build** — application-facing server entrypoints `import 'server-only'`, so Next.js
+   fails the build if one reaches a client bundle even with the lint rule disabled.
 
-`lib/env.ts` deliberately does _not_ import `server-only`: that package throws unless
-the `react-server` export condition is set, which the standalone worker (plain Node)
-does not have. It guards itself with an explicit `typeof window` check instead, and the
-worker scripts run with `--conditions=react-server` so `server-only` resolves to a no-op
-there.
+`tests/boundary/server-boundary.test.ts` asserts both, including four bypass paths.
+It exists because a guard with no regression test is not a guard — and writing it
+immediately exposed that the lint rule had covered only three directories.
+
+**Module layering.** `server-only` throws unless the `react-server` export condition is
+set, which Next sets and plain Node does not. Rather than making the worker claim to be
+an RSC environment, the guard is placed where it belongs:
+
+| Module                | Guard                            | Imported by                            |
+| --------------------- | -------------------------------- | -------------------------------------- |
+| `server/db/client.ts` | none                             | worker, jobs, and `server/db/index.ts` |
+| `server/db/index.ts`  | `import 'server-only'`           | application code                       |
+| `lib/env.ts`          | none needed — public values only | anywhere, including the browser        |
+| `server/env.ts`       | runtime `typeof window` check    | server code and the worker             |
+
+The worker runs as plain `tsx worker/index.ts`. A test asserts no npm script
+re-introduces `--conditions=react-server`.
 
 ---
 
