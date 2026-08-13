@@ -1,9 +1,12 @@
 /**
- * Schema barrel.
+ * Schema barrel — every table must be re-exported here or `drizzle-kit
+ * generate` will not see it.
  *
- * F0.1 owns no tables — F0.2 (`core-schema`) adds identity and the problem
- * catalog, and each later ticket appends its own module here. Keeping the
- * barrel exhaustive is what lets `drizzle-kit generate` see every table.
+ * Phase 0 (F0.2): identity, problem catalog, per-user tracking.
+ * Later phases append their own modules; nothing here is reshaped afterwards.
  */
 
-export {};
+export * from './enums';
+export * from './users';
+export * from './problems';
+export * from './tracking';

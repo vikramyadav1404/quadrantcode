@@ -145,9 +145,46 @@ disables a feature rather than exposing it.
 
 Tables are introduced per phase; see `server/db/schema/`.
 
-| Phase | Tables             |
-| ----- | ------------------ |
-| 0     | _(F0.2 — pending)_ |
+| Phase    | Tables                                                                                                                         |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 0 (F0.2) | `users`, `user_profiles`, `verification_methods`, `problems`, `problem_tags`, `user_problems`, `daily_goals`, `daily_sessions` |
+
+**Constraint C1 lives in the database.** `problems_external_link_no_statement`
+rejects any `source_type = 'external_link'` row that carries a statement, input
+or output format, constraints text, examples or an editorial — and requires
+`external_url` to be present. No service bug, admin form or bulk import can get
+around it. F1.1 repeats the rule in the service layer for a better error
+message; the CHECK is the backstop.
+
+**Constraint C3 likewise:** `problem_tags_company_style_suffix` rejects a
+`company_style` tag that does not end in `-style`.
+
+`users.timezone` is validated against `pg_timezone_names` by a trigger — a
+CHECK cannot contain a subquery, and validating only in Zod would leave psql
+and bulk imports unguarded.
+
+Every index carries a comment naming the query it serves, and
+[`docs/performance.md`](docs/performance.md) holds the pasted `EXPLAIN ANALYZE`
+output proving each one is actually used.
+
+### Testing against a real database
+
+```bash
+npm run test:db:start                  # embedded Postgres on :55432
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/traceloop_test npm test
+npm run test:db:stop
+```
+
+Suites needing a database skip themselves when `TEST_DATABASE_URL` is unset, so
+`npm test` stays green without one. CI always sets it from a `postgres:16`
+service container, so the constraint tests genuinely run there.
+
+### Migrations
+
+`drizzle-kit` generates up-migrations only. Every migration has a hand-written
+counterpart in `server/db/migrations/down/`, applied by `npm run db:rollback`
+(add `-- all` to unwind everything). `tests/schema/migrations.test.ts` asserts
+up → down → up leaves no orphaned table, enum type or function.
 
 ---
 

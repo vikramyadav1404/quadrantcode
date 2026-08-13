@@ -89,7 +89,13 @@ export default tseslint.config(
   // The worker, jobs and scripts are plain Node — browser globals are absent
   // and console output is the log transport until F4.6 replaces it.
   {
-    files: ['worker/**/*.ts', 'jobs/**/*.ts', 'scripts/**/*.ts', 'server/db/migrate.ts'],
+    files: [
+      'worker/**/*.ts',
+      'jobs/**/*.ts',
+      'scripts/**/*.ts',
+      'server/db/migrate.ts',
+      'server/db/rollback.ts',
+    ],
     rules: { 'no-console': 'off' },
   },
 
