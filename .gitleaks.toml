@@ -1,0 +1,26 @@
+# gitleaks configuration.
+#
+# Scanning runs over git HISTORY (`gitleaks git --log-opts=--all`), not the
+# working tree, because history is what a push exposes and what cannot be
+# undone with `git rm --cached`.
+#
+# The working-tree scan reports 9 findings, all in `.next/` — Next.js build
+# output regenerates a per-build encryption key in prerender-manifest.json and
+# middleware-manifest.json. That directory is gitignored and never committed,
+# so those are not leaks. The paths are excluded here so a working-tree scan is
+# also actionable rather than noisy.
+
+title = "TraceLoop"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Build output and lockfiles that cannot contain committed secrets"
+paths = [
+  '''^\.next/''',
+  '''^node_modules/''',
+  '''^\.tmp/''',
+  '''^package-lock\.json$''',
+  '''^coverage/''',
+]

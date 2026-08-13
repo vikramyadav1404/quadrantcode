@@ -35,3 +35,13 @@ yarn-error.log*
 
 # embedded Postgres data directory (npm run test:db:start)
 .tmp/
+
+# Local planning and working documents — never enter history.
+# (git rm --cached does not remove a file from past commits, so these are
+# blocked before the first push rather than cleaned up afterwards.)
+CLAUDE.md
+docs/prompt-pack.md
+docs/*-runbook.md
+docs/*-addendum.md
+docs/*-notes.md
+docs/scratch/
