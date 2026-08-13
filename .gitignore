@@ -32,3 +32,6 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# embedded Postgres data directory (npm run test:db:start)
+.tmp/
