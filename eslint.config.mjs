@@ -39,6 +39,7 @@ export default tseslint.config(
       'coverage/**',
       'next-env.d.ts',
       'server/db/migrations/**',
+      '.playwright/**',
     ],
   },
 
@@ -87,6 +88,8 @@ export default tseslint.config(
       'jobs/**/*.ts',
       'scripts/**/*.ts',
       'tests/**/*.{ts,tsx}',
+      'e2e/**/*.ts',
+      'playwright.config.ts',
       'app/**/page.tsx',
       'app/**/layout.tsx',
       'app/**/route.ts',
@@ -114,7 +117,7 @@ export default tseslint.config(
   },
 
   {
-    files: ['tests/**/*.ts', 'tests/**/*.tsx', '**/*.test.ts', '**/*.test.tsx'],
+    files: ['tests/**/*.ts', 'tests/**/*.tsx', 'e2e/**/*.ts', '**/*.test.ts', '**/*.test.tsx'],
     rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-console': 'off' },
   },
 
