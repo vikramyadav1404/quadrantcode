@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "next build",
+    "contrast": "tsx scripts/contrast.ts",
     "db:explain": "tsx scripts/explain-report.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server server/db/migrate.ts",

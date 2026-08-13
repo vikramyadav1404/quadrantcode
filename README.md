@@ -238,6 +238,45 @@ on serverless).
 `getCurrentUser()` is the only session read in the codebase; it is
 request-deduped with React `cache`.
 
+## Design system (F0.4)
+
+**Tokens** live in [`styles/tokens.css`](styles/tokens.css) as CSS variables —
+`background`, `surface`, `surface-raised`, `border`, `text-primary`,
+`text-muted`, `accent`, `accent-foreground`, `success`, `warning`, `danger`,
+`focus-ring`. Dark is the default; light is opt-in via `data-theme="light"`,
+applied by an inline script before first paint so the theme never flashes.
+
+**No component contains a literal colour.** `tests/design/tokens.test.ts` walks
+`components/` and `app/` and fails on any hex, `rgb()` or `hsl()` literal.
+
+**Contrast is measured, not assumed.** `npm run contrast` prints the actual
+WCAG ratio for all 38 token pairs and exits non-zero on any failure; the same
+thresholds are asserted as tests, so a colour change that breaks accessibility
+fails CI. The measured numbers are pasted into the header of `tokens.css`.
+
+Two tokens were **changed rather than waived** after the first measurement:
+`border` came in at 2.46:1 (dark) and 2.52:1 (light) against the 3:1 non-text
+minimum, so both were darkened/lightened until they passed. Lowest ratios now:
+body text 6.09:1, non-text 3.06:1.
+
+**Primitives** (`components/ui/`): `PageHeader`, `StatCard`, `EmptyState`,
+`DataTable`, `ConfirmDialog`, `Toast`, `Skeleton`.
+
+`DataTable` is generic over its row type and knows **no domain entity** — it
+takes `columns`, a `fetchPage` callback and a `rowKey`, and owns only
+presentation, sort state and the cursor. Pagination is cursor-based, never
+`OFFSET`, so pages stay stable while rows are inserted.
+
+**Shell** (`components/shell/`): sidebar at ≥768px, bottom nav below it, top bar
+with the streak badge and daily-goal ring. Every dynamic value is a **prop** —
+the shell never queries; F1.3 supplies the real numbers.
+
+**Accessibility:** a skip link, `aria-current` on the active nav item, a visible
+focus ring on every interactive element, `<dialog>` for modals (so focus
+trapping and Escape come from the platform), `role="img"` with an explicit
+label on the progress ring, and `aria-live` regions for toasts and table
+updates.
+
 ## Conventions
 
 - Branch: `feat/<ID>-<slug>` · Commit: `feat(<slug>): <summary>` ·

@@ -59,6 +59,10 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      # Fails the build if any token pair drops below its WCAG threshold.
+      - name: Contrast audit
+        run: npm run contrast
+
       - name: Test
         run: npm test
 
