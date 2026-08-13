@@ -76,83 +76,148 @@ audit, whichever comes first.
 
 ---
 
-## D2 · The one `any` cast in the Auth.js adapter
+## D2 · Embedded Postgres, instead of tests that skip
 
-**Status:** active · **File:** `server/services/auth/adapter.ts`
-
-`@auth/drizzle-adapter`'s `DefaultPostgresUsersTable` type requires `id`, `name`,
-`email`, `emailVerified` and `image`. F0.2 fixes the `users` shape, and
-`display_name` / `avatar_url` live on `user_profiles`.
-
-Two of the three requirements were solved by **column mapping**, not reshaping:
-`emailVerified: timestamp('email_verified_at')` gives the library its property
-name while the SQL column stays as specified. Regenerating the migration after
-that rename produced **zero** change to `users`.
-
-`name` and `image` have nothing to map to. The cast encodes exactly one
-assumption:
-
-> The adapter's _runtime_ never reads `users.name` or `users.image`.
-
-That holds because `createUser` does `.insert(usersTable).values(data)` and
-Drizzle silently drops keys that are not columns. It is **asserted, not
-assumed** — `tests/auth/adapter.test.ts` creates a user through the real adapter
-against a real database and separately asserts the columns do not exist. If a
-future version starts depending on them, that test fails.
-
-### Rejected alternative
-
-Adding nullable `name` / `image` columns to `users`. Rejected because they would
-duplicate `user_profiles.display_name` / `.avatar_url` with no owner and no
-update path — two dead columns that later readers would have to reason about
-forever, versus one cast with a test behind it.
+Half of F0.2's acceptance criteria are statements about the _database_ — a CHECK
+rejects this insert, a partial unique index permits many NULLs, EXPLAIN chooses
+an index. None of that can be verified against a mock, and this machine has
+neither Docker nor a system Postgres. The tempting move was to write the suites
+so they skip when no database is configured, then call the criteria met on the
+strength of the code reading correctly. That would have been a false claim with
+a green tick next to it. Instead `embedded-postgres` downloads a real server and
+`npm run test:db:start` runs it on port 55432, so the constraint suites execute
+locally exactly as they do against the `postgres:16` service container in CI. The
+skip path still exists — `npm test` stays green on a fresh clone with no database
+— but it is a convenience, never the thing being relied on. The cost is a
+devDependency that downloads a binary; the benefit is that "the CHECK rejects it"
+is something I watched happen rather than something I asserted.
 
 ---
 
-## D3 · The worker does not run under `--conditions=react-server`
+## D3 · The EXPLAIN fixture is sized for selectivity, not row count
 
-**Status:** active · superseded an earlier decision
-
-`server-only` throws unless the `react-server` export condition is set, which
-Next's server bundle sets and plain Node does not. The worker imported
-`@/server/db`, which carries that guard, so it crashed at boot.
-
-The first fix set `--conditions=react-server` on the worker script. That was
-wrong: it silenced the guard process-wide and made the worker claim to be an RSC
-environment it is not.
-
-The layering fix instead:
-
-| Module                | Guard                            | Imported by                            |
-| --------------------- | -------------------------------- | -------------------------------------- |
-| `server/db/client.ts` | none                             | worker, jobs, and `server/db/index.ts` |
-| `server/db/index.ts`  | `import 'server-only'`           | application code                       |
-| `lib/env.ts`          | none needed — public values only | anywhere, including the browser        |
-| `server/env.ts`       | runtime `typeof window` check    | server code and the worker             |
-
-`server/db/client.ts` has no build-time guard, so ESLint is the only thing
-protecting it. `no-restricted-imports` is therefore **deny-by-default** across
-all files with server paths exempted, and
-`tests/boundary/server-boundary.test.ts` asserts the rule fires on that exact
-deep path — plus that no npm script re-introduces the condition flag.
+The first version of the index test padded the catalog to 2,000 problems and
+asserted an index scan. It failed, correctly: with only five topic values any
+single topic matched about a fifth of the table, and a sequential scan feeding a
+hash join genuinely is cheaper there. The tempting fix is `SET enable_seqscan =
+off`, which would have produced a passing test proving nothing except that
+Postgres obeys a flag. The real fix was to make the data production-shaped rather
+than merely large — 50,000 problems tagged from a 40-value topic vocabulary, so
+any one topic is a small slice and the index genuinely wins. Postgres then picks
+it unaided. The lesson generalises past this ticket: a query plan is a function
+of statistics, so a performance test on unrepresentative data measures nothing at
+all. The reasoning lives in the fixture itself so nobody later "simplifies" the
+vocabulary back down and quietly invalidates every plan in
+`docs/performance.md`.
 
 ---
 
-## D4 · Secret scanning runs the gitleaks binary, not the action
+## D4 · The `border` token was changed, not waived
+
+The contrast script's first run showed every text pair passing comfortably and
+`border` failing the 3:1 non-text minimum in both themes — 2.46:1 dark, 2.52:1
+light. Borders are easy to rationalise away: they are decoration, the design
+looked fine, and WCAG 1.4.11 is the clause people skip. The ticket anticipated
+exactly that and said change the token, do not waive it, so I searched the grey
+ramp for the nearest values clearing 3:1 against both `background` and `surface`
+and moved both themes; they now measure 3.31 and 3.34. The wider point is that an
+audit only has force if it is permitted to fail something and win. A contrast
+check that has never rejected a colour is itself decoration. It now runs in CI,
+so the next colour change that drops below a threshold breaks the build instead
+of shipping.
+
+---
+
+## D5 · The adapter dilemma was false, and disproving it took two experiments
+
+I claimed the choice was between reshaping the `users` table and hand-writing an
+Auth.js adapter, and wrote roughly 150 lines of the latter. That was wrong, and
+the reasoning error is worth recording because it is a common one: I treated a
+library's TypeScript type as if it were its runtime contract. Drizzle decouples
+the property name from the column name, so
+`emailVerified: timestamp('email_verified_at')` gives the adapter the key it
+demands while the SQL column stays exactly as F0.2 specifies — and regenerating
+the migration after that rename produced zero change to `users`, which is the
+proof rather than the argument. That left `name` and `image`, which have nothing
+to map to. Rather than assume in either direction I ran the stock adapter against
+a real database with those columns absent: `createUser` succeeded, because it
+does `.values(data)` and Drizzle drops keys that are not columns. The dilemma
+dissolved into one documented cast plus a forty-line wrapper for three
+app-specific rules, and the security-sensitive parts — session tokens,
+verification tokens, account linking — went back to the library that maintains
+them. A test fails if a future version starts reading those columns, so the cast
+is an asserted assumption rather than a hope.
+
+---
+
+## D6 · `server/db/client.ts` and `server/db/index.ts` are two files on purpose
+
+The worker crashed at boot because it imported `@/server/db`, which carries
+`import 'server-only'`, and that package throws unless the `react-server` export
+condition is set — which Next sets and plain Node does not. My first fix added
+`--conditions=react-server` to the worker script. It worked, and it was the wrong
+answer: it disabled the guard for the whole process and made the worker declare
+itself an RSC environment it is not, in order to satisfy a check about client
+bundles that never concerned it. The layering fix puts the guard where the risk
+actually lives. `client.ts` holds the connection and carries no guard, because
+the worker and jobs legitimately need it; `index.ts` re-exports it behind
+`server-only` and is what application code imports, so a Client Component
+reaching for the database still fails the build. The asymmetry is deliberate: the
+file a client component would plausibly import is guarded twice, and the file
+only Node touches is guarded by lint plus a test that fails if any npm script
+reintroduces the condition flag.
+
+---
+
+## D7 · The boundary rule was passing vacuously, and only writing the test showed it
+
+Asked to turn a manual probe into a permanent test, I wrote fixture components
+importing `@/server/db`, linted them, and asserted the rule fired. It reported
+zero violations. My first guess was a broken harness — an ignore pattern
+swallowing the fixtures — but the real cause was worse: `no-restricted-imports`
+was scoped to `components/`, `lib/` and `app/`, so a client component anywhere
+else was never checked. The guard I had been describing as "enforced twice" had a
+hole, and the original manual probe had missed it purely because I happened to
+put that probe file in `components/`. The rule is now deny-by-default across
+every file with server paths exempted explicitly, and the suite covers four
+bypass paths including `server/db/client.ts`, which has no build-time guard and
+therefore rests on lint alone. This is the strongest argument in the repo for the
+rule that a guard without a regression test is not a guard: the test's first act
+was to falsify the claim it had been written to confirm.
+
+---
+
+## D8 · Two canaries, and why the first one proved nothing
+
+Before trusting a clean secret-scan result I checked the scanner could detect
+anything at all, using the AWS key from the official documentation. It reported
+no leaks. The obvious reading is that the scanner is broken; the actual reason is
+that gitleaks allowlists that exact key by default, because it appears in so much
+documentation that flagging it is pure noise. So the canary was
+indistinguishable from a working scan finding nothing — the worst outcome
+available, because it is silently uninformative in the same direction as success.
+A second canary using a realistically-shaped GitHub token was flagged
+immediately, and that is what makes "6 commits scanned, no leaks found" over our
+history mean something. The same shape of mistake appears twice more in Phase 0
+— the boundary rule above and the payload-capture helper — so the rule I now
+apply is that any assertion of the form "X is absent" needs a paired positive
+control proving the mechanism can see X when it is present.
+
+---
+
+## D9 · Secret scanning runs the gitleaks binary, not the action
 
 **Status:** active · **File:** `.github/workflows/ci.yml`
 
-`gitleaks/gitleaks-action@v2` derives a commit range of `<before>^..<after>` on
-push. On the **first** push `<before>` is the root commit, so `<root>^` is an
-unknown revision: gitleaks aborted, scanned 0 bytes, and logged _"no leaks found
-in partial scan"_ while failing the job.
-
-A scan that can report "no leaks" without having read anything is worse than no
-scan. CI now downloads a pinned binary and runs
-`gitleaks git . --log-opts="--all"` — the whole history, every run, identical to
-the local command.
-
-Verified before trusting the result: gitleaks was run against a canary secret
-and correctly flagged it. The AWS key from the official documentation is
-allowlisted by gitleaks' own default rules and makes a **useless** canary — the
-first canary attempt silently "passed".
+The first CI run failed on the secret-scan step, and the failure mode mattered
+more than the failure. `gitleaks/gitleaks-action@v2` derives a commit range of
+`<before>^..<after>` on push; on a first push `<before>` is the root commit, and
+`<root>^` is an unknown revision. Git errored, gitleaks aborted having read zero
+bytes, and the step logged _"no leaks found in partial scan"_ before exiting
+non-zero. Had the action been configured to tolerate that exit code — a common
+convenience when a step is noisy — CI would have gone green while scanning
+nothing, on the exact run that first pushed this repository to a remote. The
+workflow now downloads a pinned binary and runs
+`gitleaks git . --log-opts="--all"`, which reads the whole history every time and
+is the identical command available locally, so a CI result can be reproduced
+without reasoning about the action's range arithmetic.
