@@ -1,0 +1,57 @@
+/*
+ * TraceLoop design tokens.
+ *
+ * F0.1 scope: establish the variable names and the dark-first default so no
+ * component ever needs a literal colour. F0.4 (`design-system`) expands this
+ * file with the full primitive set and the measured contrast ratios.
+ *
+ * Dark is the default (`:root`). Light is opt-in via `[data-theme='light']`,
+ * set on <html> before paint by the inline script in app/layout.tsx.
+ */
+
+:root {
+  --background: #0b0d10;
+  --surface: #14171c;
+  --surface-raised: #1c2027;
+  --border: #2a2f38;
+  --text-primary: #e9edf3;
+  --text-muted: #99a2b0;
+  --accent: #6ea8fe;
+  --accent-foreground: #06101f;
+  --success: #5ed6a4;
+  --warning: #f0c36d;
+  --danger: #f2777a;
+  --focus-ring: #6ea8fe;
+
+  --radius: 0.5rem;
+}
+
+[data-theme='light'] {
+  --background: #ffffff;
+  --surface: #f6f7f9;
+  --surface-raised: #ffffff;
+  --border: #d9dee6;
+  --text-primary: #14171c;
+  --text-muted: #5a6472;
+  --accent: #1f5fd0;
+  --accent-foreground: #ffffff;
+  --success: #10704f;
+  --warning: #7a5300;
+  --danger: #b3261e;
+  --focus-ring: #1f5fd0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --radius-token: var(--radius);
+}

@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  [data-theme='light'] {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible focus ring on every interactive element (F0.4 a11y pass). */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
