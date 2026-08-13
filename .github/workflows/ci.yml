@@ -46,10 +46,20 @@ jobs:
           fetch-depth: 0
 
       # Secrets must never enter history — git rm --cached does not undo a push.
+      #
+      # The official action is deliberately NOT used: on a push it derives a
+      # commit range of `<before>^..<after>`, and on the first push `<before>`
+      # is the root commit, whose `^` is an unknown revision — the scan aborts
+      # with "ambiguous argument" and the job fails without having scanned
+      # anything. Invoking the binary directly with `--log-opts=--all` scans the
+      # entire history every run and matches what developers run locally.
       - name: Secret scan (full history)
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSL -o /tmp/gitleaks.tar.gz             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks git . --log-opts="--all" --config .gitleaks.toml --redact --verbose
 
       - uses: actions/setup-node@v4
         with:
