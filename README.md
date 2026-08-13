@@ -277,6 +277,24 @@ trapping and Escape come from the platform), `role="img"` with an explicit
 label on the progress ring, and `aria-live` regions for toasts and table
 updates.
 
+## Verification
+
+| Command                 | What it proves                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `npm test`              | 157 unit + integration tests (Postgres-backed suites skip without `TEST_DATABASE_URL`) |
+| `npm run test:e2e`      | 21 browser tests — viewports, theme flash, auth flow, payload capture                  |
+| `npm run contrast`      | Every token pair against its WCAG threshold; exits non-zero on failure                 |
+| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                 |
+
+CI runs these as **two jobs**: unit/lint/build, and browser. They are separate so
+Chromium flake never blocks a green typecheck.
+
+- [`docs/acceptance-status.md`](docs/acceptance-status.md) — every Phase 0
+  criterion with its evidence, including what is deferred or blocked
+- [`docs/decisions.md`](docs/decisions.md) — decisions that cost something,
+  with the alternative rejected and what breaks if each turns out wrong
+- [`docs/performance.md`](docs/performance.md) — pasted EXPLAIN plans
+
 ## Conventions
 
 - Branch: `feat/<ID>-<slug>` · Commit: `feat(<slug>): <summary>` ·
