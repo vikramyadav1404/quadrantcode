@@ -1,0 +1,102 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { FlatCompat } from '@eslint/eslintrc';
+import tseslint from 'typescript-eslint';
+import prettier from 'eslint-config-prettier';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const compat = new FlatCompat({ baseDirectory: __dirname });
+
+/**
+ * F0.1 requirement 2 — the server-only boundary.
+ *
+ * `server/**` holds database access, secrets and business logic. Two mechanisms
+ * keep it out of client bundles:
+ *   1. `import 'server-only'` in server entrypoints, which fails the Next build
+ *      when a Client Component pulls one in.
+ *   2. The `no-restricted-imports` rule below, which fails lint (and therefore
+ *      the pre-commit hook and CI) with a message explaining the fix.
+ * Lint catches it earlier and explains it better; the build catches it even if
+ * someone disables the rule.
+ */
+const SERVER_BOUNDARY = {
+  patterns: [
+    {
+      group: ['@/server/*', '@/server/**', '**/server/db/**', '**/server/services/**'],
+      message:
+        'Client components must not import from server/. Fetch through a Server ' +
+        'Component, a Server Action, or a route handler instead.',
+    },
+  ],
+};
+
+export default tseslint.config(
+  {
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'next-env.d.ts',
+      'server/db/migrations/**',
+    ],
+  },
+
+  ...compat.extends('next/core-web-vitals'),
+  ...tseslint.configs.recommended,
+
+  {
+    rules: {
+      // Business rule: `any` needs a written justification, so it must be
+      // deliberate. The rule stays an error; the escape hatch is an inline
+      // disable with a one-line reason, which is greppable in review.
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+      // Errors are typed and structured — never swallowed.
+      'no-empty': ['error', { allowEmptyCatch: false }],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+
+  // Client-side surface: components/, app/ and lib/ may not reach into server/.
+  {
+    files: ['components/**/*.{ts,tsx}', 'lib/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', SERVER_BOUNDARY] },
+  },
+
+  // Server Components and route handlers legitimately import server/ modules.
+  // They are exempted by path, not by disabling the rule ad hoc.
+  {
+    files: [
+      'app/**/page.tsx',
+      'app/**/layout.tsx',
+      'app/**/route.ts',
+      'app/**/actions.ts',
+      'app/**/opengraph-image.tsx',
+      'middleware.ts',
+    ],
+    rules: { 'no-restricted-imports': 'off' },
+  },
+
+  // The worker, jobs and scripts are plain Node — browser globals are absent
+  // and console output is the log transport until F4.6 replaces it.
+  {
+    files: ['worker/**/*.ts', 'jobs/**/*.ts', 'scripts/**/*.ts', 'server/db/migrate.ts'],
+    rules: { 'no-console': 'off' },
+  },
+
+  {
+    files: ['tests/**/*.ts', 'tests/**/*.tsx', '**/*.test.ts', '**/*.test.tsx'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-console': 'off' },
+  },
+
+  prettier,
+);

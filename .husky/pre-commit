@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# F0.1: block the commit on lint or typecheck failure.
+# lint-staged runs ESLint (--max-warnings=0) and Prettier over staged files;
+# typecheck runs project-wide because a staged file can break an unstaged one.
+npx lint-staged || exit 1
+npm run typecheck || exit 1
