@@ -11,7 +11,7 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getEnv } from '@/lib/env';
+import { getServerEnv } from '@/server/env';
 import { assertFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { RATE_LIMITS, checkAll, createRateLimiter } from '@/server/lib/ratelimit';
@@ -52,7 +52,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const env = getEnv();
+  const env = getServerEnv();
   const ip = clientIp(request);
 
   const gate = await checkAll([

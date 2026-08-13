@@ -97,14 +97,14 @@ describe('F0.3 · computeVerificationLevel (pure)', () => {
   const at = new Date('2026-01-01T00:00:00Z');
 
   it.each([
-    [{ emailVerifiedAt: null, phoneVerifiedAt: null, hasActiveSubscription: false }, 0],
-    [{ emailVerifiedAt: at, phoneVerifiedAt: null, hasActiveSubscription: false }, 0],
-    [{ emailVerifiedAt: at, phoneVerifiedAt: at, hasActiveSubscription: false }, 1],
-    [{ emailVerifiedAt: at, phoneVerifiedAt: at, hasActiveSubscription: true }, 2],
+    [{ emailVerified: null, phoneVerifiedAt: null, hasActiveSubscription: false }, 0],
+    [{ emailVerified: at, phoneVerifiedAt: null, hasActiveSubscription: false }, 0],
+    [{ emailVerified: at, phoneVerifiedAt: at, hasActiveSubscription: false }, 1],
+    [{ emailVerified: at, phoneVerifiedAt: at, hasActiveSubscription: true }, 2],
     // A subscription without phone verification does NOT reach level 2 —
     // level 2 is defined as "level 1 plus a subscription".
-    [{ emailVerifiedAt: at, phoneVerifiedAt: null, hasActiveSubscription: true }, 0],
-    [{ emailVerifiedAt: null, phoneVerifiedAt: at, hasActiveSubscription: true }, 0],
+    [{ emailVerified: at, phoneVerifiedAt: null, hasActiveSubscription: true }, 0],
+    [{ emailVerified: null, phoneVerifiedAt: at, hasActiveSubscription: true }, 0],
   ])('%o → %i', (inputs, expected) => {
     expect(computeVerificationLevel(inputs)).toBe(expected);
   });
@@ -128,7 +128,7 @@ suite('F0.3 · verification level cache', () => {
   it('recompute matches the cached column when the cache is correct', async () => {
     const now = new Date();
     const user = await createUser(ctx.db, {
-      emailVerifiedAt: now,
+      emailVerified: now,
       phoneVerifiedAt: now,
       phoneNumber: '+919000000001',
       verificationLevel: 1,
@@ -143,7 +143,7 @@ suite('F0.3 · verification level cache', () => {
     const now = new Date();
     // Deliberately wrong cache: level 0 stored, but both factors are verified.
     const user = await createUser(ctx.db, {
-      emailVerifiedAt: now,
+      emailVerified: now,
       phoneVerifiedAt: now,
       phoneNumber: '+919000000002',
       verificationLevel: 0,
@@ -162,7 +162,7 @@ suite('F0.3 · verification level cache', () => {
 
   it('downgrades a cache that claims more than the facts support', async () => {
     const user = await createUser(ctx.db, {
-      emailVerifiedAt: new Date(),
+      emailVerified: new Date(),
       phoneVerifiedAt: null,
       verificationLevel: 2,
     });
@@ -176,7 +176,7 @@ suite('F0.3 · verification level cache', () => {
   it('reaches level 2 only when the subscription lookup says so', async () => {
     const now = new Date();
     const user = await createUser(ctx.db, {
-      emailVerifiedAt: now,
+      emailVerified: now,
       phoneVerifiedAt: now,
       phoneNumber: '+919000000003',
       verificationLevel: 1,

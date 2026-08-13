@@ -1,17 +1,29 @@
 /**
  * F0.2 · seed correctness and index usage.
  *
- * On a 30-row table Postgres will correctly prefer a sequential scan — an
- * index scan there would be slower, and asserting one would prove nothing. So
- * these tests seed the 30 real problems (to check the seed itself) and then
- * pad the tables to a realistic size before running EXPLAIN, which is the only
- * way the plans mean anything.
+ * Two distinct things are checked here, and the distinction matters:
+ *
+ *   - the REAL seed (scripts/seed.ts, 30 hand-checked problems with genuine
+ *     platform URLs) is asserted for correctness and C1 compliance;
+ *   - a SYNTHETIC fixture (tests/fixtures/perf-dataset.ts) pads the tables so
+ *     EXPLAIN plans mean something. Every row it creates is fabricated and uses
+ *     the RFC 2606 `.invalid` TLD, and it is never reachable by the app.
+ *
+ * The two never mix: assertions about the seed exclude synthetic rows by slug
+ * prefix, and a dedicated test asserts no fabricated URL can masquerade as a
+ * real platform link.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { problems } from '@/server/db/schema';
 import { SEED_PROBLEMS } from '@/scripts/seed-problems';
 import { seedProblems } from '@/scripts/seed';
+import {
+  EXCLUDE_SYNTHETIC,
+  SYNTHETIC_SLUG_PREFIX,
+  SYNTHETIC_URL_HOST,
+  loadPerfDataset,
+} from '../fixtures/perf-dataset';
 import {
   type TestContext,
   createUser,
@@ -21,62 +33,6 @@ import {
 } from '../helpers/db';
 
 const suite = hasTestDatabase ? describe : describe.skip;
-
-/**
- * Rows added beyond the real seed so the planner faces a realistic table.
- *
- * Size alone is not enough — SELECTIVITY decides the plan. With only five
- * topic values, any single topic matches ~20% of rows and a hash join over a
- * sequential scan is genuinely cheaper than an index. A real catalog has
- * dozens of topics, so each one is a small slice; TOPIC_VOCABULARY reproduces
- * that. Padding the table without fixing selectivity would have produced a
- * plan that says nothing about production.
- */
-const SYNTHETIC_PROBLEMS = 50_000;
-const SYNTHETIC_DAYS = 400;
-
-const TOPIC_VOCABULARY = [
-  'arrays',
-  'strings',
-  'hashing',
-  'two-pointers',
-  'sliding-window',
-  'binary-search',
-  'sorting',
-  'prefix-sum',
-  'stack',
-  'queue',
-  'linked-list',
-  'trees',
-  'binary-search-tree',
-  'heap',
-  'trie',
-  'graphs',
-  'union-find',
-  'topological-sort',
-  'shortest-path',
-  'matrix',
-  'backtracking',
-  'recursion',
-  'dynamic-programming',
-  'greedy',
-  'intervals',
-  'bit-manipulation',
-  'math',
-  'combinatorics',
-  'probability',
-  'geometry',
-  'design',
-  'simulation',
-  'game-theory',
-  'segment-tree',
-  'fenwick-tree',
-  'string-matching',
-  'streaming',
-  'order-statistics',
-  'number-theory',
-  'randomised',
-];
 
 type PlanNode = { 'Node Type': string; Plans?: PlanNode[]; 'Relation Name'?: string };
 
@@ -92,58 +48,14 @@ suite('F0.2 · seed and index usage', () => {
     ctx = await setupTestDb();
     await truncateAll(ctx.sql);
 
-    // 1. The real seed.
+    // 1. The real, hand-checked seed.
     await seedProblems(ctx.db as never);
 
-    // 2. Synthetic padding so EXPLAIN reflects production-shaped data.
-    await ctx.sql`
-      INSERT INTO problems (slug, title, source_type, platform, external_url, difficulty, status)
-      SELECT
-        'synthetic-' || i,
-        'Synthetic Problem ' || i,
-        'external_link',
-        'leetcode',
-        'https://leetcode.com/problems/synthetic-' || i || '/',
-        (ARRAY['easy','medium','hard']::difficulty[])[1 + (i % 3)],
-        'published'
-      FROM generate_series(1, ${SYNTHETIC_PROBLEMS}) AS i
-    `;
-    // Three topic tags per problem, drawn from a realistic vocabulary so no
-    // single topic dominates the table.
-    await ctx.sql`
-      INSERT INTO problem_tags (problem_id, tag_type, tag_value)
-      SELECT p.id, 'topic', ${ctx.sql.array(TOPIC_VOCABULARY)}[1 + ((abs(hashtext(p.slug)) + k) % ${TOPIC_VOCABULARY.length})]
-      FROM problems p, generate_series(0, 2) AS k
-      WHERE p.slug LIKE 'synthetic-%'
-      ON CONFLICT DO NOTHING
-    `;
-
+    // 2. The synthetic padding, clearly separated.
     const user = await createUser(ctx.db);
     userId = user.id;
-
-    await ctx.sql`
-      INSERT INTO user_problems (user_id, problem_id, status, last_attempted_at)
-      SELECT
-        ${userId}::uuid,
-        id,
-        (ARRAY['not_started','in_progress','solved','stuck','needs_revision']::user_problem_status[])[1 + (abs(hashtext(slug)) % 5)],
-        now() - (abs(hashtext(slug)) % 200 || ' days')::interval
-      FROM problems
-    `;
-    await ctx.sql`
-      INSERT INTO daily_sessions (user_id, local_date, solved_count, revision_count, completed)
-      SELECT ${userId}::uuid, (current_date - i), (i % 4), (i % 3), (i % 4) > 1
-      FROM generate_series(0, ${SYNTHETIC_DAYS}) AS i
-    `;
-    await ctx.sql`
-      INSERT INTO verification_methods (user_id, method, identifier, code_hash, expires_at, consumed_at)
-      SELECT ${userId}::uuid, 'phone', '+91987654' || lpad(i::text, 4, '0'), 'hash', now() + interval '10 minutes',
-             CASE WHEN i % 50 = 0 THEN NULL ELSE now() END
-      FROM generate_series(1, 3000) AS i
-    `;
-
-    await ctx.sql`ANALYZE`;
-  }, 120_000);
+    await loadPerfDataset({ sql: ctx.sql, userId });
+  }, 180_000);
 
   afterAll(async () => {
     await ctx?.close();
@@ -154,7 +66,7 @@ suite('F0.2 · seed and index usage', () => {
       const seeded = await ctx.db
         .select({ slug: problems.slug })
         .from(problems)
-        .where(sql`slug NOT LIKE 'synthetic-%'`);
+        .where(sql.raw(EXCLUDE_SYNTHETIC));
 
       expect(seeded).toHaveLength(30);
       expect(SEED_PROBLEMS).toHaveLength(30);
@@ -163,7 +75,7 @@ suite('F0.2 · seed and index usage', () => {
         SELECT p.slug, count(*) FILTER (WHERE t.tag_type = 'topic')   AS topics,
                                 count(*) FILTER (WHERE t.tag_type = 'pattern') AS patterns
         FROM problems p JOIN problem_tags t ON t.problem_id = p.id
-        WHERE p.slug NOT LIKE 'synthetic-%'
+        WHERE p.slug NOT LIKE ${`${SYNTHETIC_SLUG_PREFIX}%`}
         GROUP BY p.slug
       `;
       expect(tagged).toHaveLength(30);
@@ -188,10 +100,42 @@ suite('F0.2 · seed and index usage', () => {
       const rows = await ctx.db
         .select({ url: problems.externalUrl })
         .from(problems)
-        .where(sql`slug NOT LIKE 'synthetic-%'`);
+        .where(sql.raw(EXCLUDE_SYNTHETIC));
 
       for (const { url } of rows) {
         expect(url).toMatch(/^https:\/\/leetcode\.com\/problems\/[a-z0-9-]+\/$/);
+      }
+    });
+
+    it('no fabricated URL can masquerade as a real platform link', async () => {
+      // Synthetic rows use the RFC 2606 `.invalid` TLD, which can never be
+      // registered or resolved. If a future fixture starts inventing
+      // plausible-looking platform URLs, this fails — inventing links is a C1
+      // violation even inside a test database.
+      const impostors = await ctx.sql`
+        SELECT slug, external_url FROM problems
+        WHERE slug LIKE ${`${SYNTHETIC_SLUG_PREFIX}%`}
+          AND external_url NOT LIKE ${`${SYNTHETIC_URL_HOST}%`}
+      `;
+      expect(impostors).toEqual([]);
+
+      const leaked = await ctx.sql`
+        SELECT count(*) AS n FROM problems
+        WHERE slug LIKE ${`${SYNTHETIC_SLUG_PREFIX}%`}
+          AND (external_url LIKE '%leetcode.com%'
+            OR external_url LIKE '%codeforces.com%'
+            OR external_url LIKE '%codechef.com%')
+      `;
+      expect(Number(leaked[0]!.n)).toBe(0);
+    });
+
+    it('the application seed contains ZERO synthetic rows', async () => {
+      // scripts/seed.ts is the only path the app can reach. It must never
+      // produce a fabricated row.
+      const { SEED_PROBLEMS: seeds } = await import('@/scripts/seed-problems');
+      for (const problem of seeds) {
+        expect(problem.slug.startsWith(SYNTHETIC_SLUG_PREFIX)).toBe(false);
+        expect(problem.externalUrl).not.toContain('.invalid');
       }
     });
 

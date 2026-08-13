@@ -6,12 +6,12 @@
  * production without credentials fails loudly inside the console provider
  * rather than silently dropping codes.
  */
-import type { Env } from '@/lib/env';
+import type { ServerEnv } from '@/server/env';
 import { createConsoleOtpProvider } from './console';
 import { createMsg91OtpProvider } from './msg91';
 import type { OtpProvider } from './provider';
 
-export function resolveOtpProvider(env: Env): OtpProvider {
+export function resolveOtpProvider(env: ServerEnv): OtpProvider {
   if (env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID) {
     return createMsg91OtpProvider({
       authKey: env.MSG91_AUTH_KEY,

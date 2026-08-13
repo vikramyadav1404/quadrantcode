@@ -11,7 +11,7 @@
     "contrast": "tsx scripts/contrast.ts",
     "db:explain": "tsx scripts/explain-report.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --conditions=react-server server/db/migrate.ts",
+    "db:migrate": "tsx server/db/migrate.ts",
     "db:rollback": "tsx server/db/rollback.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
@@ -27,7 +27,7 @@
     "test:db:stop": "tsx scripts/test-db.ts stop",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "worker": "tsx --conditions=react-server worker/index.ts"
+    "worker": "tsx worker/index.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -39,6 +39,7 @@
     ]
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.11.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.44.2",
     "next": "^15.5.0",

@@ -5,14 +5,25 @@
  * constants below with real reads. The shell itself never queries them, which
  * is what lets F1.3 land without touching this file's structure.
  */
+import { unauthorized } from 'next/navigation';
 import { BottomNav } from '@/components/shell/BottomNav';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
 import { ToastProvider } from '@/components/ui/Toast';
-import { requireCurrentUser } from '@/server/services/auth/session';
+import { getCurrentUser } from '@/server/services/auth/session';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  await requireCurrentUser();
+  /*
+   * `unauthorized()` rather than a thrown AuthenticationError.
+   *
+   * Middleware only checks that a session COOKIE exists, not that it is valid.
+   * A stale or revoked cookie therefore reaches this layout, where a thrown
+   * error became an uncaught 500 — every user with an expired session got
+   * "Something went wrong" instead of a sign-in prompt. Found by
+   * scripts/verify-admin-403.ts hitting the route with a bad cookie.
+   */
+  const user = await getCurrentUser();
+  if (!user) unauthorized();
 
   // F1.3 (streak-engine) supplies these; typed mock data until then.
   const shellState = { streakDays: 0, streakAtRisk: false, goalCompleted: 0, goalTarget: 2 };

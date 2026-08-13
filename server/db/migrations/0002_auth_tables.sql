@@ -5,7 +5,7 @@ CREATE TABLE "auth_accounts" (
 	"type" text NOT NULL,
 	"refresh_token" text,
 	"access_token" text,
-	"expires_at" timestamp with time zone,
+	"expires_at" integer,
 	"token_type" text,
 	"scope" text,
 	"id_token" text,

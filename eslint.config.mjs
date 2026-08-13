@@ -66,22 +66,36 @@ export default tseslint.config(
     },
   },
 
-  // Client-side surface: components/, app/ and lib/ may not reach into server/.
+  /**
+   * DENY BY DEFAULT. The rule applies to every file, then is switched off for
+   * the directories that are legitimately server-side.
+   *
+   * The previous version listed only components/, lib/ and app/, which meant a
+   * client component anywhere else was silently unguarded — caught by
+   * tests/boundary/server-boundary.test.ts.
+   */
   {
-    files: ['components/**/*.{ts,tsx}', 'lib/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx}'],
     rules: { 'no-restricted-imports': ['error', SERVER_BOUNDARY] },
   },
 
-  // Server Components and route handlers legitimately import server/ modules.
-  // They are exempted by path, not by disabling the rule ad hoc.
+  // Server-side code, exempted by PATH rather than by an ad hoc disable.
   {
     files: [
+      'server/**/*.ts',
+      'worker/**/*.ts',
+      'jobs/**/*.ts',
+      'scripts/**/*.ts',
+      'tests/**/*.{ts,tsx}',
       'app/**/page.tsx',
       'app/**/layout.tsx',
       'app/**/route.ts',
       'app/**/actions.ts',
       'app/**/opengraph-image.tsx',
       'middleware.ts',
+      'drizzle.config.ts',
+      'next.config.ts',
+      'vitest.config.ts',
     ],
     rules: { 'no-restricted-imports': 'off' },
   },

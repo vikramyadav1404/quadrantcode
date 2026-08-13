@@ -6,12 +6,16 @@
  * this file already owns the lifecycle those queues plug into: env validation
  * at boot, a readiness log, and graceful shutdown on SIGTERM/SIGINT.
  *
+ * Imports `@/server/db/client` rather than `@/server/db`: the latter carries a
+ * `server-only` guard meant for the Next bundler, which throws in plain Node.
+ * See server/db/client.ts.
+ *
  * Why this cannot run on Vercel — see README §Worker deployment.
  */
 import 'dotenv/config';
-import { getEnv } from '@/lib/env';
+import { getServerEnv } from '@/server/env';
 import { allFeatureFlags } from '@/lib/flags';
-import { closeDb } from '@/server/db';
+import { closeDb } from '@/server/db/client';
 
 process.env.TRACELOOP_ROLE = 'worker';
 
@@ -45,7 +49,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 
 function main(): void {
   // Throws with a readable message if any required variable is missing.
-  const env = getEnv();
+  const env = getServerEnv();
 
   console.log(
     JSON.stringify({

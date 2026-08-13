@@ -5,13 +5,20 @@
  * "log out all devices" plus session invalidation on email change — both of
  * which need a server-side row to delete.
  *
- * These tables back a small hand-written Auth.js adapter
- * (`server/services/auth/adapter.ts`) rather than `@auth/drizzle-adapter`,
- * because F0.2 fixes the `users` column names (`email_verified_at`) and the
- * stock adapter insists on its own (`emailVerified`). Owning ~150 lines of
- * adapter is cheaper than reshaping the core identity table to suit a library.
+ * These tables back `@auth/drizzle-adapter`. Property names match the adapter's
+ * contract; SQL column names are given explicitly where the two differ, since
+ * Drizzle decouples them. `server/services/auth/adapter.ts` then wraps the
+ * stock adapter to add three app rules — it does not reimplement it.
  */
-import { index, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 /** OAuth links. Empty today (email magic link only) — declared so adding a provider is not a migration scramble. */
@@ -24,13 +31,17 @@ export const authAccounts = pgTable(
     provider: text().notNull(),
     providerAccountId: text().notNull(),
     type: text().notNull(),
-    refreshToken: text(),
-    accessToken: text(),
-    expiresAt: timestamp({ withTimezone: true }),
-    tokenType: text(),
-    scope: text(),
-    idToken: text(),
-    sessionState: text(),
+
+    // Property names below are the adapter's contract (snake_case in its
+    // AdapterAccount type); the SQL columns are named explicitly so the
+    // database keeps this project's conventions.
+    refresh_token: text('refresh_token'),
+    access_token: text('access_token'),
+    expires_at: integer('expires_at'),
+    token_type: text('token_type'),
+    scope: text('scope'),
+    id_token: text('id_token'),
+    session_state: text('session_state'),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
