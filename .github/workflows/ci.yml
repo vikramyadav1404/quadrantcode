@@ -89,3 +89,65 @@ jobs:
       # fails here even if someone disabled the ESLint rule.
       - name: Build
         run: npm run build
+
+  # SEPARATE JOB, deliberately: browser tests are slower and flakier than the
+  # unit suite, and gating merges on both in one job means a Chromium hiccup
+  # blocks a green typecheck. This job may be marked non-required in branch
+  # protection without weakening the unit gate.
+  e2e:
+    name: browser (playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: traceloop_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/traceloop_test
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/traceloop_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/traceloop_test
+      AUTH_SECRET: e2e-ci-secret-not-for-production
+      NEXT_PUBLIC_APP_URL: http://localhost:3210
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Migrate
+        run: npm run db:migrate
+
+      - name: Build
+        run: npm run build
+
+      # playwright.config.ts starts `next start` itself via webServer.
+      - name: Run browser tests
+        run: npm run test:e2e
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: .playwright/report
+          retention-days: 7

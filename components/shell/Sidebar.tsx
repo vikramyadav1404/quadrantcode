@@ -11,6 +11,7 @@ export function Sidebar() {
   return (
     <nav
       aria-label="Main"
+      data-nav="sidebar"
       className="hidden w-56 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] p-3 md:block"
     >
       <ul className="flex flex-col gap-1">

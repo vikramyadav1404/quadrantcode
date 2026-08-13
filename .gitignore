@@ -45,3 +45,8 @@ docs/*-runbook.md
 docs/*-addendum.md
 docs/*-notes.md
 docs/scratch/
+
+# Playwright artifacts
+.playwright/
+playwright-report/
+test-results/
