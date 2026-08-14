@@ -82,10 +82,11 @@ Stated so they are not mistaken for coverage:
 - No load testing, no concurrent-user testing, and no deploy has happened —
   there is no hosting environment yet.
 - The boundary suite failed **once** in one full run and has not reproduced in
-  three subsequent runs. I could not determine the cause and did not change
-  anything to "fix" it; it is not a timeout (the global limit is 30s and the
-  test takes ~3s) and it writes nothing to disk. Recorded here rather than
-  dismissed, because an unexplained intermittent failure is a real finding.
+  four subsequent runs. Cause unknown; nothing was changed to "fix" it. Tracked
+  in **[#3](https://github.com/vikramyadav1404/traceloop/issues/3)** with the
+  captured output, what was ruled out, and the reproduction harness — not left
+  as a line in this document, because the risk with a flake is a team learning
+  to ignore red.
 
 ---
 
