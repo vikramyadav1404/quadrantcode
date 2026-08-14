@@ -50,6 +50,23 @@ function isFormulaLead(char: string | undefined): boolean {
 }
 
 /**
+ * Would this value be escaped?
+ *
+ * Escapes the escape, which is the part the first version got wrong. A value
+ * that ALREADY looks like an escaped one — `'=x` — has to be escaped too, or
+ * `unescape` cannot tell a marker we added from an apostrophe the user typed.
+ *
+ * Iterative rather than recursive: titles are capped at 200 characters, so the
+ * depth is bounded either way, but a string of apostrophes is exactly the input
+ * someone would fuzz with.
+ */
+function needsEscaping(value: string): boolean {
+  let index = 0;
+  while (index < value.length && value[index] === TEXT_MARKER) index += 1;
+  return isFormulaLead(value[index]);
+}
+
+/**
  * Neutralise a cell for a spreadsheet, reversibly.
  *
  * Applied to every exported cell, not only the ones that look suspicious —
@@ -57,25 +74,27 @@ function isFormulaLead(char: string | undefined): boolean {
  * missed when a column is added later.
  */
 export function escapeCell(value: string): string {
-  if (value.length === 0) return value;
-  return isFormulaLead(value[0]) ? `${TEXT_MARKER}${value}` : value;
+  return needsEscaping(value) ? `${TEXT_MARKER}${value}` : value;
 }
 
 /**
- * Undo `escapeCell`, so our own export re-imports as the original data.
+ * Undo `escapeCell`. An exact inverse, for every input.
  *
- * Narrow on purpose: the marker is stripped ONLY when the character after it is
- * a formula lead. A title that genuinely begins with an apostrophe — `'tis` —
- * is left alone, because `t` is not a formula lead.
+ * The first version was NOT an inverse, and the gap only shows on the second
+ * lap. It stripped a marker whenever the next character was a formula lead, so
+ * a title the user genuinely typed as `'=x` came back as `=x` — a silent data
+ * change on export → import, which then stabilised and looked fine forever
+ * after. Testing `unescape(escape(x)) === x` on fresh values could not catch
+ * it, because the damaged value only appears once a cycle has run.
  *
- * The one input this cannot round-trip is a title that genuinely begins with
- * `'=`, which comes back as `=`. That is accepted rather than solved: solving
- * it needs an escape-the-escape rule, and this trade loses a keystroke on an
- * input nobody has, versus carrying a second encoding layer through every cell.
+ * With the escape-the-escape rule, the marker is stripped only when what
+ * follows would itself have been escaped, so `''=x → '=x → =x` unwinds one
+ * layer per lap and never one too many. A title beginning with an ordinary
+ * apostrophe — `'tis` — is untouched, since `t` is not a formula lead.
  */
 export function unescapeCell(value: string): string {
-  if (value.length < 2 || value[0] !== TEXT_MARKER) return value;
-  return isFormulaLead(value[1]) ? value.slice(1) : value;
+  if (value[0] !== TEXT_MARKER) return value;
+  return needsEscaping(value.slice(1)) ? value.slice(1) : value;
 }
 
 /** True when a spreadsheet would evaluate this cell as a formula. */
