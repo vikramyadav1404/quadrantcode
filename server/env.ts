@@ -61,6 +61,12 @@ const optionalServerSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
+
+  // F0.5 avatar storage. The service-role key is server-side only — it bypasses
+  // row-level security, so it must never be prefixed NEXT_PUBLIC.
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_AVATAR_BUCKET: z.string().optional(),
 });
 
 const serverEnvSchema = requiredServerSchema.and(optionalServerSchema).and(publicEnvSchema);

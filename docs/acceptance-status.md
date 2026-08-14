@@ -114,3 +114,37 @@ The catalog list was doing a **sequential scan at 20k rows** despite a
 correct-looking index, because Drizzle writes `DESC NULLS LAST` and a bare
 `ORDER BY ... DESC` means `NULLS FIRST`. Results were identical, so only an
 EXPLAIN assertion could catch it. 27.98 ms → 0.27 ms. See decisions **D10**.
+
+---
+
+## F0.5 · `profile-avatar`
+
+| Criterion                                                                | Status           | Evidence                                                                                                                          |
+| ------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| A PDF renamed `avatar.png` is REJECTED at confirm and the object deleted | **DONE**         | `tests/profile/avatar.test.ts` — asserts both the rejection code and that the key is gone from storage                            |
+| A 5MB file is rejected at presign, before any upload begins              | **DONE**         | Same suite; also asserts zero keys exist afterwards                                                                               |
+| A presigned URL is unusable 90 seconds after issue                       | **DONE**         | Injected clock against the in-memory provider, which implements real expiry                                                       |
+| User A cannot presign/confirm under User B's prefix                      | **DONE**         | Called at the **service**, not through the UI; also asserts B's object survives A's attempt                                       |
+| Replacing an avatar leaves exactly ONE object                            | **DONE**         | Same suite                                                                                                                        |
+| Passing `avatarUrl` in the profile save payload is ignored               | **DONE**         | `tests/profile/profile.test.ts` — schema-level and end-to-end against the DB                                                      |
+| A user with no avatar sees initials, identical colour across reloads     | **DONE**         | FNV-1a over the user id; determinism and all-360-hue contrast asserted                                                            |
+| A bio containing `<script>` renders as visible plain text                | **PARTIAL**      | Stored verbatim and asserted; React escapes at render. **No browser test yet** — belongs with the F0.3 amendment's e2e work       |
+| Profile save on throttled slow-3G rolls back correctly                   | **NOT VERIFIED** | Optimistic save has a 10s timeout and rolls back to the last server-confirmed state, but no Playwright throttling test exists yet |
+
+### Blocked and deferred
+
+- **Supabase Storage is unverified.** No credentials, so `supabase.ts` has never
+  run against a live bucket. Everything above the provider seam is tested
+  against the in-memory implementation. The seam is exactly where the untested
+  code begins, and that is deliberate.
+- **Orphan cleanup is not scheduled.** `cleanupOrphanedAvatars` is written and
+  tested; wiring it to a repeating queue is **DEFERRED to F2.3**.
+
+### Found while building
+
+`AVATAR_LIGHTNESS` was first set to 32%, which looked fine and **failed WCAG**:
+pure yellow (hue 60) measured **3.96:1** against white text, and roughly a sixth
+of the hue wheel was below 4.5. Because the hue derives from the user id, the
+failure would have hit an arbitrary, unpredictable subset of users. Corrected to
+28% (worst hue now 4.93:1). The test walks all 360 hues, so a future palette
+tweak fails the build.
