@@ -50,6 +50,16 @@ export const RATE_LIMITS = {
   magicLinkResendCooldown: { limit: 1, windowSeconds: 60, prefix: 'auth:link:cooldown' },
   /** F0.5: 10 presign requests per user per hour. */
   avatarPresignPerUser: { limit: 10, windowSeconds: 3600, prefix: 'avatar:presign:user' },
+  /**
+   * F1.2: 10 imports per user per hour.
+   *
+   * An import is the most expensive thing an authenticated user can ask for —
+   * up to 5,000 rows of parse plus insert — and the row and byte caps bound one
+   * request, not a sequence of them. Without this, the caps are a speed bump.
+   */
+  importPerUser: { limit: 10, windowSeconds: 3600, prefix: 'ingest:import:user' },
+  /** F1.2: exports are read-only but aggregate every tracked row. */
+  exportPerUser: { limit: 20, windowSeconds: 3600, prefix: 'ingest:export:user' },
 } as const satisfies Record<string, RateLimitRule>;
 
 // ── In-memory store (tests and local dev only) ──────────────────────────────

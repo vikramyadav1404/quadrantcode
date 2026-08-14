@@ -10,11 +10,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { parseImportCsv } from '@/server/services/ingest/csv';
 import {
+  InProcessJobRunner,
   type JobRunner,
   getJobProgress,
   processImportJob,
   sweepStalledJobs,
 } from '@/server/services/ingest/jobs';
+import { rowsForJob } from '@/server/services/ingest/job-rows';
 import { startImport } from '@/server/services/ingest';
 import { IMPORT_LIMITS } from '@/server/services/ingest/limits';
 import {
@@ -278,6 +280,55 @@ suite('F1.2 · processImportJob', () => {
     expect(await ctx.sql`SELECT id FROM user_problems`).toHaveLength(300);
   });
 
+  it('the runner completes a job knowing ONLY its id', async () => {
+    /*
+     * The proof that the seam is real rather than a shape.
+     *
+     * `JobRunner.enqueue(jobId)` takes an id and nothing else, which is only
+     * workable if everything needed to do the work is recoverable from the
+     * database. My first version stored no payload — it would have worked in
+     * process, where the parsed rows could sit in a closure, and failed the
+     * moment F2.3 sent that id to a BullMQ worker across a process boundary.
+     * The seam would have been a fiction that held right up until it mattered.
+     *
+     * So: hand the runner an id, give it nothing else, and require the import
+     * to finish.
+     */
+    const runner = new InProcessJobRunner(ctx.db, (id) => rowsForJob(ctx.db, id));
+    const result = await startImport(
+      ctx.db,
+      userId,
+      { name: 'seam.csv', content: bigCsv(150, 'seam') },
+      runner,
+    );
+    if (result.mode !== 'job') throw new Error('expected a job');
+
+    // The runner schedules and returns; poll for the outcome.
+    const deadline = Date.now() + 20_000;
+    let progress = await getJobProgress(ctx.db, result.jobId, userId);
+    while (Date.now() < deadline && progress?.status !== 'succeeded') {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      progress = await getJobProgress(ctx.db, result.jobId, userId);
+      if (progress?.status === 'failed') break;
+    }
+
+    expect(progress?.status, `job ended as ${progress?.status}: ${progress?.error}`).toBe(
+      'succeeded',
+    );
+    expect(progress?.processedRows).toBe(150);
+    expect(await ctx.sql`SELECT id FROM problems`).toHaveLength(150);
+  });
+
+  it('rowsForJob reconstructs exactly what startImport validated', async () => {
+    // Re-parsing is deterministic, which is why the payload is stored as raw
+    // text rather than as a second, parsed representation that could disagree.
+    const content = bigCsv(150, 'recon');
+    const { jobId, rows } = await createJob(content);
+
+    const recovered = await rowsForJob(ctx.db, jobId);
+    expect(recovered).toEqual(rows);
+  });
+
   it('records a failure on the row rather than only throwing', async () => {
     const { jobId } = await createJob(bigCsv(150));
 
@@ -317,9 +368,10 @@ suite('F1.2 · sweepStalledJobs', () => {
    */
   async function insertJob(status: string, heartbeatAgoSeconds: number) {
     const [row] = await ctx.sql`
-      INSERT INTO import_jobs (user_id, filename, content_hash, status, total_rows, heartbeat_at)
+      INSERT INTO import_jobs
+        (user_id, filename, content_hash, content, status, total_rows, heartbeat_at)
       VALUES (
-        ${userId}, 'x.csv', ${Math.random().toString(36).slice(2)},
+        ${userId}, 'x.csv', ${Math.random().toString(36).slice(2)}, ${HEADER},
         ${status}::import_job_status, 10,
         now() - make_interval(secs => ${heartbeatAgoSeconds})
       )

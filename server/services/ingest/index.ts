@@ -15,6 +15,7 @@ import { IMPORT_LIMITS } from './limits';
 export * from './csv';
 export * from './export';
 export * from './import';
+export * from './job-rows';
 export * from './jobs';
 export * from './limits';
 export { normaliseProblemUrl } from './normalise-url';
@@ -85,6 +86,9 @@ export async function startImport(
       userId,
       filename: file.name,
       contentHash,
+      // See the column comment: the runner gets an id and must be able to
+      // recover the payload from the row alone.
+      content: typeof file.content === 'string' ? file.content : file.content.toString('utf8'),
       totalRows: parsed.valid.length,
       invalidCount: parsed.invalid.length,
       status: 'pending',
