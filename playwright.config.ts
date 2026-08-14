@@ -56,6 +56,13 @@ export default defineConfig({
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? '',
       AUTH_SECRET: process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production',
       NEXT_PUBLIC_APP_URL: BASE_URL,
+      /*
+       * `next start` sets NODE_ENV=production, where the rate limiter refuses
+       * the in-memory fallback — correctly, since it would not limit anything
+       * across serverless instances. This single-process test server is the one
+       * case where that fallback is sound.
+       */
+      ALLOW_IN_MEMORY_RATE_LIMIT: '1',
     },
   },
 });

@@ -48,6 +48,8 @@ const optionalServerSchema = z.object({
   REDIS_URL: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  /** Test-only escape from the production rate-limiter guard. See ratelimit.ts. */
+  ALLOW_IN_MEMORY_RATE_LIMIT: z.string().optional(),
   AUTH_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
