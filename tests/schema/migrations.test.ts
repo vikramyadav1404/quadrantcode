@@ -16,12 +16,22 @@ const suite = hasTestDatabase ? describe : describe.skip;
 const DOWN_DIR = 'server/db/migrations/down';
 const UP_DIR = 'server/db/migrations';
 
+/**
+ * Every table the migrations should produce, listed explicitly.
+ *
+ * An exact-equality assertion rather than a subset check, which is the point:
+ * adding a table without updating this list fails the build, so a table can
+ * never appear in the schema without someone also writing its DOWN migration.
+ * That is exactly what happened when F1.2 added the two below.
+ */
 const EXPECTED_TABLES = [
   'auth_accounts',
   'auth_sessions',
   'auth_verification_tokens',
   'daily_goals',
   'daily_sessions',
+  'import_job_rows', // F1.2
+  'import_jobs', // F1.2
   'problem_tags',
   'problems',
   'user_problems',

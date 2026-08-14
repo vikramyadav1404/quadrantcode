@@ -72,3 +72,34 @@ export const targetRoleEnum = pgEnum('target_role', [
 
 /** Self-reported confidence, reused by reflections (F1.5) and revision (F2.1). */
 export const confidenceEnum = pgEnum('confidence', ['low', 'medium', 'high']);
+
+/**
+ * F1.2 import job lifecycle.
+ *
+ * `stalled` exists because the in-process runner cannot survive a deploy or a
+ * serverless suspend (see D16). A job whose heartbeat has gone quiet is
+ * distinguishable from one that genuinely failed, which matters: the remedy for
+ * a stalled job is to resume it, and for a failed one is to fix the file.
+ */
+export const importJobStatusEnum = pgEnum('import_job_status', [
+  'pending',
+  'running',
+  'succeeded',
+  'partial',
+  'failed',
+  'stalled',
+]);
+
+/**
+ * The outcome of one CSV row.
+ *
+ * `duplicate` is deliberately not `failed`: re-importing a list you already
+ * have is the normal case, not an error, and the two must be counted
+ * separately or the idempotency criterion cannot be asserted.
+ */
+export const importRowOutcomeEnum = pgEnum('import_row_outcome', [
+  'created',
+  'linked',
+  'duplicate',
+  'invalid',
+]);

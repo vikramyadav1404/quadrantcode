@@ -8,6 +8,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { problemTags, problems } from '@/server/db/schema';
+import { normaliseProblemUrl } from '@/server/services/ingest/normalise-url';
 import {
   ContentPolicyError,
   type ContentPolicyViolation,
@@ -110,6 +111,13 @@ export async function createProblem(
         sourceType: input.sourceType,
         platform: input.platform ?? null,
         externalUrl: input.externalUrl ?? null,
+        /*
+         * F1.2 dedup key, derived here rather than by the database — see the
+         * column comment in schema/problems.ts for why it is not GENERATED.
+         * Deriving it on the write path is what makes the unique index able to
+         * enforce "one URL is one catalog row"; a caller cannot supply it.
+         */
+        externalUrlNormalised: normaliseProblemUrl(input.externalUrl ?? null),
         difficulty: input.difficulty,
         estimatedMinutes: input.estimatedMinutes,
         isPremium: input.isPremium,
@@ -171,7 +179,19 @@ export async function updateProblem(db: Database, rawInput: unknown): Promise<vo
         ...(input.isPremium !== undefined ? { isPremium: input.isPremium } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.platform !== undefined ? { platform: input.platform } : {}),
-        ...(input.externalUrl !== undefined ? { externalUrl: input.externalUrl } : {}),
+        /*
+         * The dedup key moves with the URL, in the SAME conditional so the two
+         * cannot be updated apart. Splitting them would let a URL change while
+         * the key kept pointing at the old one — dedup would then match the
+         * previous URL forever, which is a silent wrong answer rather than a
+         * visible failure.
+         */
+        ...(input.externalUrl !== undefined
+          ? {
+              externalUrl: input.externalUrl,
+              externalUrlNormalised: normaliseProblemUrl(input.externalUrl),
+            }
+          : {}),
         ...(current.sourceType === 'original'
           ? {
               ...(input.statement !== undefined ? { statement: input.statement } : {}),
