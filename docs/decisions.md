@@ -573,3 +573,78 @@ Drizzle spells this `where` on `onConflictDoNothing` and `targetWhere` on
 **Rejected:** a lint rule banning the bare form. It would fire on the four
 correct `problem_tags` sites, and a rule with a 4-to-1 false-positive rate
 teaches people to disable it. The check belongs in review, and now in this entry.
+
+---
+
+## D17 · F2.3 is cut, so the in-process runner is permanent
+
+**Decision (Vikram, scope).** The target build is 11 more tickets, not 21. F2.3
+`job-runtime` — BullMQ, Upstash Redis, the standalone queue worker — is cut.
+
+This entry exists because the cut is not only a scheduling change. Roughly
+thirty comments across the codebase said "F2.3 replaces this", and every one of
+them was a promise that is no longer going to be kept. They were rewritten
+rather than left, because a comment describing a future that will not arrive is
+worse than no comment: it tells the next reader the limitation is temporary.
+
+### What the seam still buys
+
+The `JobRunner` seam was justified as "so F2.3 can swap the executor". That
+justification is gone and the design survives it — for a better reason than the
+original one.
+
+Job state and payload live in `import_jobs`. With a queue, that was tidiness:
+the queue could have carried the CSV. **Without a queue, the database is the
+only thing that can recover a job at all.** A runner holding parsed rows in
+memory loses the import outright when its process ends, and nothing re-delivers
+it. So the property that made the seam honest — `enqueue(jobId)` and nothing
+else — is now the property that makes recovery possible.
+
+### What is permanently missing, stated plainly
+
+| Gap                                  | Consequence                                          | Mitigation                                                                                                       |
+| ------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| No automatic retry                   | A job whose process dies is dead until a person acts | Re-uploading the same file re-enqueues it; content hash identifies it, the watermark makes the repeat idempotent |
+| No scheduled sweep                   | `sweepStalledJobs` runs only when called             | Called from the request path. A job can sit `running` until someone loads the page                               |
+| No scheduled avatar cleanup          | Orphaned uploads accumulate                          | `npm run avatars:cleanup`, on demand or from a host cron                                                         |
+| No queue-backed retries with backoff | A transient failure is a failed job                  | The user retries by re-uploading                                                                                 |
+
+**A found bug, from making this explicit.** `startImport` returned an existing
+job without re-enqueueing it, which was defensible only while F2.3 was going to
+add queue-level retries — and `/settings/import` already told the user
+"re-upload the same file to continue from where it left off". That promise was
+false. It now re-enqueues a job in `stalled`, `failed` or `pending`, and
+deliberately does not touch one that is genuinely `running` (that would double
+the work rather than resume it). The cut turned a deferred gap into a live bug,
+which is exactly the kind of thing a scope change hides.
+
+### The consequence for F3.1, flagged before reaching it
+
+**F3.1 `execution-pipeline` is specified as "Monaco Editor & Queued Judge0
+Execution".** It is in the target scope and its queue is not.
+
+Judge0 is submit-then-poll: a submission returns a token and the result arrives
+later. That is queue-shaped work, and the honest options are:
+
+1. **Reuse this pattern.** An `execution_jobs` table, the same `JobRunner` seam,
+   the same polling contract, the same in-process runner. It generalises
+   cleanly — this ticket already proved the shape — and inherits exactly the
+   gaps in the table above: an execution whose process dies needs the user to
+   re-run it.
+2. **Synchronous submit-and-wait** inside the request. Simpler, and wrong for
+   anything but the fastest submissions; a serverless timeout would strand
+   executions with no record.
+
+**Option 1 is the recommendation**, and it should be decided before F3.1 starts
+rather than discovered inside it. The one thing not to do is quietly build
+around the missing queue and leave "needs F2.3" implicit — the request was to
+flag it, so it is flagged here and in the README roadmap table.
+
+### Also cut, and their live consequences
+
+F2.4 `notification-engine` and F2.5 `contest-upsolve` are cut, so no scheduled
+reminders and no contest sync — both were queue-dependent. F4.3 `rewards-trust`
+is cut, which means **C8** (daily cap + cooldown + minimum active time on every
+reward-granting path) has no path to guard: the constraint stands, and nothing
+in the target scope grants rewards. F1.2's curated library is cut to a small
+verified subset with the rest BLOCKED on a real list.

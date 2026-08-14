@@ -1,15 +1,12 @@
 /**
  * F1.2 · CSV import jobs.
  *
- * The job STATE lives here rather than in a queue, and that is the design, not
- * a workaround for not having Redis yet.
+ * The job STATE lives here rather than in a queue.
  *
- * Progress polling reads a row from this table. That is true whether the work
- * is executed by the in-process runner shipping today or by the BullMQ runner
- * F2.3 adds, so swapping the executor changes nothing the client can observe.
- * A queue that owned the progress state would make the polling contract a
- * property of the queue, and then F2.3 would be a rewrite of this feature
- * rather than a change of runner. See D16.
+ * F2.3 (`job-runtime`) is cut, so the in-process runner is permanent and this
+ * table is not a staging post for a future queue — it is the only durable
+ * record a job has. A job that outlives the process which started it is
+ * recoverable only because everything it needs is in these columns. See D17.
  */
 import { sql } from 'drizzle-orm';
 import {
@@ -44,11 +41,10 @@ export const importJobs = pgTable(
     /**
      * The uploaded CSV itself.
      *
-     * Stored because the runner seam claims `enqueue(jobId)` is enough — and it
-     * is only enough if the payload really is in the database. Capturing the
-     * parsed rows in a closure would work for the in-process runner and quietly
-     * fail for BullMQ, which gets nothing but an id across a process boundary.
-     * That would have made the seam a fiction that held right up until F2.3.
+     * Stored because a job has to be recoverable from its row alone. Capturing
+     * the parsed rows in a closure would work right up until the process
+     * holding that closure ended — which, with no queue to retry anything, is
+     * exactly the case that has to work.
      *
      * The raw text rather than the parsed rows: re-parsing is deterministic, it
      * is the source of truth for the content hash, and it is what a resumed job
@@ -87,8 +83,9 @@ export const importJobs = pgTable(
      *
      * The in-process runner dies with its process, so a job can be `running`
      * with nobody running it. A stale heartbeat is the only way to tell that
-     * apart from a job that is merely slow. Read by the stall sweep; automatic
-     * resume is DEFERRED to F2.3.
+     * apart from a job that is merely slow. Read by the stall sweep. Recovery is
+     * user-driven — re-uploading the same file re-enqueues it — because with
+     * F2.3 cut there is nothing that could retry it automatically.
      */
     heartbeatAt: timestamp({ withTimezone: true }),
 

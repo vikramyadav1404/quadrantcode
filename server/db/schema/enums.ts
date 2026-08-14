@@ -77,7 +77,7 @@ export const confidenceEnum = pgEnum('confidence', ['low', 'medium', 'high']);
  * F1.2 import job lifecycle.
  *
  * `stalled` exists because the in-process runner cannot survive a deploy or a
- * serverless suspend (see D16). A job whose heartbeat has gone quiet is
+ * serverless suspend (see D17). A job whose heartbeat has gone quiet is
  * distinguishable from one that genuinely failed, which matters: the remedy for
  * a stalled job is to resume it, and for a failed one is to fix the file.
  */

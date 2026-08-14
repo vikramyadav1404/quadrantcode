@@ -1,23 +1,47 @@
-# Where the project stands — Phase 0 + F1.1
+# Where the project stands
 
-_Last updated: 2026-08-15, after the F0.3 auth-UI amendment._
+_Last updated: 2026-08-15, after F1.2 and the scope decision._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 336 passing, 5 skipped (341 total, 20 files) + 42 Playwright.
+**Tests:** 458 passing, 5 skipped (463 total, 26 files) + 42 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
-skipping.
+skipping. If a run reports far fewer, they skipped silently: check the count,
+not the colour.
 
-**CI:** run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — `typecheck · lint · test · build` **success**,
-`browser (playwright)` **success**.
+**CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
+on `feat/F0.3-auth-ui` — both jobs success. The F1.2 branch has not been pushed
+yet, so it carries **no CI result**; this line gets the run id when it does.
+
+---
+
+## Target scope — 18 features, not 29
+
+Set by Vikram on 2026-08-15. The build ships **8 done + 11 remaining**, in this
+order:
+
+> F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1 · F3.2 · F3.3 · F3.5 · F4.6 · F4.8
+
+**Cut:** F2.2, F2.3, F2.4, F2.5, F4.1, F4.2, F4.3, F4.4, F4.5, F4.7, and F1.2's
+curated 100-problem library. The README carries the full built/planned/cut
+table; nothing cut is described in the present tense anywhere else.
+
+**The cut that changes engineering, not just schedule: F2.3.** There is no queue
+and there will not be one, so the in-process job runner is permanent. No
+automatic retry, no scheduled sweeps, no background cleanup. **D17** records
+what that costs, how recovery works instead, and the decision F3.1 now needs
+before it starts — it is specified as _queued_ Judge0 execution and its queue is
+cut.
+
+Phase 3 survives intact, which is the point: Solve Intelligence is the project's
+identity and was never the part to trim.
 
 ---
 
 ## Shippable today
 
-Six tickets are complete and openable in a browser: a signed-out flow
+Eight tickets are complete and openable in a browser: a signed-out flow
 (`/login` → `/login/verify` → `/onboarding`), an authenticated shell with
 working theme and navigation, a problem catalog with search, filtering and
 keyset pagination, admin CRUD behind a role gate, and a profile page with
@@ -32,6 +56,7 @@ avatar upload.
 | F0.4   | Design System & Application Shell    | **DONE**                       |
 | F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED |
 | F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                       |
+| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED     |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -42,14 +67,14 @@ Every `FEATURE_*` flag is still `false`, as intended.
 Nothing here can be resolved from inside this environment. Ordered by how much
 it currently costs.
 
-| #   | Need                                                        | Unblocks                                   | Cost of staying blocked                                                                                                                                                                                        |
-| --- | ----------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **`RESEND_API_KEY`**                                        | Magic-link delivery                        | **Nobody can actually sign in.** Everything after the click is tested against the real callback; only the email send is unverified. The e2e server logs a genuine Resend 401, so the call is really being made |
-| 2   | **Cloudflare R2 keys** + a public `r2.dev` or custom domain | Avatar upload end to end                   | 5 written assertions are skipping. The client is proven to sign a 60s expiry; that the **bucket honours it** has never run. The public-URL half is a deployment dependency, not code (see D11)                 |
-| 3   | **`MSG91_AUTH_KEY`** + template id                          | Phone OTP delivery                         | Service, rate limits and lockout are tested against a fake. Real SMS never sent. `FEATURE_PHONE_OTP=false`, so this blocks nothing shipping today                                                              |
-| 4   | **Upstash Redis** URL + token                               | Production rate limiting, and F2.3's queue | The in-memory limiter is per-process and would not limit anything on serverless. Production now **refuses to start** without Redis rather than pretending — so this is required before any real deploy         |
-| 5   | **Judge0** URL                                              | F3.1                                       | Not needed until Phase 3                                                                                                                                                                                       |
-| 6   | **Razorpay** keys                                           | F4.4                                       | Not needed until Phase 4                                                                                                                                                                                       |
+| #   | Need                                                        | Unblocks                 | Cost of staying blocked                                                                                                                                                                                                                       |
+| --- | ----------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **`RESEND_API_KEY`**                                        | Magic-link delivery      | **Nobody can actually sign in.** Everything after the click is tested against the real callback; only the email send is unverified. The e2e server logs a genuine Resend 401, so the call is really being made                                |
+| 2   | **Cloudflare R2 keys** + a public `r2.dev` or custom domain | Avatar upload end to end | 5 written assertions are skipping. The client is proven to sign a 60s expiry; that the **bucket honours it** has never run. The public-URL half is a deployment dependency, not code (see D11)                                                |
+| 3   | **`MSG91_AUTH_KEY`** + template id                          | Phone OTP delivery       | Service, rate limits and lockout are tested against a fake. Real SMS never sent. `FEATURE_PHONE_OTP=false`, so this blocks nothing shipping today                                                                                             |
+| 4   | **Upstash Redis** URL + token                               | Production rate limiting | The in-memory limiter is per-process and would not limit anything on serverless. Production **refuses to start** without Redis rather than pretending, so this is required before any real deploy. No longer needed for a queue — F2.3 is cut |
+| 5   | **Judge0** URL                                              | F3.1                     | Not needed until Phase 3                                                                                                                                                                                                                      |
+| 6   | **Razorpay** keys                                           | F4.4                     | Not needed until Phase 4                                                                                                                                                                                                                      |
 
 Items 1 and 2 are the ones I would get first: without them the product cannot be
 demonstrated end to end by a real person, which is the only thing the current
@@ -61,7 +86,9 @@ build is missing.
 
 | Item                                 | Closes in   | Why deferred                                                                                                                                                          |
 | ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Orphaned-avatar cleanup scheduling   | **F2.3**    | `cleanupOrphanedAvatars` is written and tested; there is no queue runtime yet to attach it to                                                                         |
+| Orphaned-avatar cleanup scheduling   | **never**   | F2.3 is cut, so nothing will schedule it. Run `npm run avatars:cleanup` on demand; orphans accumulate until you do (D17)                                              |
+| Automatic retry of a dead import job | **never**   | No queue. Recovery is user-driven: re-uploading the same file re-enqueues it, idempotently (D17)                                                                      |
+| Curated 100-problem library          | **BLOCKED** | A small verified subset ships. The full list needs real data from your solve history — I will not invent URLs (C1)                                                    |
 | Profile save under throttled slow-3G | unscheduled | Optimistic save has a 10s timeout and rolls back to the last server-confirmed state, but no Playwright throttling test exists. Recorded as **NOT VERIFIED**, not DONE |
 
 Two criteria that were deferred are now **closed**: skeleton states (by F1.1's

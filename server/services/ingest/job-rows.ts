@@ -2,9 +2,10 @@
  * Reconstruct a job's validated rows from what the database holds.
  *
  * This is the function that makes `JobRunner.enqueue(jobId)` honest. A runner
- * receives an id and nothing else — under BullMQ that id crosses a process
- * boundary, so anything captured in a closure at enqueue time would be gone.
- * Everything needed to do the work has to be recoverable from the row.
+ * receives an id and nothing else, so anything captured in a closure at enqueue
+ * time is gone the moment that process ends — and with F2.3 cut, no queue will
+ * re-deliver the work. Everything needed to do it must be recoverable from the
+ * row.
  *
  * Re-parsing rather than storing parsed rows: the parse is deterministic, so
  * this yields exactly what `startImport` validated, and there is one

@@ -1,11 +1,9 @@
 /**
  * GET /api/ingest/jobs/:id — import progress.
  *
- * The polling contract. It reads a row from `import_jobs`, which is the same
- * operation whether the work is being done by the in-process runner or, from
- * F2.3, by a BullMQ worker — so this handler does not change when the runner
- * does. That is the whole reason progress lives in the table rather than the
- * queue.
+ * The polling contract. It reads a row from `import_jobs`, which is the only
+ * durable record a job has — the in-process runner holds nothing this handler
+ * needs, so progress survives that runner's process ending. See D17.
  */
 import { NextResponse } from 'next/server';
 import { getDb } from '@/server/db';
