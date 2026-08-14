@@ -62,10 +62,14 @@ export function ResendPanel({ email }: { email: string }) {
         value={address}
       />
 
+      {/* aria-disabled rather than disabled — see LoginForm for why. */}
       <button
-        className="self-start rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
-        disabled={pending || cooldown > 0 || address.length === 0}
-        onClick={() => void resend()}
+        aria-disabled={pending || cooldown > 0 || address.length === 0}
+        className="self-start rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] aria-disabled:opacity-60"
+        onClick={() => {
+          if (pending || cooldown > 0 || address.length === 0) return;
+          void resend();
+        }}
         type="button"
       >
         {pending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send a new link'}

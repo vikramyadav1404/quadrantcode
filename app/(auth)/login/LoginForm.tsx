@@ -61,22 +61,32 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
           If <strong className="text-[var(--text-primary)]">{maskedEmail}</strong> has an
           account, a sign-in link is on its way. It expires in 15 minutes.
         </p>
-
+        {/*
+         * `aria-disabled`, not `disabled`.
+         *
+         * A `disabled` button is removed from the tab order, so a keyboard user
+         * mid-cooldown finds the control has simply vanished with no
+         * explanation. Kept focusable, it is reachable and announced as
+         * "Resend in 45s". The click is guarded below, and the SERVER enforces
+         * the cooldown regardless — so a press during the window is answered,
+         * not obeyed.
+         */}
         <button
-          className="mt-4 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm disabled:opacity-60"
-          disabled={cooldown > 0}
-          onClick={() => void send(email)}
+          aria-disabled={cooldown > 0}
+          className="mt-4 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm aria-disabled:opacity-60"
+          onClick={() => {
+            if (cooldown > 0) return;
+            void send(email);
+          }}
           type="button"
         >
           {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend link'}
         </button>
-
         {error ? (
           <p className="mt-3 text-sm text-[var(--danger)]" role="status">
             {error}
           </p>
         ) : null}
-
         <button
           className="mt-4 block text-sm text-[var(--text-muted)] underline"
           onClick={() => {
@@ -121,9 +131,17 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
         </p>
       ) : null}
 
+      {/*
+       * `disabled` only for the transient sending state, where removing it from
+       * the tab order for ~1s is the point (no double submit). The COOLDOWN
+       * state uses aria-disabled for the reason given on the resend button —
+       * it lasts a minute, and a control that silently disappears for a minute
+       * is worse than one that explains itself.
+       */}
       <button
-        className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
-        disabled={status === 'sending' || cooldown > 0}
+        aria-disabled={cooldown > 0}
+        className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] aria-disabled:opacity-60 disabled:opacity-60"
+        disabled={status === 'sending'}
         type="submit"
       >
         {status === 'sending'
