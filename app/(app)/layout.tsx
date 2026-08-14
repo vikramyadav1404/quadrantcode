@@ -5,7 +5,11 @@
  * constants below with real reads. The shell itself never queries them, which
  * is what lets F1.3 land without touching this file's structure.
  */
+import { headers } from 'next/headers';
 import { redirect, unauthorized } from 'next/navigation';
+import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
+import { validateReturnTo } from '@/lib/auth/return-to';
+import { getServerEnv } from '@/server/env';
 import { BottomNav } from '@/components/shell/BottomNav';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
@@ -38,8 +42,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
    * already been done — via its `hasCompletedProfile` wrapper — so the two
    * cannot disagree and produce a redirect loop. Evaluated on the profile
    * already loaded above, so it costs no extra query.
+   *
+   * The destination the user actually asked for is carried forward, so that
+   * finishing onboarding lands them where they were going rather than always
+   * on the default. It is re-validated here through the same allowlist any
+   * other returnTo goes through — the header is set by our own middleware, but
+   * "we set it" is not a reason to skip validation.
    */
-  if (!isProfileComplete(profile)) redirect('/onboarding');
+  if (!isProfileComplete(profile)) {
+    const requested = (await headers()).get(PATHNAME_HEADER);
+    const intended = validateReturnTo(requested, getServerEnv().NEXT_PUBLIC_APP_URL);
+    redirect(intended ? `/onboarding?returnTo=${encodeURIComponent(intended)}` : '/onboarding');
+  }
 
   // F1.3 (streak-engine) supplies these; typed mock data until then.
   const shellState = { streakDays: 0, streakAtRisk: false, goalCompleted: 0, goalTarget: 2 };
