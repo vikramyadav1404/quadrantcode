@@ -39,6 +39,8 @@ export const RATE_LIMITS = {
   otpVerifyPerUser: { limit: 10, windowSeconds: 900, prefix: 'otp:vfy:user' },
   otpVerifyPerIp: { limit: 30, windowSeconds: 900, prefix: 'otp:vfy:ip' },
   magicLinkPerEmail: { limit: 5, windowSeconds: 3600, prefix: 'auth:link:email' },
+  /** F0.5: 10 presign requests per user per hour. */
+  avatarPresignPerUser: { limit: 10, windowSeconds: 3600, prefix: 'avatar:presign:user' },
 } as const satisfies Record<string, RateLimitRule>;
 
 // ── In-memory store (tests and local dev only) ──────────────────────────────

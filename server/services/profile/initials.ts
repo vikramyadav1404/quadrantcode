@@ -45,13 +45,19 @@ export function initialsFor(displayName: string | null, email: string): string {
  * Saturation and lightness are FIXED; only hue varies.
  *
  * That is what keeps every generated colour at a predictable contrast against
- * white text. Letting lightness vary would produce pale yellows that fail
- * WCAG while dark blues pass, and the failure would depend on the user's id —
- * untestable in practice. `tests/profile/initials.test.ts` asserts the worst
- * hue still clears 4.5:1.
+ * white text. Letting lightness vary would produce pale yellows that fail WCAG
+ * while dark blues pass, and the failure would depend on the user's id —
+ * effectively untestable in the wild.
+ *
+ * These values are not chosen by eye. The first attempt was L=32, which looked
+ * fine and FAILED: pure yellow (hue 60) measured 3.96:1 against white, well
+ * under the 4.5 minimum, and roughly a sixth of the hue wheel was affected.
+ * L=28 puts the worst hue at 4.93:1. `tests/profile/profile.test.ts` walks all
+ * 360 hues, so a future "brighten the palette" tweak fails the build instead of
+ * shipping unreadable initials to whichever users happen to hash yellow.
  */
 export const AVATAR_SATURATION = 62;
-export const AVATAR_LIGHTNESS = 32;
+export const AVATAR_LIGHTNESS = 28;
 
 export type AvatarAppearance = {
   initials: string;

@@ -11,6 +11,8 @@ import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
 import { ToastProvider } from '@/components/ui/Toast';
 import { getCurrentUser } from '@/server/services/auth/session';
+import { getDb } from '@/server/db';
+import { getProfile } from '@/server/services/profile';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   /*
@@ -25,6 +27,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await getCurrentUser();
   if (!user) unauthorized();
 
+  // One read for the whole shell; `getProfile` supplies the initials fallback
+  // so the avatar renders identically whether or not an image is set.
+  const profile = await getProfile(getDb(), user.id);
+
   // F1.3 (streak-engine) supplies these; typed mock data until then.
   const shellState = { streakDays: 0, streakAtRisk: false, goalCompleted: 0, goalTarget: 2 };
 
@@ -38,7 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </a>
 
       <div className="flex min-h-dvh flex-col">
-        <TopBar {...shellState} />
+        <TopBar
+          {...shellState}
+          avatarAppearance={profile.appearance}
+          avatarUrl={profile.avatarUrl}
+        />
 
         <div className="flex flex-1">
           <Sidebar />

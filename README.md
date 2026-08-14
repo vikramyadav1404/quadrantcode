@@ -307,6 +307,41 @@ Chromium flake never blocks a green typecheck.
   with the alternative rejected and what breaks if each turns out wrong
 - [`docs/performance.md`](docs/performance.md) — pasted EXPLAIN plans
 
+## Avatar storage (F0.5)
+
+Uploads use a **two-phase presigned flow** and the file never passes through a
+Next.js route handler:
+
+1. `POST /api/avatar/presign` — the server validates the declared type and size,
+   builds the key `avatars/{userId}/{uuid}.{ext}` from the **session** user id,
+   and returns a URL valid 60 seconds.
+2. The browser `PUT`s **directly to storage**.
+3. `POST /api/avatar/confirm` — the server verifies the object exists, that its
+   real byte size matches the declaration, and that its **leading bytes are a
+   real image**. Only then is `avatar_url` written, and the previous object
+   deleted. Any failed check deletes the upload.
+
+**Why not proxy the file.** Vercel caps a serverless request body at roughly
+4.5MB. Proxying a 2MB upload works in development and fails unpredictably in
+production once multipart overhead is added. The presigned flow is the only
+shape that works, not an optimisation.
+
+**Bucket policy.** A **dedicated `avatars` bucket, public-read**. Supabase makes
+buckets public or private per _bucket_ — there is no prefix-level ACL — so
+"public-read for the avatars prefix only" means a bucket containing nothing but
+avatars. The service-role key is server-side only and never `NEXT_PUBLIC`.
+
+**What is trusted:** nothing the client sends. `avatar_url` is constructed
+server-side from the key; a URL in a save payload is dropped by the schema. The
+accepted types are JPEG, PNG and WebP, identified by magic bytes
+(`FF D8 FF`, `89 50 4E 47`, `RIFF....WEBP`) rather than by extension or the
+declared MIME type. Cap 2MB, checked at both phases. Presign is rate limited to
+10 per user per hour.
+
+**Orphans.** A presign with no confirm leaves an unreferenced object;
+`cleanupOrphanedAvatars` deletes avatar objects older than 24 hours that no
+profile references. It is tested, and wired to the cleanup queue in F2.3.
+
 ## Conventions
 
 - Branch: `feat/<ID>-<slug>` · Commit: `feat(<slug>): <summary>` ·
