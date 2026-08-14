@@ -30,7 +30,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "worker": "tsx worker/index.ts",
-    "db:backfill:urls": "tsx scripts/backfill-normalised-urls.ts"
+    "db:backfill:urls": "tsx scripts/backfill-normalised-urls.ts",
+    "avatars:cleanup": "tsx scripts/cleanup-avatars.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

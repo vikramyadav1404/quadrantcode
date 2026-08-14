@@ -1,27 +1,31 @@
 /**
- * The job seam — provisional runner today, BullMQ in F2.3.
+ * The job seam — in-process, permanently. See D17.
  *
- * ## The one design point
+ * **F2.3 (`job-runtime`) is CUT from the target scope, so there is no BullMQ
+ * behind this and there is not going to be.** These comments used to promise
+ * one. They were rewritten rather than left to mislead.
  *
- * Progress lives in `import_jobs`, not in a queue. Polling reads a row, and
- * that is the same operation under either runner — so F2.3 replaces the
- * executor and nothing the client can observe changes. Had the queue owned
- * progress, the polling contract would be a property of the queue and F2.3
- * would be a rewrite of this feature rather than a change of runner. Same shape
- * as the storage-provider and OTP-provider seams already in the tree.
+ * ## What the design still buys, now that nothing replaces it
  *
- * ## What the in-process runner does NOT do
+ * Progress lives in `import_jobs` rather than in a runner's memory, and so does
+ * the payload. That was justified as "so F2.3 can swap the executor". The
+ * justification is now stronger, not weaker: with no queue to retry anything,
+ * the database is the ONLY thing that can recover a job. A runner holding state
+ * in memory would lose the import outright when its process ended.
  *
- * It dies with its process. A deploy, a crash, or a serverless suspend mid-job
- * leaves a row saying `running` with nobody running it. That is why
- * `heartbeat_at` exists and why `stalled` is a distinct status: the remedy for
- * a stalled job is to resume it, and for a failed one is to fix the file.
+ * ## What it does NOT do, permanently
  *
- * **Automatic resume is DEFERRED to F2.3.** `sweepStalledJobs` marks them so
- * they are visible and re-runnable; nothing re-triggers them on its own. Said
- * plainly rather than left for someone to discover.
+ * The runner dies with its process. A deploy, a crash, or a serverless suspend
+ * mid-job leaves a row saying `running` with nobody running it. `heartbeat_at`
+ * and the distinct `stalled` status exist for exactly that.
+ *
+ * There is no automatic resume and no scheduled sweep, because nothing runs on
+ * a timer. Recovery is USER-DRIVEN: re-uploading the same file re-enqueues a
+ * dead job, which works because the content hash identifies it and the
+ * watermark makes the repeat idempotent. `startImport` implements that and
+ * `/settings/import` tells the user to do it.
  */
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, eq, lt, or, sql } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { IMPORT_HEARTBEAT_STALE_SECONDS, importJobRows, importJobs } from '@/server/db/schema';
 import type { InvalidImportRow, ValidImportRow } from './csv';
@@ -32,8 +36,8 @@ import { IMPORT_LIMITS } from './limits';
  * What a runner must be able to do.
  *
  * Deliberately tiny. `enqueue` takes an id and nothing else — the payload is
- * already in the database, so a BullMQ job carries an id rather than a
- * serialised CSV, and the queue never becomes a second place the data lives.
+ * already in the database, so a runner never becomes a second place the data
+ * lives, and a job is recoverable by anything that can read the table.
  */
 export interface JobRunner {
   enqueue(jobId: string): Promise<void>;
@@ -133,9 +137,9 @@ async function recordProcessedRows(
 /**
  * Process a job to completion, chunk by chunk.
  *
- * Exported so it can be driven directly by a test or by the F2.3 worker without
- * going through a runner at all — the runner decides WHEN this happens, never
- * what it does.
+ * Exported so it can be driven directly by a test, a script, or the standalone
+ * worker without going through a runner at all — a runner decides WHEN this
+ * happens, never what it does.
  *
  * Resumable by construction: it starts from `processed_rows` and each chunk is
  * idempotent, so re-running a partially-done job repeats at most one chunk and
@@ -264,10 +268,24 @@ export class InProcessJobRunner implements JobRunner {
 export async function sweepStalledJobs(db: Database): Promise<number> {
   const cutoff = new Date(Date.now() - IMPORT_HEARTBEAT_STALE_SECONDS * 1000);
 
+  /*
+   * Two shapes of dead job, not one.
+   *
+   * `running` with a stale heartbeat is the obvious case. `pending` with a
+   * stale CREATED_AT is the one that is easy to miss: the job was written and
+   * enqueued into a process that died before it ever started, so it has no
+   * heartbeat to go stale and would sit invisible forever. It was invisible
+   * until writing the re-upload path made the gap obvious.
+   */
   const stalled = await db
     .update(importJobs)
     .set({ status: 'stalled', updatedAt: new Date() })
-    .where(and(eq(importJobs.status, 'running'), lt(importJobs.heartbeatAt, cutoff)))
+    .where(
+      or(
+        and(eq(importJobs.status, 'running'), lt(importJobs.heartbeatAt, cutoff)),
+        and(eq(importJobs.status, 'pending'), lt(importJobs.createdAt, cutoff)),
+      ),
+    )
     .returning({ id: importJobs.id });
 
   return stalled.length;

@@ -113,9 +113,80 @@ suite('F1.2 · startImport — inline vs job', () => {
     expect(second.jobId).toBe(first.jobId);
     expect(second.alreadyRunning).toBe(true);
 
-    // Enqueued once, not twice.
+    // One job row, and enqueued once — the job is fresh, so the resume path
+    // below deliberately does not fire.
     expect(runner.enqueued).toEqual([first.jobId]);
     expect(await ctx.sql`SELECT id FROM import_jobs`).toHaveLength(1);
+  });
+
+  it('RE-UPLOADING A DEAD JOB RESUMES IT — the only recovery path there is', async () => {
+    /*
+     * With F2.3 cut there is no queue to retry anything, so this IS the
+     * recovery mechanism and /settings/import tells the user to use it. It used
+     * to be a false promise: the upload returned the stalled job and enqueued
+     * nothing.
+     */
+    const runner = new RecordingRunner();
+    const content = bigCsv(200, 'resume');
+
+    const first = await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    if (first.mode !== 'job') throw new Error('expected a job');
+
+    // The runner's process "dies": the job is left stalled.
+    await ctx.sql`UPDATE import_jobs SET status = 'stalled' WHERE id = ${first.jobId}`;
+
+    const second = await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    if (second.mode !== 'job') throw new Error('expected a job');
+
+    expect(second.jobId).toBe(first.jobId);
+    expect(second.alreadyRunning).toBe(false);
+    expect(runner.enqueued).toEqual([first.jobId, first.jobId]);
+
+    const [row] = await ctx.sql`SELECT status FROM import_jobs WHERE id = ${first.jobId}`;
+    expect(row!.status).toBe('pending');
+  });
+
+  it('does NOT re-enqueue a job that is genuinely running', async () => {
+    // The positive control for the branch above. Re-enqueueing a live job would
+    // put two runners on it — idempotent, but wasteful and hard to reason about.
+    const runner = new RecordingRunner();
+    const content = bigCsv(200, 'live');
+
+    const first = await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    if (first.mode !== 'job') throw new Error('expected a job');
+    await ctx.sql`UPDATE import_jobs SET status = 'running' WHERE id = ${first.jobId}`;
+
+    const second = await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    if (second.mode !== 'job') throw new Error('expected a job');
+
+    expect(second.alreadyRunning).toBe(true);
+    expect(runner.enqueued).toEqual([first.jobId]);
+  });
+
+  it('does not re-enqueue a FRESH pending job, but does an abandoned one', async () => {
+    /*
+     * A job is `pending` for the milliseconds between being written and being
+     * picked up, so a double-clicked upload must not spawn a second runner. But
+     * a pending job that has SAT there was enqueued into a process that died
+     * before starting it — and the stall sweep only looks at `running` rows, so
+     * nothing else would ever notice.
+     */
+    const runner = new RecordingRunner();
+    const content = bigCsv(200, 'pending');
+
+    const first = await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    if (first.mode !== 'job') throw new Error('expected a job');
+
+    // Fresh: not re-enqueued.
+    await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    expect(runner.enqueued).toEqual([first.jobId]);
+
+    // Aged out: re-enqueued.
+    await ctx.sql`
+      UPDATE import_jobs SET created_at = now() - interval '1 hour' WHERE id = ${first.jobId}
+    `;
+    await startImport(ctx.db, userId, { name: 'a.csv', content }, runner);
+    expect(runner.enqueued).toEqual([first.jobId, first.jobId]);
   });
 
   it('a DIFFERENT file from the same user is a different job', async () => {
@@ -401,6 +472,37 @@ suite('F1.2 · sweepStalledJobs', () => {
   it('does not touch finished jobs', async () => {
     await insertJob('succeeded', 9999);
     await insertJob('failed', 9999);
+    expect(await sweepStalledJobs(ctx.db)).toBe(0);
+  });
+
+  it('also catches a PENDING job that never started', async () => {
+    /*
+     * The gap the re-upload path exposed: a pending job has no heartbeat to go
+     * stale, so a sweep looking only at `running` rows would leave it invisible
+     * forever.
+     */
+    const [row] = await ctx.sql`
+      INSERT INTO import_jobs
+        (user_id, filename, content_hash, content, status, total_rows, created_at)
+      VALUES (
+        ${userId}, 'x.csv', ${Math.random().toString(36).slice(2)}, ${HEADER},
+        'pending', 10, now() - interval '1 hour'
+      )
+      RETURNING id
+    `;
+
+    expect(await sweepStalledJobs(ctx.db)).toBe(1);
+    const [after] = await ctx.sql`SELECT status FROM import_jobs WHERE id = ${row!.id}`;
+    expect(after!.status).toBe('stalled');
+  });
+
+  it('leaves a FRESH pending job alone', async () => {
+    // Positive control: every new job is pending for a moment.
+    await ctx.sql`
+      INSERT INTO import_jobs
+        (user_id, filename, content_hash, content, status, total_rows)
+      VALUES (${userId}, 'x.csv', ${Math.random().toString(36).slice(2)}, ${HEADER}, 'pending', 10)
+    `;
     expect(await sweepStalledJobs(ctx.db)).toBe(0);
   });
 });

@@ -10,6 +10,64 @@ upsolving and reminders — and turns that into a revision plan.
 
 ---
 
+## What is built, and what is planned
+
+Kept honest deliberately: **planned** means designed and scoped but not built,
+never "quietly missing". Anything cut from the target build says so here rather
+than being described in the present tense elsewhere in this file.
+
+Target build is **18 features**. The rest are out of scope for it and would
+return only if the project continued past that.
+
+### Built
+
+| ID    | Feature                              | Where                       |
+| ----- | ------------------------------------ | --------------------------- |
+| F0.1  | Repository scaffold & CI             | root, `.github/`            |
+| F0.2  | Identity & problem catalog schema    | `server/db/schema/`         |
+| F0.3  | Auth, phone OTP & verification tiers | `server/services/auth/`     |
+| F0.3+ | Auth UI — login, verify, onboarding  | `app/(auth)/`               |
+| F0.4  | Design system & application shell    | `components/`               |
+| F0.5  | User profile & avatar upload         | `server/services/profile/`  |
+| F1.1  | Problem catalog, search & admin CRUD | `server/services/problems/` |
+| F1.2  | CSV ingestion, export & library      | `server/services/ingest/`   |
+
+### Planned — in the target build
+
+| ID   | Feature                                     | Notes                                                                                                                                                             |
+| ---- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1.3 | Timezone-correct streak & daily goal engine |                                                                                                                                                                   |
+| F1.4 | Server-authoritative solve session timer    |                                                                                                                                                                   |
+| F1.5 | Attempt history, stuck markers & reflection |                                                                                                                                                                   |
+| F1.6 | Rollup-backed analytics dashboard           |                                                                                                                                                                   |
+| F2.1 | Spaced repetition & forgetting-risk scoring |                                                                                                                                                                   |
+| F3.1 | Monaco editor & Judge0 execution            | **Needs a decision first.** Specified as _queued_ execution; F2.3 is cut, so it must reuse the in-process job pattern from F1.2 or run synchronously. See **D17** |
+| F3.2 | Event log & diff-based code snapshots       |                                                                                                                                                                   |
+| F3.3 | Heuristic stuck-point inference             |                                                                                                                                                                   |
+| F3.5 | Mistake memory & weak-topic engine          |                                                                                                                                                                   |
+| F4.6 | Tracing, health dashboard & audit logs      |                                                                                                                                                                   |
+| F4.8 | Security hardening & launch readiness       |                                                                                                                                                                   |
+
+### Cut from the target build
+
+Not built, not being built. Listed so their absence is a decision on the record.
+
+| ID    | Feature                               | What its absence means today                                                                                                              |
+| ----- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| F1.2* | Curated 100-problem library           | A small verified subset ships; the full list is **BLOCKED** on real data. The importer and `npm run library:verify` are built             |
+| F2.2  | Four-mode revision experience         | F2.1 scores revision; there is no dedicated mode UI                                                                                       |
+| F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. See **D17** |
+| F2.4  | Multi-channel notification engine     | No reminders of any kind — it was queue-dependent                                                                                         |
+| F2.5  | Contest sync & upsolve tracker        | No contest ingestion                                                                                                                      |
+| F4.1  | Original problem CMS & quality gate   | The schema supports original problems; there is no authoring UI, so the catalog is external links only                                    |
+| F4.2  | Structured preparation tracks         | `target_role` is captured at onboarding and unused                                                                                        |
+| F4.3  | Coin ledger, trust score & anti-abuse | **C8** has no path to guard — nothing in scope grants rewards. The constraint stands for anything added later                             |
+| F4.4  | Razorpay subscriptions & entitlements | No billing. **C6** (server-side entitlement checks) is unexercised                                                                        |
+| F4.5  | Timed mock assessment engine          |                                                                                                                                           |
+| F4.7  | Landing, public profile & share cards | No public surface; the disclaimer below still applies to anything published                                                               |
+
+---
+
 ## Architecture
 
 ```
@@ -25,7 +83,7 @@ upsolving and reminders — and turns that into a revision plan.
                  └────────▲──────┘  └─────▲────────────┘
                           │               │
                     ┌─────┴───────────────┴─────┐
-                    │  BullMQ worker (Railway)  │──▶ Judge0
+                    │  worker (not in use, D17)  │
                     │  separate deployment      │──▶ Resend / Telegram
                     └───────────────────────────┘
 ```
@@ -34,7 +92,7 @@ upsolving and reminders — and turns that into a revision plan.
 
 **Stack (locked):** Next.js 15 App Router · TypeScript strict · Tailwind CSS +
 shadcn/ui · PostgreSQL (Supabase) + Drizzle ORM with versioned SQL migrations ·
-Auth.js email magic link + MSG91 phone OTP · BullMQ + Upstash Redis · Judge0 ·
+Auth.js email magic link + MSG91 phone OTP · in-process jobs with Postgres state ·
 Monaco Editor · Razorpay · Resend · Telegram Bot API · Sentry + structured JSON logs.
 
 ---
@@ -49,7 +107,7 @@ Monaco Editor · Razorpay · Resend · Telegram Bot API · Sentry + structured J
 | `server/`          | Server-only code — never imported from a client component |
 | `server/db/`       | Drizzle schema + versioned SQL migrations                 |
 | `server/services/` | Business logic, pure where possible                       |
-| `jobs/`            | BullMQ processors                                         |
+| `jobs/`            | Empty — F2.3 is cut, see D17                              |
 | `worker/`          | Standalone worker entrypoint (own package script)         |
 | `tests/`           | Vitest suites                                             |
 | `docs/`            | Scoring formulas, performance notes, security audit       |
@@ -105,7 +163,7 @@ phase-gated and fails loudly at the point of use via `requireEnv()`.
 | Script                | Purpose                                         |
 | --------------------- | ----------------------------------------------- |
 | `npm run dev`         | Next.js dev server                              |
-| `npm run worker`      | Standalone BullMQ worker (independent process)  |
+| `npm run worker`      | Standalone worker process (no queues attached)  |
 | `npm run typecheck`   | `tsc --noEmit`, strict                          |
 | `npm run lint`        | ESLint flat config                              |
 | `npm test`            | Vitest                                          |
@@ -117,7 +175,14 @@ phase-gated and fails loudly at the point of use via `requireEnv()`.
 
 ## Worker deployment
 
-**The BullMQ worker cannot run on Vercel serverless.** Three independent reasons:
+> **Scope note.** F2.3 (`job-runtime`) is cut, so no BullMQ worker runs today
+> and `npm run worker` starts a process with no queues attached. The reasoning
+> below is kept because it still governs anything long-lived this project might
+> add, and because the `--conditions=react-server` finding in it is load-bearing
+> (see D17 and the module-layering notes).
+
+**A queue worker could not run on Vercel serverless.** Three independent reasons,
+recorded for whatever long-lived process comes later:
 
 1. **No long-lived process.** A BullMQ `Worker` holds an open Redis connection and
    blocks on `BRPOPLPUSH` waiting for jobs. Vercel functions are invoked per request
@@ -340,7 +405,8 @@ declared MIME type. Cap 2MB, checked at both phases. Presign is rate limited to
 
 **Orphans.** A presign with no confirm leaves an unreferenced object;
 `cleanupOrphanedAvatars` deletes avatar objects older than 24 hours that no
-profile references. It is tested, and wired to the cleanup queue in F2.3.
+profile references. It is tested. With F2.3 cut nothing schedules it — run
+`npm run avatars:cleanup` on demand. Orphans accumulate until you do (D17).
 
 ## Conventions
 

@@ -6,7 +6,7 @@
  */
 import { and, eq } from 'drizzle-orm';
 import type { Database } from '@/server/db';
-import { importJobs } from '@/server/db/schema';
+import { IMPORT_HEARTBEAT_STALE_SECONDS, importJobs } from '@/server/db/schema';
 import { type ParsedCsv, parseImportCsv } from './csv';
 import { hashImportContent, importRows } from './import';
 import { type JobRunner, getJobProgress, recordInvalidRows } from './jobs';
@@ -66,17 +66,67 @@ export async function startImport(
    * guarantee.
    */
   const [existing] = await db
-    .select({ id: importJobs.id, totalRows: importJobs.totalRows })
+    .select({
+      id: importJobs.id,
+      totalRows: importJobs.totalRows,
+      status: importJobs.status,
+      createdAt: importJobs.createdAt,
+    })
     .from(importJobs)
     .where(and(eq(importJobs.userId, userId), eq(importJobs.contentHash, contentHash)))
     .limit(1);
 
   if (existing) {
+    /*
+     * RE-UPLOADING A DEAD JOB RESUMES IT.
+     *
+     * This branch used to return unconditionally, which was defensible only
+     * while F2.3 was going to add queue-level retries. With F2.3 cut, the
+     * in-process runner is permanent — so a job whose process died has nothing
+     * that will ever pick it up again, and `/settings/import` already tells the
+     * user "re-upload the same file to continue from where it left off". That
+     * promise was false: the upload returned the stalled job and enqueued
+     * nothing.
+     *
+     * Re-enqueueing is safe precisely because of the watermark: processing
+     * restarts at `processed_rows` and each chunk is idempotent, so a resumed
+     * job repeats at most one chunk and that repeat is a no-op. A job that is
+     * genuinely still running is NOT re-enqueued — that would double the work
+     * rather than resume it.
+     */
+    /*
+     * `pending` needs an age check; `stalled` and `failed` do not.
+     *
+     * A job is `pending` for the few milliseconds between being written and a
+     * runner picking it up. Re-enqueueing on sight would mean a user who
+     * double-clicked upload gets TWO runners on one job — harmless for the data
+     * (chunks are idempotent) but genuinely wasteful and hard to reason about.
+     *
+     * A `pending` job that is OLD is a different thing: it was enqueued into a
+     * process that died before starting it, and since the stall sweep only
+     * looks at `running` rows, nothing else would ever notice it.
+     */
+    const staleBefore = Date.now() - IMPORT_HEARTBEAT_STALE_SECONDS * 1000;
+    const abandonedPending =
+      existing.status === 'pending' && existing.createdAt.getTime() < staleBefore;
+
+    const isDead =
+      existing.status === 'stalled' || existing.status === 'failed' || abandonedPending;
+
+    if (isDead) {
+      await db
+        .update(importJobs)
+        .set({ status: 'pending', error: null, finishedAt: null, updatedAt: new Date() })
+        .where(eq(importJobs.id, existing.id));
+
+      await runner.enqueue(existing.id);
+    }
+
     return {
       mode: 'job',
       jobId: existing.id,
       totalRows: existing.totalRows,
-      alreadyRunning: true,
+      alreadyRunning: !isDead,
     };
   }
 

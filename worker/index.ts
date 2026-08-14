@@ -1,10 +1,13 @@
 /**
  * Standalone worker entrypoint.
  *
- * Started with `npm run worker`, independently of `npm run dev`. F2.3
- * (`job-runtime`) replaces the placeholder loop below with real BullMQ queues;
- * this file already owns the lifecycle those queues plug into: env validation
- * at boot, a readiness log, and graceful shutdown on SIGTERM/SIGINT.
+ * Started with `npm run worker`, independently of `npm run dev`.
+ *
+ * **F2.3 (`job-runtime`) is cut, so no BullMQ queues will ever attach here.**
+ * What remains useful is the lifecycle: env validation at boot, a readiness
+ * log, and graceful shutdown on SIGTERM/SIGINT — which is what a scheduled
+ * maintenance process (stall sweeps, avatar cleanup) would need if one is ever
+ * run. Today nothing schedules those; recovery is user-driven. See D17.
  *
  * Imports `@/server/db/client` rather than `@/server/db`: the latter carries a
  * `server-only` guard meant for the Next bundler, which throws in plain Node.
@@ -19,7 +22,7 @@ import { closeDb } from '@/server/db/client';
 
 process.env.TRACELOOP_ROLE = 'worker';
 
-/** Registered by each queue in F2.3; run in order on shutdown. */
+/** Run in order on shutdown. */
 const shutdownHooks: Array<() => Promise<void>> = [];
 
 export function onShutdown(hook: () => Promise<void>): void {
@@ -56,7 +59,7 @@ function main(): void {
       event: 'worker.started',
       node_env: env.NODE_ENV,
       pid: process.pid,
-      queues: [], // populated in F2.3
+      queues: [], // none — F2.3 is cut
       flags: allFeatureFlags(),
     }),
   );
@@ -64,10 +67,10 @@ function main(): void {
   process.on('SIGTERM', (signal) => void shutdown(signal));
   process.on('SIGINT', (signal) => void shutdown(signal));
 
-  // Keeps the process alive until F2.3 attaches real BullMQ workers, which
+  // Keeps the process alive. With F2.3 cut nothing attaches to this, which
   // hold the event loop open on their own.
   setInterval(() => {
-    /* heartbeat placeholder — replaced by queue workers in F2.3 */
+    /* heartbeat placeholder — no queue workers exist; see D17 */
   }, 60_000);
 }
 

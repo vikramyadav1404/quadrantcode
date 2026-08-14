@@ -46,7 +46,7 @@ export function getDb(): Database {
   return database;
 }
 
-/** Closes the pool. Called by the worker's graceful-shutdown path (F2.3). */
+/** Closes the pool. Called by the worker's graceful-shutdown path. */
 export async function closeDb(): Promise<void> {
   if (client) {
     await client.end({ timeout: 5 });

@@ -202,8 +202,13 @@ export function keyFromPublicUrl(url: string | null): string | null {
  * Orphan cleanup: a presign with no confirm leaves a file nobody references.
  *
  * Deletes avatar objects older than `maxAgeHours` whose key is not the one
- * recorded on any profile. Pure enough to test directly; F2.3 wires it to the
- * cleanup queue.
+ * recorded on any profile.
+ *
+ * This was written expecting F2.3 to attach it to a repeating queue. **F2.3 is
+ * cut**, so nothing schedules it and nothing will. It is run on demand with
+ * `npm run avatars:cleanup`, which is a real limitation rather than a plan:
+ * orphaned objects accumulate until someone runs it. Recorded in D17 rather
+ * than left as a comment promising a queue that is not coming.
  */
 export async function cleanupOrphanedAvatars(
   deps: AvatarDeps,
