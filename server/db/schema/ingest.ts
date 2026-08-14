@@ -42,6 +42,22 @@ export const importJobs = pgTable(
     filename: text().notNull(),
 
     /**
+     * The uploaded CSV itself.
+     *
+     * Stored because the runner seam claims `enqueue(jobId)` is enough — and it
+     * is only enough if the payload really is in the database. Capturing the
+     * parsed rows in a closure would work for the in-process runner and quietly
+     * fail for BullMQ, which gets nothing but an id across a process boundary.
+     * That would have made the seam a fiction that held right up until F2.3.
+     *
+     * The raw text rather than the parsed rows: re-parsing is deterministic, it
+     * is the source of truth for the content hash, and it is what a resumed job
+     * needs after a restart. Bounded by `IMPORT_LIMITS.maxBytes` (2 MiB), and
+     * cascade-deleted with the user.
+     */
+    content: text().notNull(),
+
+    /**
      * Idempotency key: sha256 of the uploaded bytes.
      *
      * Deterministic, per the standing rule for background jobs. Re-uploading a
