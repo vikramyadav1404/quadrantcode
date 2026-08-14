@@ -140,16 +140,35 @@ export function createUpstashRateLimiter(
 
 export function createRateLimiter(
   rule: RateLimitRule,
-  env: { UPSTASH_REDIS_REST_URL?: string; UPSTASH_REDIS_REST_TOKEN?: string; NODE_ENV: string },
+  env: {
+    UPSTASH_REDIS_REST_URL?: string;
+    UPSTASH_REDIS_REST_TOKEN?: string;
+    NODE_ENV: string;
+    ALLOW_IN_MEMORY_RATE_LIMIT?: string;
+  },
 ): RateLimiter {
   const { UPSTASH_REDIS_REST_URL: url, UPSTASH_REDIS_REST_TOKEN: token } = env;
 
   if (url && token) return createUpstashRateLimiter(rule, { url, token });
 
-  if (env.NODE_ENV === 'production') {
+  /*
+   * Fail closed in production — and note what that MEANS: without Upstash
+   * configured, /login throws rather than degrading, so the app cannot sign
+   * anyone in. That is deliberate (an unlimited auth endpoint is worse than an
+   * unavailable one) and it makes Upstash a hard deployment dependency, not an
+   * optimisation. Recorded in the README.
+   *
+   * The escape hatch exists because `next start` sets NODE_ENV=production, so
+   * the browser suite runs production semantics without a Redis. It is
+   * deliberately verbose and OFF by default: production without Upstash still
+   * refuses unless someone has explicitly written this variable, which is not
+   * something done by accident.
+   */
+  if (env.NODE_ENV === 'production' && env.ALLOW_IN_MEMORY_RATE_LIMIT !== '1') {
     throw new Error(
       'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production. ' +
-        'The in-memory rate limiter is per-process and would not limit anything on serverless.',
+        'The in-memory rate limiter is per-process and would not limit anything on ' +
+        'serverless. Set ALLOW_IN_MEMORY_RATE_LIMIT=1 only for a single-process test run.',
     );
   }
 
