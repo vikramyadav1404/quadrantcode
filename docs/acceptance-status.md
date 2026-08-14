@@ -133,12 +133,20 @@ EXPLAIN assertion could catch it. 27.98 ms → 0.27 ms. See decisions **D10**.
 
 ### Blocked and deferred
 
-- **Supabase Storage is unverified.** No credentials, so `supabase.ts` has never
-  run against a live bucket. Everything above the provider seam is tested
-  against the in-memory implementation. The seam is exactly where the untested
-  code begins, and that is deliberate.
+- **No live bucket has ever been exercised.** Creating a Cloudflare or Supabase
+  account is outside what this environment can do. The always-on contract tests
+  prove the CLIENT signs a 60-second expiry correctly; the
+  `STORAGE_INTEGRATION=1` suite proves the SERVER honours it, and it has not
+  run. Five live assertions are written and skipping.
 - **Orphan cleanup is not scheduled.** `cleanupOrphanedAvatars` is written and
   tested; wiring it to a repeating queue is **DEFERRED to F2.3**.
+
+### The provider changed mid-ticket
+
+Supabase Storage was replaced by Cloudflare R2 (S3-compatible) because
+`createSignedUploadUrl` accepts **no expiry parameter** — the in-memory fake was
+strictly more capable than the vendor, so the 90-second criterion passed in CI
+while being false in production. Full reasoning in **decisions D11**.
 
 ### Found while building
 

@@ -249,3 +249,81 @@ equivalent, the guard fails loudly rather than passing vacuously.
 The general lesson, and the reason this is written down: an index that exists,
 is named correctly, and is listed in the schema can still be completely unused.
 The only way to know is to read the plan.
+
+---
+
+## D11 · Cloudflare R2 over Supabase Storage, because the fake was better than the vendor
+
+**Status:** active · supersedes the Supabase provider written in F0.5
+**Files:** `server/services/storage/s3.ts` (added), `supabase.ts` (deleted)
+
+### The finding
+
+F0.5 shipped with an in-memory `StorageProvider` implementing a faithful
+60-second presigned-upload expiry, tested with an injected clock. Review asked
+the right question: **is the fake more capable than the real thing?**
+
+It was. From `@supabase/storage-js` source:
+
+```ts
+async createSignedUploadUrl(path: string, options?: { upsert: boolean })
+// ...
+const data = await post(this.fetch, `${this.url}/object/upload/sign/${_path}`, {}, { headers })
+```
+
+There is **no expiry parameter**, and the request body is literally `{}`. Upload
+URL validity is fixed server-side. The asymmetry is easy to miss because the
+_download_ API does take one:
+
+| API                                                    | Expiry            |
+| ------------------------------------------------------ | ----------------- |
+| `createSignedUrl(path, **expiresIn**, …)` — download   | caller-controlled |
+| `createSignedUploadUrl(path, { upsert })` — **upload** | **not exposed**   |
+
+So the F0.5 criterion _"a presigned URL is unusable 90 seconds after issue"_
+was **unsatisfiable on Supabase** while passing in CI against a fake that
+implemented it perfectly. Green suite, false claim — the same shape as the AWS
+canary that "passed" because gitleaks allowlists it, and the gitleaks run that
+reported no leaks after reading zero bytes.
+
+### The decision
+
+Switch to **S3-compatible storage (Cloudflare R2)**. SigV4 presigning signs
+`X-Amz-Expires` **into** the URL, so expiry is caller-controlled and enforced by
+any conformant implementation — it is the protocol, not a vendor promise.
+Ranged reads (`GetObject` with `Range`) are likewise protocol-level, so the
+magic-byte check reads twelve bytes instead of downloading two megabytes.
+
+The `StorageProvider` seam did its job: the swap touched two files and no
+service or route logic. That is what the seam was for.
+
+### How the contract is now verified
+
+`tests/profile/storage-contract.test.ts` runs in two tiers.
+
+**Always** — protocol assertions needing no account. The presigned URL is
+inspected directly: `X-Amz-Expires=60` is present, and requesting a different
+expiry produces a **different signature**, proving the value is signed in rather
+than a decorative query parameter a server may ignore.
+
+**`STORAGE_INTEGRATION=1`** — the live round trip: presign, direct PUT, ranged
+magic-byte read (asserting exactly 12 bytes come back from a 512KB object, which
+a provider without Range support cannot do), a genuinely expired URL being
+rejected, and cross-user prefix rejection. Skipped without credentials so CI
+stays green and honest.
+
+### Still unverified
+
+**No live bucket has been exercised.** Creating a Cloudflare or Supabase account
+is not something this environment can do. The always-on tier proves the _client_
+signs correctly; the live tier proves the _server_ honours it, and it has never
+run. `docs/acceptance-status.md` records that rather than implying otherwise.
+
+### Rejected alternative
+
+Keeping Supabase and enforcing the 60-second window at confirm time — reject a
+key whose presign is older than 60s. Rejected because it does not satisfy the
+criterion: the upload URL would still ACCEPT a PUT for the vendor's full
+validity window. The object would never be adopted and orphan cleanup would
+remove it, but "unusable" would be false. A weaker guarantee described in
+stronger words is exactly what this project keeps catching.

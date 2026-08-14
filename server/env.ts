@@ -62,11 +62,13 @@ const optionalServerSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
 
-  // F0.5 avatar storage. The service-role key is server-side only — it bypasses
-  // row-level security, so it must never be prefixed NEXT_PUBLIC.
-  SUPABASE_URL: z.string().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
-  SUPABASE_AVATAR_BUCKET: z.string().optional(),
+  // F0.5 avatar storage — S3-compatible (Cloudflare R2). Supabase Storage
+  // cannot enforce a caller-supplied presign expiry; see decisions D11.
+  S3_ENDPOINT: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_PUBLIC_BASE_URL: z.string().optional(),
 });
 
 const serverEnvSchema = requiredServerSchema.and(optionalServerSchema).and(publicEnvSchema);
