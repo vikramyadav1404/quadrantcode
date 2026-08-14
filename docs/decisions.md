@@ -421,3 +421,74 @@ server-side cooldown. **A resend button on the expired page that skipped the
 cooldown would be a bypass of it** — the cooldown has to live on the server for
 exactly this reason: a per-component countdown resets on reload, so it is UX,
 never the control.
+
+---
+
+## D14 · `aria-disabled` for waiting states, `disabled` only for transient ones
+
+**Decision.** A control that is unavailable for a _duration the user is waiting
+out_ — a resend cooldown, a rate-limit window — uses `aria-disabled` and guards
+its own handler. A control that is unavailable _transiently while an action is
+in flight_ keeps the real `disabled` attribute.
+
+**Why.** `disabled` removes an element from the tab order entirely. A keyboard
+user who tabs to the resend button, finds it gone, and has no way to discover
+that it will return in 45 seconds is worse off than one who reaches it and hears
+"Resend in 45s". For a ~1s in-flight state the opposite is true: removing it
+prevents a double submit and nobody is navigating during it.
+
+**How it was found.** Not by review — by `e2e/keyboard.spec.ts` failing to reach
+the control at all. The traversal recorded `[{skip link}, {Use a different
+address}]` with the resend button simply absent. Three prior passes over this
+UI, including one specifically about the cooldown, did not notice.
+
+**The safety argument does not rest on the attribute.** `aria-disabled` is
+advisory — a determined client can press the button. That is fine here because
+the cooldown is enforced by the server action in `app/(auth)/login/actions.ts`,
+which both entry points call. A press inside the window is _answered_ with the
+remaining wait, not obeyed. Had the attribute been the enforcement, this would
+have been the wrong trade.
+
+**Rejected:** keeping `disabled` and adding an adjacent `aria-live` region
+announcing the countdown. It fixes announcement but not reachability, and it
+narrates a timer to a screen-reader user once per second.
+
+**Verified, not assumed.** Per D12, the Tailwind variant was checked in the
+built stylesheet rather than trusted to exist:
+
+```
+aria-disabled\:opacity-60[aria-disabled=true],.disabled\:opacity-60:disabled{opacity:.6}
+```
+
+A variant that silently compiled to nothing would have left the control looking
+enabled throughout its cooldown — configured-looking, inert, green from both
+directions.
+
+---
+
+## D15 · Middleware forwards the pathname; the layout re-validates it
+
+**Decision.** `middleware.ts` sets a request-only header
+(`x-traceloop-pathname`) on authenticated requests, and `app/(app)/layout.tsx`
+reads it to build the `returnTo` it hands to `/onboarding`.
+
+**Why it was needed.** The onboarding gate called `redirect('/onboarding')` with
+no destination, so a first-time user following a magic link to `/problems`
+finished onboarding on `/dashboard`. `/onboarding` already honoured `returnTo`;
+the gate simply had nothing to give it, because **a Next App Router layout is
+not passed the pathname** — only pages receive `params`/`searchParams`.
+
+**Rejected alternatives.** Doing the completeness check in middleware: it runs
+on the edge with no database connection, so it would need either a JWT claim
+(unrevokable when a profile changes) or a network hop per request — the same
+reasoning that keeps the role check out of middleware. Passing the path as a
+search param on the redirect: it is already lost by the time the layout runs.
+
+**The header is ours and is still not trusted.** The layout runs it through
+`validateReturnTo` like any other candidate. It is set on the inbound request
+via `NextResponse.next({ request: { headers } })`, so it never reaches the
+browser — but "we set it" is not a reason to skip validation, and if it ever
+becomes settable from outside, the allowlist is what holds.
+
+Pinned by _"the gate defers the destination rather than discarding it"_ in
+`e2e/auth-flow.spec.ts`, which fails if the `returnTo` is dropped again.
