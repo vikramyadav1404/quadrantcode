@@ -55,5 +55,20 @@ export const userProblemStatusEnum = pgEnum('user_problem_status', [
   'needs_revision',
 ]);
 
+/**
+ * Target role a user is preparing for (F0.3 onboarding, F0.5 profile).
+ *
+ * A closed enum rather than free text: F4.2 selects preparation tracks from it,
+ * and a track lookup against typo'd free text silently returns nothing. Adding
+ * a value later is a one-line migration; cleaning up dirty free text is not.
+ */
+export const targetRoleEnum = pgEnum('target_role', [
+  'sde_intern',
+  'sde_1',
+  'quant',
+  'hft',
+  'other',
+]);
+
 /** Self-reported confidence, reused by reflections (F1.5) and revision (F2.1). */
 export const confidenceEnum = pgEnum('confidence', ['low', 'medium', 'high']);

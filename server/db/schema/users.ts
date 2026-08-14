@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { userRoleEnum, verificationMethodEnum } from './enums';
+import { targetRoleEnum, userRoleEnum, verificationMethodEnum } from './enums';
 
 export const users = pgTable(
   'users',
@@ -68,23 +68,49 @@ export const users = pgTable(
   ],
 );
 
-export const userProfiles = pgTable('user_profiles', {
-  userId: uuid()
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  displayName: text(),
-  avatarUrl: text(),
-  bio: text(),
+export const userProfiles = pgTable(
+  'user_profiles',
+  {
+    userId: uuid()
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
 
-  /** F4.7: public profiles are OPT-IN and default OFF. */
-  publicProfileEnabled: boolean().notNull().default(false),
+    /** 2–40 chars, enforced here and in Zod (F0.5). */
+    displayName: text(),
 
-  /** Free text, e.g. "SDE-1 at a product company". Drives track suggestions. */
-  targetRole: text(),
+    /**
+     * PUBLIC URL, always constructed SERVER-SIDE from the storage key.
+     * The client never supplies this value — accepting one would be an SSRF
+     * and content-injection hole (F0.5 security requirement).
+     */
+    avatarUrl: text(),
 
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});
+    /** Plain text, max 280. Never markdown, never HTML, never auto-linked. */
+    bio: text(),
+
+    /** F4.7: public profiles are OPT-IN and default OFF. */
+    publicProfileEnabled: boolean().notNull().default(false),
+
+    /** What the user is preparing for. Drives F4.2 track suggestions. */
+    targetRole: targetRoleEnum(),
+
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Length limits doubled in the database for the same reason C1 and C3 are:
+    // Zod protects the endpoint, the CHECK protects the table.
+    check(
+      'user_profiles_bio_length',
+      sql`${table.bio} is null or char_length(${table.bio}) <= 280`,
+    ),
+    check(
+      'user_profiles_display_name_length',
+      sql`${table.displayName} is null
+          or char_length(${table.displayName}) between 2 and 40`,
+    ),
+  ],
+);
 
 export const verificationMethods = pgTable(
   'verification_methods',
