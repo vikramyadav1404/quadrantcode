@@ -492,3 +492,84 @@ becomes settable from outside, the allowlist is what holds.
 
 Pinned by _"the gate defers the destination rather than discarding it"_ in
 `e2e/auth-flow.spec.ts`, which fails if the `returnTo` is dropped again.
+
+---
+
+## D16 · STANDING RULE — an `ON CONFLICT` clause names the constraint it means
+
+**Decision.** Every `onConflictDoNothing` / `onConflictDoUpdate` specifies a
+`target`. A bare clause is only acceptable on a table with exactly one unique
+constraint, and even then the target is written out.
+
+**The bug that produced this rule.** F1.2's importer failed to import a URL it
+had every right to accept, and it took two mistakes stacked on each other:
+
+1. The slug for an imported problem was a **deterministic hash of the normalised
+   URL**. That looked tidy and quietly asserted "one URL, one row, forever".
+2. The partial unique index on `external_url_normalised` is scoped
+   `WHERE status <> 'archived'`, which **deliberately permits two rows to share
+   a URL** — one archived, one live — so a user who archived a problem can add
+   it back.
+
+Together: the second insert produced the same slug as the archived row and
+collided on `problems_slug_key`. And because the conflict clause was a bare
+`onConflictDoNothing()`, which covers **every unique constraint on the table**,
+that collision was absorbed exactly like a dedup race. The insert returned no
+row; the fallback lookup — scoped to non-archived rows, correctly — found
+nothing; and the service threw on a row that should have been created.
+
+**Why the bare clause is the load-bearing mistake.** The deterministic slug was
+wrong, but on its own it produces a _unique violation_, which is loud, points at
+`problems_slug_key`, and takes a minute to diagnose. The untargeted clause is
+what converted a named constraint violation into a silent nothing, and made the
+symptom appear one layer away from the cause. **An untargeted `ON CONFLICT` does
+not suppress an error; it suppresses the distinction between errors.**
+
+**The general shape.** `ON CONFLICT DO NOTHING` with no target means "any unique
+constraint". Almost every real use means one specific constraint and treats it
+as recoverable — a lost race, an idempotent re-insert. Every _other_ unique
+constraint on that table is a genuine bug, and the bare form silently reclassifies
+all of them as the expected case.
+
+### The audit
+
+Asked whether this pattern existed elsewhere. Every `onConflictDo*` in the tree
+was checked against the live schema's unique-index count (`pg_index`, rather
+than by reading the Drizzle definitions — the database is the authority on what
+can actually conflict):
+
+| Table           | Unique constraints                                              | Verdict                             |
+| --------------- | --------------------------------------------------------------- | ----------------------------------- |
+| `problems`      | **3** — pkey, `slug_key`, partial `external_url_normalised_key` | the bug above; now targeted         |
+| `user_problems` | **2** — pkey, `user_problem_key`                                | **latent instance, fixed**          |
+| `problem_tags`  | 1 — composite PK                                                | unambiguous; 4 call sites left bare |
+| `user_profiles` | 1 — pkey                                                        | unambiguous                         |
+
+The `user_problems` case is the one worth noting: `linkUserProblem`'s insert
+returns a row or not, and **that return value is the only thing distinguishing
+`duplicate` from `created`/`linked`** in the import counts. A primary-key
+collision on a random UUID is not a realistic worry, but the clause was one
+schema change away from mattering, and it is the same defect written by the same
+hands in the same week as the one above. Targeted.
+
+The four `problem_tags` sites are correct as written — a table with a single
+composite primary key has nothing to disambiguate. They are left bare rather
+than churned, and this entry is the reason a future reader will not "fix" them.
+
+**Consequence for partial indexes.** Targeting a partial unique index requires
+the index predicate as well as the columns, or Postgres cannot match the
+inference and rejects the statement:
+
+```ts
+.onConflictDoNothing({
+  target: problems.externalUrlNormalised,
+  where: sql`... is not null and ${problems.status} <> 'archived'`,
+})
+```
+
+Drizzle spells this `where` on `onConflictDoNothing` and `targetWhere` on
+`onConflictDoUpdate`. Verified against the emitted SQL, not assumed — per D12.
+
+**Rejected:** a lint rule banning the bare form. It would fire on the four
+correct `problem_tags` sites, and a rule with a 4-to-1 false-positive rate
+teaches people to disable it. The check belongs in review, and now in this entry.
