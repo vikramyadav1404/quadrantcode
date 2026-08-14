@@ -71,13 +71,42 @@ export const authSessions = pgTable(
   ],
 );
 
-/** Single-use magic-link tokens. Rows are deleted on use, never marked. */
+/**
+ * Single-use magic-link tokens.
+ *
+ * Consumption is a STATE CHANGE, not a delete. The stock Auth.js adapter
+ * deletes the row, which destroys the only evidence separating "this link was
+ * already used" from "this link never existed" — so /login/verify could not
+ * tell a user which one happened, and the spec requires each state to say
+ * exactly what to do next.
+ *
+ * Marking instead of deleting also makes single-use ATOMIC: the adapter's
+ * `UPDATE ... WHERE consumed_at IS NULL ... RETURNING` cannot lose a race
+ * between two simultaneous clicks, where a SELECT-then-DELETE can.
+ *
+ * Same pattern `verification_methods` already uses for OTP codes.
+ */
 export const authVerificationTokens = pgTable(
   'auth_verification_tokens',
   {
     identifier: text().notNull(),
     token: text().notNull(),
     expires: timestamp({ withTimezone: true }).notNull(),
+
+    /** Set when the link is redeemed. NULL means still usable. */
+    consumedAt: timestamp({ withTimezone: true }),
+
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.identifier, table.token] })],
+  (table) => [
+    primaryKey({ columns: [table.identifier, table.token] }),
+
+    /**
+     * Serves the 24-hour retention sweep —
+     *   DELETE FROM auth_verification_tokens WHERE created_at < now() - '24 hours'
+     * Beyond that window "already used" degrades to "not valid", which is the
+     * accepted residual: retaining tokens forever is worse.
+     */
+    index('auth_verification_tokens_created_idx').on(table.createdAt),
+  ],
 );
