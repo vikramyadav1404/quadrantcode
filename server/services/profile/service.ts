@@ -108,13 +108,19 @@ export async function updateProfile(
   return getProfile(db, userId);
 }
 
-/** True when the user has completed onboarding — consumed by the F0.3 amendment. */
-export async function hasCompletedProfile(db: Database, userId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ displayName: userProfiles.displayName })
-    .from(userProfiles)
-    .where(eq(userProfiles.userId, userId))
-    .limit(1);
+/**
+ * THE definition of a completed profile. Everything else defers to this.
+ *
+ * Two callers need the answer with different data in hand: `/onboarding` has
+ * only a user id, while the authenticated layout already holds a Profile it
+ * loaded for the avatar. Writing the rule twice is how the two drift — so the
+ * async form below is a WRAPPER over this one, not a parallel implementation.
+ */
+export function isProfileComplete(profile: Pick<Profile, 'displayName'>): boolean {
+  return Boolean(profile.displayName?.trim());
+}
 
-  return Boolean(row?.displayName);
+/** Async form for callers holding only a user id. Defined in terms of the above. */
+export async function hasCompletedProfile(db: Database, userId: string): Promise<boolean> {
+  return isProfileComplete(await getProfile(db, userId));
 }

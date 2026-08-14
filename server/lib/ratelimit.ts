@@ -39,6 +39,15 @@ export const RATE_LIMITS = {
   otpVerifyPerUser: { limit: 10, windowSeconds: 900, prefix: 'otp:vfy:user' },
   otpVerifyPerIp: { limit: 30, windowSeconds: 900, prefix: 'otp:vfy:ip' },
   magicLinkPerEmail: { limit: 5, windowSeconds: 3600, prefix: 'auth:link:email' },
+  /**
+   * F0.3: the 60-second resend cooldown.
+   *
+   * SERVER-SIDE on purpose. The countdown rendered on /login is UX — it resets
+   * on reload, and the resend offered by the EXPIRED-link page is a second
+   * entry point entirely. A cooldown that lives in component state is bypassed
+   * by both. This rule is the control; the countdown merely displays it.
+   */
+  magicLinkResendCooldown: { limit: 1, windowSeconds: 60, prefix: 'auth:link:cooldown' },
   /** F0.5: 10 presign requests per user per hour. */
   avatarPresignPerUser: { limit: 10, windowSeconds: 3600, prefix: 'avatar:presign:user' },
 } as const satisfies Record<string, RateLimitRule>;
