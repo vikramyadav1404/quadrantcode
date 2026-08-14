@@ -67,24 +67,53 @@ deliberately not rounded up.
 
 ## F0.4 · `design-system`
 
-| Criterion                                                      | Status              | Evidence                                                                                                                                                                                                                                                  |
-| -------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every nav item reachable by keyboard with a visible focus ring | **PARTIAL**         | Focus ring is a global `:focus-visible` rule; skip link, `aria-current` and landmarks asserted in `e2e/viewports.spec.ts`. **Full keyboard traversal is not yet asserted** — no spec tabs through every control                                           |
-| Measured contrast documented in code, ≥4.5:1 body text         | **DONE**            | `npm run contrast` (CI step) + `tests/design/tokens.test.ts`; numbers pasted into `styles/tokens.css`. `border` failed at 2.46/2.52 and was changed, not waived                                                                                           |
-| Layout intact at 375px, 768px, 1440px                          | **DONE**            | `e2e/viewports.spec.ts` — no horizontal overflow, exactly one nav visible and the correct one per width, nothing past the right edge                                                                                                                      |
-| **Every list route has a skeleton state**                      | **DEFERRED → F1.1** | **There are no list routes yet.** Only `/dashboard` has a `loading.tsx`. The primitives exist (`Skeleton`, `CardSkeleton`, `StatGridSkeleton`, `TableSkeleton`) but the criterion is currently **vacuous** and is recorded as deferred rather than passed |
-| Theme switches via `data-theme` with no flash of wrong theme   | **DONE**            | `e2e/theme.spec.ts` asserts the _mechanism_: the bootstrap script is inline, in `<head>`, neither `async` nor `defer`, and the attribute is applied by document commit. A final-state assertion cannot detect a flash                                     |
-| `grep` for hex colours in `components/` returns nothing        | **DONE**            | `tests/design/tokens.test.ts` walks `components/` and `app/`, rejecting hex, `rgb()` and `hsl()`                                                                                                                                                          |
+| Criterion                                                      | Status                    | Evidence                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every nav item reachable by keyboard with a visible focus ring | **DONE** (F0.3 amendment) | `e2e/keyboard.spec.ts` — 7 tests. Closed at the third attempt; see the note below for what it found and what it deliberately does not claim                                                                                                               |
+| Measured contrast documented in code, ≥4.5:1 body text         | **DONE**                  | `npm run contrast` (CI step) + `tests/design/tokens.test.ts`; numbers pasted into `styles/tokens.css`. `border` failed at 2.46/2.52 and was changed, not waived                                                                                           |
+| Layout intact at 375px, 768px, 1440px                          | **DONE**                  | `e2e/viewports.spec.ts` — no horizontal overflow, exactly one nav visible and the correct one per width, nothing past the right edge                                                                                                                      |
+| **Every list route has a skeleton state**                      | **DEFERRED → F1.1**       | **There are no list routes yet.** Only `/dashboard` has a `loading.tsx`. The primitives exist (`Skeleton`, `CardSkeleton`, `StatGridSkeleton`, `TableSkeleton`) but the criterion is currently **vacuous** and is recorded as deferred rather than passed |
+| Theme switches via `data-theme` with no flash of wrong theme   | **DONE**                  | `e2e/theme.spec.ts` asserts the _mechanism_: the bootstrap script is inline, in `<head>`, neither `async` nor `defer`, and the attribute is applied by document commit. A final-state assertion cannot detect a flash                                     |
+| `grep` for hex colours in `components/` returns nothing        | **DONE**                  | `tests/design/tokens.test.ts` walks `components/` and `app/`, rejecting hex, `rgb()` and `hsl()`                                                                                                                                                          |
 
 ---
 
 ## Open, carried forward
 
-1. **Keyboard traversal** (F0.4) is partial. A spec that tabs through the shell
-   and asserts focus order belongs with F1.1, when there is a list route with
-   real interactive rows to traverse.
+1. ~~**Keyboard traversal** (F0.4)~~ — **closed** by the F0.3 amendment, see below.
 2. **Magic-link delivery** (F0.3) stays BLOCKED until a Resend key exists.
-3. **Skeleton coverage** (F0.4) is re-checked when F1.1 adds `/problems`.
+3. ~~**Skeleton coverage** (F0.4)~~ — **closed** by F1.1's `/problems`.
+
+### Closing the keyboard criterion
+
+It was PARTIAL through F0.4, carried through F1.1 and F0.5. `e2e/keyboard.spec.ts`
+now tabs the full signed-out flow (`/login` → check-email panel → `/login/verify`
+error state → `/onboarding`) and one authenticated surface with real interactive
+rows (`/problems`), asserting three separate claims at every stop: **order**,
+**no trap** (Shift+Tab moves focus back), and a **visible ring** read from the
+focused element's computed style rather than from the stylesheet.
+
+**It found a real defect.** The resend control was `disabled` during its
+60-second cooldown, which removes an element from the tab order entirely — a
+keyboard user mid-cooldown finds the button has silently vanished with no
+explanation. Both resend buttons now use `aria-disabled` and guard the handler;
+the server enforces the cooldown regardless, so a press during the window is
+answered rather than obeyed. The variant was verified as emitted CSS
+(`aria-disabled\:opacity-60[aria-disabled=true]`) rather than assumed, since a
+Tailwind class that compiles to nothing is the D12 pattern exactly.
+
+**Three test bugs were fixed rather than worked around**, each of which would
+have made the spec pass while proving less than it claimed:
+
+| Bug                                    | Why it mattered                                                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `body.click({x:1,y:1})` to reset focus | Lands ON the `sr-only` skip link, so the first Tab moved _past_ the element under test                                              |
+| `activeElement.blur()` to reset focus  | Clears the active element but **not** Chromium's sequential-navigation starting point, so tabbing resumed mid-page                  |
+| `?? ` chain building the focus label   | `el.id` is `''`, not `null`, so the chain stopped there and every label was empty — the reachability matchers were matching nothing |
+
+**What it does not claim:** this is Chromium only, and it asserts a ring exists
+(non-zero outline or box-shadow), not that the ring meets a contrast ratio
+against its background. Screen-reader announcement is not asserted at all.
 
 ---
 
@@ -105,8 +134,9 @@ deliberately not rounded up.
 | ------------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
 | Every list route has a skeleton state | **DONE** (was DEFERRED) | `app/(app)/problems/loading.tsx` — `/problems` is the first real list route |
 
-Keyboard traversal remains **PARTIAL**: `/problems` now has interactive rows, but
-no spec yet tabs through them. Carried to F0.5, which adds a second surface.
+Keyboard traversal was still **PARTIAL** at this point — `/problems` had the
+interactive rows but no spec tabbed through them. It is **closed** by the F0.3
+amendment, which uses `/problems` as its authenticated surface.
 
 ### Found while building
 
@@ -119,17 +149,17 @@ EXPLAIN assertion could catch it. 27.98 ms → 0.27 ms. See decisions **D10**.
 
 ## F0.5 · `profile-avatar`
 
-| Criterion                                                                | Status           | Evidence                                                                                                                          |
-| ------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| A PDF renamed `avatar.png` is REJECTED at confirm and the object deleted | **DONE**         | `tests/profile/avatar.test.ts` — asserts both the rejection code and that the key is gone from storage                            |
-| A 5MB file is rejected at presign, before any upload begins              | **DONE**         | Same suite; also asserts zero keys exist afterwards                                                                               |
-| A presigned URL is unusable 90 seconds after issue                       | **DONE**         | Injected clock against the in-memory provider, which implements real expiry                                                       |
-| User A cannot presign/confirm under User B's prefix                      | **DONE**         | Called at the **service**, not through the UI; also asserts B's object survives A's attempt                                       |
-| Replacing an avatar leaves exactly ONE object                            | **DONE**         | Same suite                                                                                                                        |
-| Passing `avatarUrl` in the profile save payload is ignored               | **DONE**         | `tests/profile/profile.test.ts` — schema-level and end-to-end against the DB                                                      |
-| A user with no avatar sees initials, identical colour across reloads     | **DONE**         | FNV-1a over the user id; determinism and all-360-hue contrast asserted                                                            |
-| A bio containing `<script>` renders as visible plain text                | **PARTIAL**      | Stored verbatim and asserted; React escapes at render. **No browser test yet** — belongs with the F0.3 amendment's e2e work       |
-| Profile save on throttled slow-3G rolls back correctly                   | **NOT VERIFIED** | Optimistic save has a 10s timeout and rolls back to the last server-confirmed state, but no Playwright throttling test exists yet |
+| Criterion                                                                | Status           | Evidence                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A PDF renamed `avatar.png` is REJECTED at confirm and the object deleted | **DONE**         | `tests/profile/avatar.test.ts` — asserts both the rejection code and that the key is gone from storage                                                                                                               |
+| A 5MB file is rejected at presign, before any upload begins              | **DONE**         | Same suite; also asserts zero keys exist afterwards                                                                                                                                                                  |
+| A presigned URL is unusable 90 seconds after issue                       | **DONE**         | Injected clock against the in-memory provider, which implements real expiry                                                                                                                                          |
+| User A cannot presign/confirm under User B's prefix                      | **DONE**         | Called at the **service**, not through the UI; also asserts B's object survives A's attempt                                                                                                                          |
+| Replacing an avatar leaves exactly ONE object                            | **DONE**         | Same suite                                                                                                                                                                                                           |
+| Passing `avatarUrl` in the profile save payload is ignored               | **DONE**         | `tests/profile/profile.test.ts` — schema-level and end-to-end against the DB                                                                                                                                         |
+| A user with no avatar sees initials, identical colour across reloads     | **DONE**         | FNV-1a over the user id; determinism and all-360-hue contrast asserted                                                                                                                                               |
+| A bio containing `<script>` renders as visible plain text                | **DONE**         | `e2e/profile.spec.ts` — real browser. Asserts the payload is a field VALUE, that no script element's body IS the payload, and registers a `dialog` handler as a positive control that would fire if it ever executed |
+| Profile save on throttled slow-3G rolls back correctly                   | **NOT VERIFIED** | Optimistic save has a 10s timeout and rolls back to the last server-confirmed state, but no Playwright throttling test exists yet                                                                                    |
 
 ### Blocked and deferred
 
@@ -156,3 +186,57 @@ of the hue wheel was below 4.5. Because the hue derives from the user id, the
 failure would have hit an arbitrary, unpredictable subset of users. Corrected to
 28% (worst hue now 4.93:1). The test walks all 360 hues, so a future palette
 tweak fails the build.
+
+---
+
+## F0.3 amendment · `auth-ui`
+
+Reopened F0.3's UI scope: `/login`, `/login/verify`, `/onboarding`, a signed-out
+layout, and `returnTo` validated against a same-origin allowlist. The shipped
+route before this was `/sign-in`, and `/onboarding` did not exist.
+
+| Criterion                                                  | Status      | Evidence                                                                                                                                                                                              |
+| ---------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/login` sends a magic link and shows a check-email state  | **DONE**    | `e2e/keyboard.spec.ts` submits by keyboard alone and asserts the panel replaces the form                                                                                                              |
+| Magic-link delivery reaches a real inbox                   | **BLOCKED** | Needs `RESEND_API_KEY`. The e2e server logs a real Resend 401 — the call is genuinely made, only delivery is unverified                                                                               |
+| A link expires 15 minutes after issue                      | **DONE**    | `tests/auth/onboarding.test.ts` — four states asserted against a real DB. 15 min is **our** number, not an Auth.js default (24h); see **D13**                                                         |
+| The four link states are distinguishable                   | **DONE**    | Same suite — `valid` / `expired` / `used` / `invalid`, incl. used-AND-expired reading as `used`. Only possible because consumption **marks** rather than deletes                                      |
+| A consumed link cannot be replayed                         | **DONE**    | `e2e/auth-flow.spec.ts` — replay after `clearCookies` mints no session cookie. Enforced by an atomic `UPDATE … WHERE consumed_at IS NULL … RETURNING`                                                 |
+| The 60s resend cooldown cannot be bypassed                 | **DONE**    | Both `/login` and the expired-link `ResendPanel` call the ONE server action in `app/(auth)/login/actions.ts`. The countdown is a _display_ of the server's value, never the control                   |
+| `returnTo` rejects off-origin and malformed input          | **DONE**    | `lib/auth/return-to.ts`, 7 steps; raw control characters checked **before** parsing because WHATWG `URL` silently strips tab/LF/CR. `e2e/onboarding.spec.ts` covers the open-redirect case end to end |
+| `/admin` as a `returnTo` is gated on role at redirect time | **DONE**    | `e2e/onboarding.spec.ts` — admin lands on `/admin`, non-admin lands on `/dashboard` with no 403                                                                                                       |
+| `/onboarding` decides completion via `hasCompletedProfile` | **DONE**    | `tests/auth/onboarding.test.ts` asserts the route wrapper and the layout predicate agree for every **storable** shape, so they cannot drift into a redirect loop                                      |
+| The onboarding gate holds against direct navigation        | **DONE**    | `e2e/onboarding.spec.ts` — 10 tests, all typing URLs rather than clicking through                                                                                                                     |
+| Full keyboard traversal, order + no trap + visible ring    | **DONE**    | `e2e/keyboard.spec.ts` — see "Closing the keyboard criterion" above                                                                                                                                   |
+
+### Found while building
+
+**`/onboarding` had no auth guard.** It lives in the `(auth)` route group, which
+has no layout-level session check, so `requireCurrentUser()` threw and an
+anonymous visitor typing the URL got a **500 instead of a redirect**. The UI
+flow was correct throughout; only direct navigation exposed it. This is why the
+review asked for direct-navigation tests rather than click-through tests, and it
+is the same lesson as the stale-session 401: assert at the layer the criterion
+names.
+
+**The onboarding gate discarded the user's destination.** `app/(app)/layout.tsx`
+called `redirect('/onboarding')` with no `returnTo`, even though `/onboarding`
+honours one — so a first-time user following a link to `/problems` finished
+onboarding on `/dashboard` and the destination was silently lost. A Next layout
+is not given the pathname, so middleware now forwards it as a request-only
+header and the layout re-validates it through the same allowlist. Pinned by
+"the gate defers the destination rather than discarding it" in `e2e/auth-flow.spec.ts`.
+
+**A whitespace-only display name is storable.** `'   '` is three characters, so
+the `user_profiles_display_name_length` CHECK (2–40) accepts it; only
+`isProfileComplete` trims. Had the route gate and the predicate used different
+rules, that exact input would have bounced the user between `/onboarding` and
+`/dashboard` forever. Asserted in both the unit and the e2e layer.
+
+### Not done
+
+- **Magic-link delivery** — BLOCKED on `RESEND_API_KEY`, unchanged.
+- **Phone OTP UI** — the service and `/settings/phone` exist; the amendment did
+  not ask for an OTP step in the signed-out flow and none was built.
+- **Keyboard spec is Chromium-only** and asserts a ring _exists_, not that it
+  meets a contrast ratio. Screen-reader announcement is not asserted.

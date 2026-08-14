@@ -8,7 +8,7 @@
 import { redirect } from 'next/navigation';
 import { getDb } from '@/server/db';
 import { getProfile, hasCompletedProfile } from '@/server/services/profile';
-import { requireCurrentUser } from '@/server/services/auth/session';
+import { getCurrentUser } from '@/server/services/auth/session';
 import { OnboardingForm } from './OnboardingForm';
 
 export default async function OnboardingPage({
@@ -16,7 +16,16 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireCurrentUser();
+  /*
+   * /onboarding lives in the signed-out (auth) group, which has no layout
+   * guard — so it needs its own. `requireCurrentUser()` was wrong here: it
+   * throws AuthenticationError, which surfaces as a 500 rather than sending an
+   * anonymous visitor anywhere useful. Found by navigating to the URL directly
+   * rather than arriving through the flow.
+   */
+  const user = await getCurrentUser();
+  if (!user) redirect('/login?returnTo=%2Fonboarding');
+
   const params = await searchParams;
 
   // Unreachable a second time. Not a redirect loop: the (app) layout only

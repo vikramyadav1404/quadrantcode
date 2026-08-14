@@ -72,9 +72,20 @@ export async function createMagicLink(
 export async function signInAs(
   context: BrowserContext,
   sql: ReturnType<typeof postgres>,
-  options: { email: string; role?: 'user' | 'admin'; baseUrl: string },
+  options: {
+    email: string;
+    role?: 'user' | 'admin';
+    baseUrl: string;
+    /**
+     * Whether the user has finished onboarding. Defaults to true, because the
+     * (app) layout now redirects an incomplete profile to /onboarding — so a
+     * spec about anything ELSE would otherwise be testing the onboarding gate
+     * by accident. Pass false when the gate IS the subject.
+     */
+    onboarded?: boolean;
+  },
 ): Promise<string> {
-  const { email, role = 'user', baseUrl } = options;
+  const { email, role = 'user', baseUrl, onboarded = true } = options;
 
   await sql`DELETE FROM users WHERE email = ${email.toLowerCase()}`;
   const [user] = await sql`
@@ -82,7 +93,11 @@ export async function signInAs(
     VALUES (${email.toLowerCase()}, ${role}, now())
     RETURNING id
   `;
-  await sql`INSERT INTO user_profiles (user_id) VALUES (${user!.id}) ON CONFLICT DO NOTHING`;
+  await sql`
+    INSERT INTO user_profiles (user_id, display_name)
+    VALUES (${user!.id}, ${onboarded ? 'E2E Tester' : null})
+    ON CONFLICT DO NOTHING
+  `;
 
   const sessionToken = randomBytes(32).toString('hex');
   await sql`
