@@ -9,7 +9,7 @@ import type { Database } from '@/server/db';
 import { problemTags, problems, userProblems } from '@/server/db/schema';
 import { type Cursor, decodeCursor, encodeCursor } from './cursor';
 import { ProblemNotFoundError } from './errors';
-import { type ParsedListFilters, listFiltersSchema } from './schemas';
+import { type ParsedListFilters, listFiltersSchema } from '@/lib/problems/schemas';
 
 export type ProblemListItem = {
   id: string;
@@ -124,7 +124,18 @@ export async function listProblems({ db, filters, userId }: ListOptions): Promis
     })
     .from(problems)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(problems.createdAt), desc(problems.id))
+    /*
+     * `NULLS LAST` is REQUIRED, not cosmetic.
+     *
+     * Drizzle emits index columns as `DESC NULLS LAST`, but Postgres defaults a
+     * bare `ORDER BY x DESC` to `NULLS FIRST`. The two sort orders do not
+     * match, so the planner refuses the index and falls back to a sequential
+     * scan plus a top-N sort. Both columns are NOT NULL, so this changes no
+     * result — only whether the index is usable.
+     *
+     * Measured at 20k rows: 27.98ms (seq scan) vs 0.27ms (index scan).
+     */
+    .orderBy(sql`${problems.createdAt} DESC NULLS LAST`, sql`${problems.id} DESC NULLS LAST`)
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;

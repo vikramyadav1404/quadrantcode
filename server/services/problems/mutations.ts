@@ -22,7 +22,7 @@ import {
   bulkTagSchema,
   createProblemSchema,
   updateProblemSchema,
-} from './schemas';
+} from '@/lib/problems/schemas';
 
 /**
  * C1 gate.

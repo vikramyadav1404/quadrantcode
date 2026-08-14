@@ -85,3 +85,32 @@ deliberately not rounded up.
    real interactive rows to traverse.
 2. **Magic-link delivery** (F0.3) stays BLOCKED until a Resend key exists.
 3. **Skeleton coverage** (F0.4) is re-checked when F1.1 adds `/problems`.
+
+---
+
+## F1.1 · `problem-catalog`
+
+| Criterion                                                                 | Status   | Evidence                                                                                                                                                               |
+| ------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Filtered list at 1000 problems responds in <200ms server time             | **DONE** | `tests/problems/plans.test.ts` measures it at **20,000** rows, twenty times the required scale. Unfiltered page 0.127 ms, filtered keyset 0.041 ms                     |
+| Title search returns ranked results and uses the GIN index                | **DONE** | `tests/problems/search.test.ts` — 8 tests incl. ranking, stemming, and an EXPLAIN assertion on `problems_search_vector_idx`                                            |
+| Cursor pagination is stable across inserts                                | **DONE** | `tests/problems/pagination.test.ts` inserts rows BETWEEN page fetches and asserts the pages still partition the original set; a separate test covers `created_at` ties |
+| Saving a statement onto an external-link problem returns the policy error | **DONE** | `tests/problems/policy.test.ts` — 19 tests, incl. that the gate reads `source_type` from the DATABASE so a forged `sourceType` in the payload cannot bypass it         |
+| Admin form rejects the same payload on both client and server             | **DONE** | One schema in `lib/problems/schemas.ts`, parsed in `NewProblemForm` and again in `actions.ts`                                                                          |
+| Archived problems disappear from the public list but keep user history    | **DONE** | `pagination.test.ts` (hidden by default, visible with `includeHidden`) + `policy.test.ts` (archiving leaves `user_problems` untouched)                                 |
+
+### Criteria this ticket also closed, carried over from F0.4
+
+| Criterion                             | Status                  | Evidence                                                                    |
+| ------------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
+| Every list route has a skeleton state | **DONE** (was DEFERRED) | `app/(app)/problems/loading.tsx` — `/problems` is the first real list route |
+
+Keyboard traversal remains **PARTIAL**: `/problems` now has interactive rows, but
+no spec yet tabs through them. Carried to F0.5, which adds a second surface.
+
+### Found while building
+
+The catalog list was doing a **sequential scan at 20k rows** despite a
+correct-looking index, because Drizzle writes `DESC NULLS LAST` and a bare
+`ORDER BY ... DESC` means `NULLS FIRST`. Results were identical, so only an
+EXPLAIN assertion could catch it. 27.98 ms → 0.27 ms. See decisions **D10**.

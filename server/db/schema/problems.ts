@@ -125,6 +125,26 @@ export const problems = pgTable(
     ),
 
     /**
+     * Serves: the UNFILTERED catalog page — the most-requested query in the
+     * app —
+     *   SELECT ... FROM problems WHERE status = 'published'
+     *   ORDER BY created_at DESC, id DESC LIMIT 25
+     * and the same shape with a keyset predicate or an EXISTS tag filter.
+     *
+     * Why a second index rather than reusing the one above: there,
+     * `difficulty` sits BETWEEN `status` and `created_at`, so Postgres cannot
+     * use it to satisfy the ORDER BY unless difficulty is also constrained. On
+     * a status-only query it therefore fell back to a sequential scan plus a
+     * top-N sort (measured: 7.8ms at 20k rows). With this index the planner
+     * walks in index order and stops after LIMIT rows.
+     */
+    index('problems_status_recent_idx').on(
+      table.status,
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
+
+    /**
      * C1, enforced in the database.
      * An external-link problem may not carry any statement text, and must
      * carry the URL that sends the user to the original platform.
