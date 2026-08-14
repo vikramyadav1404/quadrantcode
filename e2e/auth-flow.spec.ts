@@ -1,14 +1,10 @@
 /**
  * The sign-in journey, end to end in a browser.
  *
- * SCOPE NOTE — the requested flow was "/login → verify → onboarding →
- * dashboard". Two of those do not exist in this codebase:
- *   - the route is `/sign-in`, not `/login` (F0.3 named it);
- *   - there is NO onboarding step. No ticket in the pack defines one; the
- *     nearest thing is /settings/phone (F0.3), which is optional and skippable.
- * So this spec covers /sign-in → magic-link verify → dashboard, plus the phone
- * step as an explicitly optional detour. If onboarding is wanted it needs a
- * ticket first — a test is not the place to invent product.
+ * The F0.3 amendment renamed /sign-in to /login and added a real onboarding
+ * step, so the scope note that used to sit here — saying neither existed — is
+ * gone rather than left to mislead. Onboarding has its own spec
+ * (e2e/onboarding.spec.ts); this one covers sign-in itself.
  *
  * Email delivery is not exercised (that needs a Resend key); everything after
  * the click is.
@@ -28,16 +24,16 @@ test.afterAll(async () => {
   await sql.end();
 });
 
-test('signed-out visitor is sent to sign-in with a callback', async ({ page }) => {
+test('signed-out visitor is sent to /login with returnTo', async ({ page }) => {
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/sign-in\?callbackUrl=%2Fdashboard/);
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Fdashboard/);
   await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
 });
 
 test('the sign-in form submits without leaking whether the address exists', async ({
   page,
 }) => {
-  await page.goto('/sign-in');
+  await page.goto('/login');
 
   await page.getByLabel(/email/i).fill('newuser@e2e.test');
   await page.getByRole('button', { name: /send sign-in link/i }).click();
@@ -48,15 +44,23 @@ test('the sign-in form submits without leaking whether the address exists', asyn
   expect(page.url()).not.toContain('/dashboard');
 });
 
-test('magic link creates a session and lands on the dashboard', async ({ page, baseURL }) => {
+test('magic link creates a session and sends a NEW user to onboarding', async ({
+  page,
+  baseURL,
+}) => {
   const email = 'magic@e2e.test';
   await sql`DELETE FROM users WHERE email = ${email}`;
 
   const link = await createMagicLink(sql, email, baseURL!, '/dashboard');
   await page.goto(link);
 
-  await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  /*
+   * Onboarding, not the dashboard. The link redirects to /dashboard, but this
+   * address has never signed in, so it has no display name and the (app)
+   * layout gate sends it to /onboarding first. The session below is real
+   * either way — being signed in and being onboarded are separate states.
+   */
+  await expect(page).toHaveURL(/\/onboarding/);
 
   const cookies = await page.context().cookies();
   const session = cookies.find((cookie) => cookie.name === SESSION_COOKIE);
@@ -70,6 +74,33 @@ test('magic link creates a session and lands on the dashboard', async ({ page, b
 
   const profile = await sql`SELECT user_id FROM user_profiles WHERE user_id = ${user!.id}`;
   expect(profile).toHaveLength(1);
+
+  // …and once onboarding is done, the dashboard is reachable.
+  await page.getByLabel(/what should we call you/i).fill('Magic User');
+  await page.getByRole('button', { name: /start tracking/i }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+});
+
+test('the gate defers the destination rather than discarding it', async ({ page, baseURL }) => {
+  /*
+   * The bug this pins: the onboarding gate used to `redirect('/onboarding')`
+   * with no returnTo, so a first-time user following a link to /problems
+   * finished onboarding on /dashboard and the destination was silently lost.
+   * The layout cannot see the pathname on its own — middleware forwards it.
+   */
+  const email = 'deferred-dest@e2e.test';
+  await sql`DELETE FROM users WHERE email = ${email}`;
+
+  const link = await createMagicLink(sql, email, baseURL!, '/problems');
+  await page.goto(link);
+
+  await expect(page).toHaveURL(/\/onboarding\?returnTo=%2Fproblems/);
+
+  await page.getByLabel(/what should we call you/i).fill('Destination User');
+  await page.getByRole('button', { name: /start tracking/i }).click();
+
+  await expect(page).toHaveURL(/\/problems/);
 });
 
 test('a magic link is single use — replay does not sign in again', async ({
@@ -81,11 +112,16 @@ test('a magic link is single use — replay does not sign in again', async ({
 
   const link = await createMagicLink(sql, email, baseURL!, '/dashboard');
   await page.goto(link);
-  await expect(page).toHaveURL(/\/dashboard/);
+  // Signed in (a new user, so onboarding) — the point is that it WORKED once.
+  await expect(page).toHaveURL(/\/onboarding/);
 
   await page.context().clearCookies();
   await page.goto(link);
-  await expect(page).not.toHaveURL(/\/dashboard/);
+
+  // Replayed with no cookie, the consumed token must not mint a second session.
+  await expect(page).not.toHaveURL(/\/dashboard|\/onboarding/);
+  const cookies = await page.context().cookies();
+  expect(cookies.find((cookie) => cookie.name === SESSION_COOKIE)).toBeUndefined();
 });
 
 test('the phone step is optional and does not gate the dashboard', async ({
