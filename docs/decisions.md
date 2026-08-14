@@ -221,3 +221,31 @@ workflow now downloads a pinned binary and runs
 `gitleaks git . --log-opts="--all"`, which reads the whole history every time and
 is the identical command available locally, so a CI result can be reproduced
 without reasoning about the action's range arithmetic.
+
+---
+
+## D10 · `ORDER BY ... DESC NULLS LAST` is load-bearing, not cosmetic
+
+**Status:** active · **File:** `server/services/problems/queries.ts`
+
+The catalog list was doing a sequential scan at 20,000 rows despite an index
+that looked exactly right. The cause is a mismatch nobody sees by reading the
+code: Drizzle emits index columns as `DESC NULLS LAST`, while a bare
+`ORDER BY x DESC` in Postgres means `DESC NULLS FIRST`. Those are different
+sort orders, so the planner cannot use the index to satisfy the ordering and
+falls back to a full scan plus a top-N sort.
+
+Both columns are `NOT NULL`, so **the results are byte-identical either way** —
+which is precisely why no functional test could have caught it. Measured at
+20k rows: **27.98 ms sequential scan versus 0.27 ms index scan**, a hundredfold
+difference produced by two words.
+
+The fix is to spell `NULLS LAST` in the ORDER BY so it matches the index.
+`tests/problems/plans.test.ts` asserts the plan, and carries a **positive
+control** that runs the same query without `NULLS LAST` and requires it to seq
+scan — so if a future Postgres or Drizzle version makes the two forms
+equivalent, the guard fails loudly rather than passing vacuously.
+
+The general lesson, and the reason this is written down: an index that exists,
+is named correctly, and is listed in the schema can still be completely unused.
+The only way to know is to read the plan.

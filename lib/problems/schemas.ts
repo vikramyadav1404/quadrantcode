@@ -5,8 +5,13 @@
  * object. Two hand-kept-in-sync schemas drift, and the drift always favours
  * the client, which is the side an attacker controls.
  *
- * These are safe to import from a Client Component: this file contains no
- * database access and no secrets.
+ * WHY THIS LIVES IN lib/ AND NOT server/services/problems/:
+ * it must be importable by a Client Component, and the ESLint boundary rule
+ * (correctly) forbids that from `server/**`. Zod schemas are isomorphic — no
+ * database access, no secrets — so `lib/` is where the folder convention says
+ * they go. The lint error that forced this move was the guard doing its job:
+ * the alternative would have been an inline disable, which is how a boundary
+ * quietly stops meaning anything.
  */
 import { z } from 'zod';
 

@@ -143,3 +143,129 @@ Planning:
 Planning Time: 1.712 ms
 Execution Time: 0.211 ms
 ```
+
+---
+
+---
+
+---
+
+# F1.1 · problem catalog
+
+> **The dataset is synthetic.** These plans were captured against
+> `tests/fixtures/perf-dataset.ts` (20005 rows), NOT against the
+> application seed. The seed is 30 hand-checked real problems; padding it
+> with invented URLs to reach a row count would violate C1 even in a test
+> database. Selectivity, not row count, decides a plan — see decisions D3.
+
+### F1.1-1 · Catalog list, first page (no filters)
+
+Expected index: `problems_status_difficulty_idx` · **Execution: 0.127 ms**
+
+```sql
+SELECT id, slug, title, difficulty, estimated_minutes FROM problems
+  WHERE status = 'published'
+  ORDER BY created_at DESC NULLS LAST, id DESC NULLS LAST LIMIT 25
+```
+
+```
+Limit  (cost=0.29..3.47 rows=25 width=81) (actual time=0.021..0.106 rows=25.00 loops=1)
+  Buffers: shared hit=27
+  ->  Index Scan using problems_status_recent_idx on problems  (cost=0.29..2542.92 rows=20004 width=81) (actual time=0.020..0.103 rows=25.00 loops=1)
+        Index Cond: (status = 'published'::problem_status)
+        Index Searches: 1
+        Buffers: shared hit=27
+Planning:
+  Buffers: shared hit=56
+Planning Time: 0.232 ms
+Execution Time: 0.127 ms
+```
+
+### F1.1-2 · Catalog list filtered by difficulty, second page (keyset)
+
+Expected index: `problems_status_difficulty_idx` · **Execution: 0.041 ms**
+
+```sql
+SELECT id, slug, title FROM problems
+  WHERE status = 'published' AND difficulty = 'medium'
+  AND (created_at, id) < (now() - interval '5 days', $1::uuid)
+  ORDER BY created_at DESC NULLS LAST, id DESC NULLS LAST LIMIT 25
+```
+
+```
+Limit  (cost=0.29..6.07 rows=1 width=73) (actual time=0.011..0.011 rows=0.00 loops=1)
+  Buffers: shared hit=2
+  ->  Index Scan using problems_status_recent_idx on problems  (cost=0.29..6.07 rows=1 width=73) (actual time=0.010..0.011 rows=0.00 loops=1)
+        Index Cond: ((status = 'published'::problem_status) AND (ROW(created_at, id) < ROW((now() - '5 days'::interval), '00000000-0000-0000-0000-000000000000'::uuid)))
+        Filter: (difficulty = 'medium'::difficulty)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.114 ms
+Execution Time: 0.041 ms
+```
+
+### F1.1-3 · Title search
+
+Expected index: `problems_search_vector_idx` · **Execution: 2.477 ms**
+
+```sql
+SELECT id, slug, title FROM problems
+  WHERE status = 'published'
+  AND search_vector @@ websearch_to_tsquery('english', 'dijkstra')
+  ORDER BY ts_rank(search_vector, websearch_to_tsquery('english', 'dijkstra')) DESC
+  LIMIT 25
+```
+
+```
+Limit  (cost=920.66..920.71 rows=20 width=69) (actual time=2.452..2.454 rows=20.00 loops=1)
+  Buffers: shared hit=205
+  ->  Sort  (cost=920.66..920.71 rows=20 width=69) (actual time=2.451..2.452 rows=20.00 loops=1)
+        Sort Key: (ts_rank(search_vector, '''dijkstra'''::tsquery)) DESC
+        Sort Method: quicksort  Memory: 27kB
+        Buffers: shared hit=205
+        ->  Bitmap Heap Scan on problems  (cost=850.17..920.23 rows=20 width=69) (actual time=2.426..2.433 rows=20.00 loops=1)
+              Recheck Cond: (search_vector @@ '''dijkstra'''::tsquery)
+              Filter: (status = 'published'::problem_status)
+              Heap Blocks: exact=2
+              Buffers: shared hit=202
+              ->  Bitmap Index Scan on problems_search_vector_idx  (cost=0.00..850.17 rows=20 width=0) (actual time=2.400..2.400 rows=20.00 loops=1)
+                    Index Cond: (search_vector @@ '''dijkstra'''::tsquery)
+                    Index Searches: 1
+                    Buffers: shared hit=200
+Planning:
+  Buffers: shared hit=45
+Planning Time: 1.384 ms
+Execution Time: 2.477 ms
+```
+
+### F1.1-4 · Catalog filtered by topic tag (EXISTS, not JOIN)
+
+Expected index: `problem_tags_type_value_idx` · **Execution: 2.075 ms**
+
+```sql
+SELECT p.id, p.slug FROM problems p
+  WHERE p.status = 'published'
+  AND EXISTS (SELECT 1 FROM problem_tags t
+  WHERE t.problem_id = p.id AND t.tag_type = 'topic' AND t.tag_value = 'graphs')
+  ORDER BY p.created_at DESC NULLS LAST, p.id DESC NULLS LAST LIMIT 25
+```
+
+```
+Limit  (cost=0.70..210.87 rows=25 width=42) (actual time=0.101..2.044 rows=25.00 loops=1)
+  Buffers: shared hit=1457
+  ->  Nested Loop  (cost=0.70..13350.54 rows=1588 width=42) (actual time=0.100..2.042 rows=25.00 loops=1)
+        Buffers: shared hit=1457
+        ->  Index Scan using problems_status_recent_idx on problems p  (cost=0.29..2542.92 rows=20004 width=42) (actual time=0.010..0.799 rows=363.00 loops=1)
+              Index Cond: (status = 'published'::problem_status)
+              Index Searches: 1
+              Buffers: shared hit=367
+        ->  Index Only Scan using problem_tags_type_value_idx on problem_tags t  (cost=0.41..0.54 rows=1 width=16) (actual time=0.003..0.003 rows=0.07 loops=363)
+              Index Cond: ((tag_type = 'topic'::problem_tag_type) AND (tag_value = 'graphs'::text) AND (problem_id = p.id))
+              Heap Fetches: 0
+              Index Searches: 363
+              Buffers: shared hit=1090
+Planning:
+  Buffers: shared hit=109
+Planning Time: 2.491 ms
+Execution Time: 2.075 ms
+```

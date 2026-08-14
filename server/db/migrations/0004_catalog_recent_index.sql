@@ -1,0 +1,1 @@
+CREATE INDEX "problems_status_recent_idx" ON "problems" USING btree ("status","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);
