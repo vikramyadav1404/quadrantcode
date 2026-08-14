@@ -29,7 +29,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "worker": "tsx worker/index.ts"
+    "worker": "tsx worker/index.ts",
+    "db:backfill:urls": "tsx scripts/backfill-normalised-urls.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
