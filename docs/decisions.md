@@ -349,3 +349,75 @@ criterion: the upload URL would still ACCEPT a PUT for the vendor's full
 validity window. The object would never be adopted and orphan cleanup would
 remove it, but "unusable" would be false. A weaker guarantee described in
 stronger words is exactly what this project keeps catching.
+
+---
+
+## D12 · STANDING RULE — verify an upstream constraint upstream
+
+**Status:** permanent · applies to every ticket
+
+Before attributing a limitation to a library, service or framework, **verify it
+in that thing's source or wire format, and say where you verified it.** A
+plausible-sounding constraint is not a constraint.
+
+This is written down because it has now happened five times, and each time the
+constraint lived in our own layer or the verification proved nothing:
+
+| #   | The claim                                                     | What was actually true                                                                                                                           | How it was caught                                                        |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| 1   | "The AWS key canary proves gitleaks works"                    | gitleaks **allowlists** that documented key by default, so the canary was indistinguishable from a broken scanner                                | second canary with a realistic token                                     |
+| 2   | "CI's secret scan is green"                                   | the action computed `<root>^..HEAD`, aborted, read **0 bytes**, and logged _"no leaks found in partial scan"_                                    | reading the step log rather than its colour                              |
+| 3   | "`@auth/drizzle-adapter` requires `name` and `image` columns" | its TYPE does; its RUNTIME never reads them — `.values(data)` drops unknown keys                                                                 | running the real adapter against a real database with the columns absent |
+| 4   | "Supabase Storage cannot do a 60-second presign"              | true, but our code was **posting `{ expiresIn }` into a body the API discards** — configured-looking and inert, green from both directions       | reading `createSignedUploadUrl` in storage-js                            |
+| 5   | "Auth.js cannot distinguish an expired link from a used one"  | Auth.js computes `hasInvite` and `expired` and puts both on the thrown error; **our adapter's `DELETE … RETURNING`** was discarding the evidence | reading `lib/actions/callback/index.js`                                  |
+
+The shape is constant: **a limitation attributed upstream that lives in our own
+layer, or a green result that verified nothing.** Both feel like findings. Both
+end the investigation early, which is exactly what makes them dangerous.
+
+### The rule, operationally
+
+1. **Read the upstream.** `node_modules` is on disk. The signature, the request
+   body, the branch that throws — look at it. Cite the file in a comment.
+2. **Name the layer.** State whether the constraint is in the vendor, the
+   protocol, or our code. If it is ours, it is a bug, not a constraint.
+3. **A parameter that might be ignored is not proof.** Presence of
+   `X-Amz-Expires` proves nothing; a **different signature for a different
+   value** proves it is signed in. Prefer an assertion that would fail if the
+   parameter were decorative.
+4. **Any "X is absent" result needs a positive control** proving the mechanism
+   can see X when X is present.
+
+Instances 3–5 were each found one review round late. The cost of following this
+rule is minutes; the cost of skipping it has been a wrong architecture decision
+(4), a hundred lines of unnecessary adapter (3), and a user-facing error page
+that would have said the wrong thing (5).
+
+---
+
+## D13 · Magic links expire in 15 minutes, overriding Auth.js's 24 hours
+
+**Status:** active · **File:** `server/services/auth/config.ts`
+
+`@auth/core/providers/resend.js` sets `maxAge: 24 * 60 * 60` — **verified in
+source**, per D12. We override it to **15 minutes**.
+
+A magic link is a **bearer credential sitting in an inbox**. Anyone holding the
+link is the account. Twenty-four hours is a long exposure for something that
+gets forwarded, synced to a shared or family device, indexed by a desktop search
+tool, or left in a mailbox that is compromised later that day. Fifteen minutes
+is comfortably enough to click a link you just asked for, and it bounds the
+window in which a leaked email body is worth anything.
+
+### The consequence, accepted deliberately
+
+At fifteen minutes **the expired state will genuinely happen** — people open
+email late. That is why `/login/verify` distinguishes expired from used from
+invalid (D12 #5) and offers a resend from the expired page rather than a dead
+end.
+
+That resend is the same server action `/login` uses, and therefore the same
+server-side cooldown. **A resend button on the expired page that skipped the
+cooldown would be a bypass of it** — the cooldown has to live on the server for
+exactly this reason: a per-component countdown resets on reload, so it is UX,
+never the control.

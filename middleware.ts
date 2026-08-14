@@ -38,9 +38,14 @@ export function middleware(request: NextRequest): NextResponse {
   const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
   if (hasSession) return NextResponse.next();
 
-  const signIn = new URL('/sign-in', request.url);
-  signIn.searchParams.set('callbackUrl', pathname);
-  return NextResponse.redirect(signIn);
+  /*
+   * `returnTo` carries only the PATH, and it is re-validated server-side by
+   * lib/auth/return-to.ts before any redirect uses it. Middleware attaches it;
+   * middleware does not get to be trusted about it.
+   */
+  const login = new URL('/login', request.url);
+  login.searchParams.set('returnTo', `${pathname}${request.nextUrl.search}`);
+  return NextResponse.redirect(login);
 }
 
 export const config = {

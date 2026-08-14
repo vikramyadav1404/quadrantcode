@@ -10,6 +10,9 @@ import { getDb } from '@/server/db';
 import { getServerEnv } from '@/server/env';
 import { createTraceLoopAdapter } from './adapter';
 
+/** See D13. Overrides Auth.js's 24-hour default for the email provider. */
+export const MAGIC_LINK_TTL_SECONDS = 15 * 60;
+
 /** 30 days, refreshed daily — long enough to be usable, short enough to expire. */
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const SESSION_UPDATE_AGE_SECONDS = 24 * 60 * 60;
@@ -46,15 +49,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
       Resend({
         apiKey: config.RESEND_API_KEY ?? '',
         from: config.EMAIL_FROM ?? 'TraceLoop <onboarding@resend.dev>',
-        // Magic links expire in 15 minutes, not the 24h default.
-        maxAge: 15 * 60,
+        /*
+         * 15 minutes — a DELIBERATE OVERRIDE of Auth.js's 24-hour default
+         * (verified in @auth/core/providers/resend.js: `maxAge: 24 * 60 * 60`).
+         *
+         * A magic link is a bearer credential sitting in an inbox: whoever
+         * holds it is the account. 24h is a long exposure for something that
+         * gets forwarded, synced to a shared device, or left in a mailbox
+         * compromised later the same day. 15 minutes is ample for a link you
+         * just requested.
+         *
+         * Consequence accepted: expiry will genuinely occur, so /login/verify
+         * distinguishes expired from used and offers a resend. See decisions
+         * D13.
+         */
+        maxAge: MAGIC_LINK_TTL_SECONDS,
       }),
     ],
 
     pages: {
-      signIn: '/sign-in',
-      verifyRequest: '/sign-in/check-email',
-      error: '/sign-in/error',
+      signIn: '/login',
+      // The "check your email" state is rendered inline by LoginForm rather
+      // than as a separate route, so the address stays on screen without being
+      // put in a URL.
+      verifyRequest: '/login',
+      error: '/login/verify',
     },
 
     callbacks: {
