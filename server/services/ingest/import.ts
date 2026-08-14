@@ -255,10 +255,21 @@ async function linkUserProblem(
   userId: string,
   problemId: string,
 ): Promise<boolean> {
+  /*
+   * Targeted, for the reason D16 records. `user_problems` carries TWO unique
+   * constraints — the primary key and `(user_id, problem_id)` — and this
+   * insert's return value is the only thing distinguishing `duplicate` from
+   * `created`/`linked`. Untargeted, a conflict on either one reports the row
+   * as a duplicate the user already had.
+   *
+   * A random-UUID primary key colliding is not a realistic worry. Naming the
+   * constraint we actually mean costs nothing and stops the clause silently
+   * widening the day a third unique index is added to this table.
+   */
   const [row] = await db
     .insert(userProblems)
     .values({ userId, problemId, status: 'not_started' })
-    .onConflictDoNothing()
+    .onConflictDoNothing({ target: [userProblems.userId, userProblems.problemId] })
     .returning({ id: userProblems.id });
 
   return row !== undefined;
