@@ -319,6 +319,28 @@ is not something this environment can do. The always-on tier proves the _client_
 signs correctly; the live tier proves the _server_ honours it, and it has never
 run. `docs/acceptance-status.md` records that rather than implying otherwise.
 
+### Known deployment dependency: R2 public reads
+
+R2 buckets are **not publicly readable by default**, and there is no equivalent
+of an S3 website endpoint. Serving avatars to browsers requires one of:
+
+| Option                            | Cost                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| `*.r2.dev` managed subdomain      | free, but **rate limited by Cloudflare** and explicitly not for production traffic |
+| Custom domain bound to the bucket | needs a zone on Cloudflare; no rate limit                                          |
+
+This is a **deploy-time dependency, not a code change**: the public origin is
+already behind `S3_PUBLIC_BASE_URL`, deliberately separate from `S3_ENDPOINT`.
+The signing endpoint carries credentials in its URLs and must never be handed to
+a browser; the public base is what `publicUrl()` builds from. Switching from
+`r2.dev` to a custom domain — or to a CDN in front of either — is an environment
+variable, and `tests/profile/storage-contract.test.ts` asserts the two hosts do
+not get conflated.
+
+Flagged now rather than discovered at deploy: on the free `r2.dev` subdomain,
+avatar loads will be throttled under load, and the symptom will look like broken
+images rather than like rate limiting.
+
 ### Rejected alternative
 
 Keeping Supabase and enforcing the 60-second window at confirm time — reject a
