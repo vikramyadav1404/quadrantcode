@@ -609,6 +609,24 @@ else — is now the property that makes recovery possible.
 | No scheduled avatar cleanup          | Orphaned uploads accumulate                          | `npm run avatars:cleanup`, on demand or from a host cron                                                         |
 | No queue-backed retries with backoff | A transient failure is a failed job                  | The user retries by re-uploading                                                                                 |
 
+**Cut scope has two surfaces, not one.** The obvious one is code that references
+the cut thing. The one that got missed is **user-facing copy promising the same
+future**: `/settings/import` already told users "re-upload the same file to
+continue from where it left off", and `startImport` already returned without
+re-enqueueing. Each was validating the other — the copy read as a description of
+the code, the code read as an implementation of the copy — and neither moved
+when the assumption underneath both disappeared. When something is cut, grep the
+strings a user reads, not only the comments a developer reads.
+
+**A tested function nothing can invoke looks handled.** `cleanupOrphanedAvatars`
+had tests, coverage, and a comment saying F2.3 would schedule it. With F2.3 cut
+it was unreachable code that passed every check we have — review sees a tested
+function, coverage sees exercised lines, and the acceptance record sees a
+criterion met. Nothing in the toolchain reports "this is never called in
+production". That is why it now has `npm run avatars:cleanup`: not because a
+manual script is good, but because an invocable-but-manual path is honest and an
+uninvocable one is a lie that passes review.
+
 **A found bug, from making this explicit.** `startImport` returned an existing
 job without re-enqueueing it, which was defensible only while F2.3 was going to
 add queue-level retries — and `/settings/import` already told the user
@@ -635,10 +653,18 @@ later. That is queue-shaped work, and the honest options are:
    anything but the fastest submissions; a serverless timeout would strand
    executions with no record.
 
-**Option 1 is the recommendation**, and it should be decided before F3.1 starts
-rather than discovered inside it. The one thing not to do is quietly build
-around the missing queue and leave "needs F2.3" implicit — the request was to
-flag it, so it is flagged here and in the README roadmap table.
+**Option 1 is APPROVED** (Vikram, 2026-08-15), for two reasons worth recording:
+the shape already exists and its gaps are documented, and synchronous
+submit-and-wait strands executions on a serverless timeout with no record — the
+failure mode hardest to diagnose. One consistent pattern with known limits beats
+two patterns.
+
+**Consequence for F3.1's acceptance record.** Its "queued state machine"
+criterion will be met by the in-process runner, not BullMQ. That must be written
+into the acceptance status as what was ACTUALLY built, with the same gaps this
+entry lists — no automatic retry, no scheduled sweep, user-driven recovery.
+Recording it as "queued execution: DONE" would be true of the words and false
+about the system.
 
 ### Also cut, and their live consequences
 
