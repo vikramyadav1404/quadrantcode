@@ -240,3 +240,65 @@ rules, that exact input would have bounced the user between `/onboarding` and
   not ask for an OTP step in the signed-out flow and none was built.
 - **Keyboard spec is Chromium-only** and asserts a ring _exists_, not that it
   meets a contrast ratio. Screen-reader announcement is not asserted.
+
+---
+
+## F1.2 · `bulk-ingest`
+
+| Criterion                                                                             | Status                  | Evidence                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A CSV with 3 malformed rows shows 3 row-level errors and still imports the valid rows | **DONE**                | `tests/ingest/csv.test.ts` (parse layer) + `tests/ingest/import.test.ts` (committed row count). The preview renders them before anything is written                                                                                |
+| The same URL in a different surface form is detected as a duplicate                   | **DONE**                | `tests/ingest/normalise-url.test.ts` — 47 cases — plus an integration test importing http/www/trailing-slash/`?ref=`/`/description/` variants and asserting one row                                                                |
+| A 500-row file runs as a job with visible progress and does not block the request     | **DONE, with a caveat** | `tests/ingest/jobs.test.ts` asserts the POST returns before any row is imported, and POLLS DURING the run requiring strictly-increasing intermediate values. **The runner is in-process, not a queue** — see the row below and D17 |
+| Export → import round trip produces zero new rows                                     | **DONE**                | `tests/ingest/export.test.ts` runs the cycle **twice**; the criterion is a second-lap claim                                                                                                                                        |
+| 100-problem library, every row has a working URL and ≥1 pattern tag                   | **BLOCKED / PARTIAL**   | See below — this one is split three ways and none of them is "done"                                                                                                                                                                |
+
+### The library criterion, split honestly
+
+| Part                            | Status         | Why                                                                                                                                                                                                                                                 |
+| ------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 100 problems                    | **BLOCKED**    | 34 ship. Reaching 100 means generating URLs from memory; a plausible-looking URL that 404s is a broken link with our name on it, and inventing platform content is what C1 forbids. Blocked on a real list                                          |
+| ≥1 pattern tag per row          | **DONE**       | `tests/ingest/library.test.ts`, over every row present                                                                                                                                                                                              |
+| Every row has a **working** URL | **UNVERIFIED** | `npm run library:verify` exists and runs. **LeetCode returns 403 to automated requests**, so all 34 report BLOCKED — not broken, not working, unknown. A browser User-Agent would get past it and that is evading bot protection, so it is not done |
+
+What _is_ verified about the URLs is weaker and worth stating exactly: every URL
+is **derived** from a slug matching the canonical pattern, never hand-typed, so
+no row can carry a typo'd link. That rules out the failure the script was
+written to catch. It does not confirm the pages exist.
+
+### The job criterion, stated as what was built
+
+F2.3 `job-runtime` is cut, so "runs as a job" is satisfied by a state machine in
+Postgres driven by an in-process runner. Recording it as plain DONE would be
+true of the words and false about the system. What that costs:
+
+- **No automatic retry.** A job whose process dies is dead until a user acts.
+  Recovery is re-uploading the same file, which re-enqueues it idempotently —
+  asserted in `tests/ingest/jobs.test.ts`.
+- **No scheduled sweep.** `sweepStalledJobs` runs only when called.
+- **Stall detection covers two shapes**: `running` with a stale heartbeat, and
+  `pending` that never started — the second was invisible until the re-upload
+  path was written.
+
+### Found while building
+
+**The slug collision.** Imported slugs were a deterministic hash of the
+normalised URL, which collided under the partial unique index that deliberately
+lets an archived and a live problem share a URL. An untargeted
+`onConflictDoNothing()` then swallowed that collision exactly like a dedup race,
+so the row came back neither created nor findable. Two defects, the second only
+visible after the first. **D16**.
+
+**The escape/unescape pair was not an inverse.** CSV-injection escaping stripped
+its marker whenever the next character was a formula lead, so a title genuinely
+typed as `'=x` came back as `=x` — a one-time silent data change that then
+stabilised and looked correct forever. Invisible to a fresh-value round-trip
+test; only a second lap shows it.
+
+**The caps are not independent.** The `maxRows` test was passing while actually
+exercising the byte cap: at realistic widths a 100k-row CSV exceeds 2 MiB, so it
+was rejected for size and the test asserted the wrong limit while looking right.
+
+**A seam that would have failed only under its replacement.** `enqueue(jobId)`
+was justified by "the payload is already in the database" — it was not. Every
+test passed because every test ran in-process.

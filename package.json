@@ -31,7 +31,8 @@
     "typecheck": "tsc --noEmit",
     "worker": "tsx worker/index.ts",
     "db:backfill:urls": "tsx scripts/backfill-normalised-urls.ts",
-    "avatars:cleanup": "tsx scripts/cleanup-avatars.ts"
+    "avatars:cleanup": "tsx scripts/cleanup-avatars.ts",
+    "library:verify": "tsx scripts/verify-library-urls.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

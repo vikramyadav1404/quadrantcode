@@ -1,0 +1,341 @@
+{
+  "$comment": [
+    "F1.2 curated starter library — INCOMPLETE AND KNOWN TO BE.",
+    "",
+    "The ticket asks for 100 problems across eight themed sets. This file holds",
+    "far fewer, and that is a deliberate stop rather than a partial attempt.",
+    "Filling it to 100 would mean generating URLs from memory, and a URL that",
+    "looks right and 404s is worse than an absent row: it is a broken link with",
+    "our name on it, and inventing platform content is exactly what C1 forbids.",
+    "",
+    "Every slug below is a canonical, long-stable LeetCode problem slug. Run",
+    "`npm run library:verify` to check each one actually resolves — that turns",
+    "'every row has a working URL' from a claim into a result.",
+    "",
+    "The remaining rows are BLOCKED on a real list. See docs/status.md."
+  ],
+  "sets": [
+    {
+      "name": "Arrays & Hashing",
+      "problems": [
+        {
+          "slug": "two-sum",
+          "title": "Two Sum",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["arrays", "hashing"],
+          "patterns": ["hash-map-lookup"]
+        },
+        {
+          "slug": "contains-duplicate",
+          "title": "Contains Duplicate",
+          "difficulty": "easy",
+          "estimatedMinutes": 10,
+          "topics": ["arrays", "hashing"],
+          "patterns": ["hash-set-membership"]
+        },
+        {
+          "slug": "valid-anagram",
+          "title": "Valid Anagram",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["strings", "hashing"],
+          "patterns": ["frequency-count"]
+        },
+        {
+          "slug": "group-anagrams",
+          "title": "Group Anagrams",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["strings", "hashing"],
+          "patterns": ["frequency-count"]
+        },
+        {
+          "slug": "product-of-array-except-self",
+          "title": "Product of Array Except Self",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["arrays"],
+          "patterns": ["prefix-suffix"]
+        }
+      ]
+    },
+    {
+      "name": "Two Pointers",
+      "problems": [
+        {
+          "slug": "valid-palindrome",
+          "title": "Valid Palindrome",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["strings"],
+          "patterns": ["two-pointers"]
+        },
+        {
+          "slug": "3sum",
+          "title": "3Sum",
+          "difficulty": "medium",
+          "estimatedMinutes": 35,
+          "topics": ["arrays", "sorting"],
+          "patterns": ["two-pointers"]
+        },
+        {
+          "slug": "container-with-most-water",
+          "title": "Container With Most Water",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["arrays"],
+          "patterns": ["two-pointers"]
+        }
+      ]
+    },
+    {
+      "name": "Sliding Window",
+      "problems": [
+        {
+          "slug": "best-time-to-buy-and-sell-stock",
+          "title": "Best Time to Buy and Sell Stock",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["arrays"],
+          "patterns": ["sliding-window"]
+        },
+        {
+          "slug": "longest-substring-without-repeating-characters",
+          "title": "Longest Substring Without Repeating Characters",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["strings", "hashing"],
+          "patterns": ["sliding-window"]
+        },
+        {
+          "slug": "minimum-window-substring",
+          "title": "Minimum Window Substring",
+          "difficulty": "hard",
+          "estimatedMinutes": 45,
+          "topics": ["strings", "hashing"],
+          "patterns": ["sliding-window"]
+        }
+      ]
+    },
+    {
+      "name": "Binary Search",
+      "problems": [
+        {
+          "slug": "binary-search",
+          "title": "Binary Search",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["arrays"],
+          "patterns": ["binary-search"]
+        },
+        {
+          "slug": "search-in-rotated-sorted-array",
+          "title": "Search in Rotated Sorted Array",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["arrays"],
+          "patterns": ["binary-search"]
+        },
+        {
+          "slug": "find-minimum-in-rotated-sorted-array",
+          "title": "Find Minimum in Rotated Sorted Array",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["arrays"],
+          "patterns": ["binary-search"]
+        }
+      ]
+    },
+    {
+      "name": "Stack & Queue",
+      "problems": [
+        {
+          "slug": "valid-parentheses",
+          "title": "Valid Parentheses",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["strings", "stack"],
+          "patterns": ["stack-matching"]
+        },
+        {
+          "slug": "min-stack",
+          "title": "Min Stack",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["stack"],
+          "patterns": ["auxiliary-stack"]
+        },
+        {
+          "slug": "daily-temperatures",
+          "title": "Daily Temperatures",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["arrays", "stack"],
+          "patterns": ["monotonic-stack"]
+        }
+      ]
+    },
+    {
+      "name": "Linked List",
+      "problems": [
+        {
+          "slug": "reverse-linked-list",
+          "title": "Reverse Linked List",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["linked-list"],
+          "patterns": ["pointer-reversal"]
+        },
+        {
+          "slug": "merge-two-sorted-lists",
+          "title": "Merge Two Sorted Lists",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["linked-list"],
+          "patterns": ["merge"]
+        },
+        {
+          "slug": "linked-list-cycle",
+          "title": "Linked List Cycle",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["linked-list"],
+          "patterns": ["fast-slow-pointers"]
+        }
+      ]
+    },
+    {
+      "name": "Trees",
+      "problems": [
+        {
+          "slug": "invert-binary-tree",
+          "title": "Invert Binary Tree",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["trees"],
+          "patterns": ["dfs"]
+        },
+        {
+          "slug": "maximum-depth-of-binary-tree",
+          "title": "Maximum Depth of Binary Tree",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["trees"],
+          "patterns": ["dfs"]
+        },
+        {
+          "slug": "binary-tree-level-order-traversal",
+          "title": "Binary Tree Level Order Traversal",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["trees"],
+          "patterns": ["bfs"]
+        },
+        {
+          "slug": "validate-binary-search-tree",
+          "title": "Validate Binary Search Tree",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["trees"],
+          "patterns": ["dfs", "bounds-propagation"]
+        }
+      ]
+    },
+    {
+      "name": "Graphs",
+      "problems": [
+        {
+          "slug": "number-of-islands",
+          "title": "Number of Islands",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["graphs"],
+          "patterns": ["flood-fill", "bfs"]
+        },
+        {
+          "slug": "clone-graph",
+          "title": "Clone Graph",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["graphs"],
+          "patterns": ["dfs", "hash-map-lookup"]
+        },
+        {
+          "slug": "course-schedule",
+          "title": "Course Schedule",
+          "difficulty": "medium",
+          "estimatedMinutes": 35,
+          "topics": ["graphs"],
+          "patterns": ["topological-sort"]
+        }
+      ]
+    },
+    {
+      "name": "Dynamic Programming",
+      "problems": [
+        {
+          "slug": "climbing-stairs",
+          "title": "Climbing Stairs",
+          "difficulty": "easy",
+          "estimatedMinutes": 15,
+          "topics": ["dp"],
+          "patterns": ["1d-dp"]
+        },
+        {
+          "slug": "house-robber",
+          "title": "House Robber",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["dp"],
+          "patterns": ["1d-dp"]
+        },
+        {
+          "slug": "coin-change",
+          "title": "Coin Change",
+          "difficulty": "medium",
+          "estimatedMinutes": 35,
+          "topics": ["dp"],
+          "patterns": ["unbounded-knapsack"]
+        },
+        {
+          "slug": "longest-increasing-subsequence",
+          "title": "Longest Increasing Subsequence",
+          "difficulty": "medium",
+          "estimatedMinutes": 35,
+          "topics": ["dp"],
+          "patterns": ["1d-dp", "binary-search"]
+        }
+      ]
+    },
+    {
+      "name": "Heap & Greedy",
+      "problems": [
+        {
+          "slug": "kth-largest-element-in-an-array",
+          "title": "Kth Largest Element in an Array",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["heap", "sorting"],
+          "patterns": ["top-k"]
+        },
+        {
+          "slug": "merge-intervals",
+          "title": "Merge Intervals",
+          "difficulty": "medium",
+          "estimatedMinutes": 30,
+          "topics": ["arrays", "sorting"],
+          "patterns": ["interval-merge"]
+        },
+        {
+          "slug": "jump-game",
+          "title": "Jump Game",
+          "difficulty": "medium",
+          "estimatedMinutes": 25,
+          "topics": ["arrays"],
+          "patterns": ["greedy-reachability"]
+        }
+      ]
+    }
+  ]
+}
