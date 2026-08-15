@@ -674,3 +674,66 @@ is cut, which means **C8** (daily cap + cooldown + minimum active time on every
 reward-granting path) has no path to guard: the constraint stands, and nothing
 in the target scope grants rewards. F1.2's curated library is cut to a small
 verified subset with the rest BLOCKED on a real list.
+
+---
+
+## D18 · Streak: history is immutable, freeze balance is derived
+
+Two decisions F1.3's spec explicitly refuses to leave accidental. Both are
+invisible until they are wrong, which is why they are here before the code.
+
+### A recorded day never moves
+
+`daily_sessions.local_date` is resolved in the user's timezone **at activity
+time** and is never re-resolved. Changing timezone affects future activity only.
+
+**Rejected:** recomputing history in the new zone. It makes the whole record
+internally consistent with where the user is now, and the price is that solves
+migrate between days — silently breaking a streak someone earned, or inventing
+one they did not. It also makes recompute non-deterministic with respect to a
+mutable user field, so the same input produces different output depending on a
+setting changed months later.
+
+**The cost is bigger than "the days are further apart", and the settings page
+has to say so.** Moving IST → America/New_York (−9:30) can produce:
+
+- the **same local date twice** — a solve at 09:00 IST on the 2nd and another at
+  20:00 EST on the 1st both land on dates the user has already "had"
+- an **apparent skipped day** despite solving every calendar day they experienced
+
+Either reads as a broken streak rather than a policy, and a user who cannot tell
+those apart will report it as a bug. So `/settings/goals` states it in one line
+when the timezone changes — _past days stay as recorded; only future days use
+the new zone_ — and a test asserts that copy exists. Copy is the mitigation
+here, not a nicety; the behaviour is correct and unexplained behaviour is
+indistinguishable from a defect. (D17 already records the reverse of this: when
+scope changed, the stale thing that mattered most was user-facing copy.)
+
+### The freeze balance is computed, never stored
+
+`balance = 2 − (freezes consumed in the current local month)`.
+
+**Rejected:** a stored counter refilled monthly. A stored counter needs
+something to refill it, and **F2.3 is cut — no job is coming** (D17). A counter
+with no refiller is a number that silently stops being true. Deriving it makes
+the refill a property of the query: nothing to schedule, nothing to drift, and
+the month boundary is evaluated in the user's own timezone like every other day
+boundary in this module.
+
+The consumption log remains the source of truth and records the date each freeze
+covered, which is what the acceptance criterion asks to see.
+
+### Two test decisions worth recording
+
+**Node and Postgres must agree on the same instant.** The engine resolves days
+with `Intl.DateTimeFormat`; the database also has `AT TIME ZONE`, and the two
+can be compiled against **different tzdata versions**. If they ever disagreed,
+every stored `local_date` would be quietly wrong while both layers reported
+green — an assumption that differs across two layers with no test spanning them.
+A cross-check test spans them.
+
+**DST fall-back has an ambiguous hour.** 01:30 in America/New_York happens twice
+on the fall-back date. `Intl` resolves one of them, and in practice both
+occurrences carry the same local _date_, so day attribution is safe either way —
+but that safety is a property of the calendar, not of anything we wrote. It is
+asserted explicitly rather than left as an assumption inside a passing test.
