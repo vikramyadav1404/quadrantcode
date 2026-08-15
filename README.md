@@ -355,6 +355,31 @@ trapping and Escape come from the platform), `role="img"` with an explicit
 label on the progress ring, and `aria-live` regions for toasts and table
 updates.
 
+## The day boundary (F1.3)
+
+**A day is a day in the user's IANA timezone — never UTC, never the server's.**
+Every activity resolves to a `local_date` at write time through one function,
+`server/services/streak/day.ts`, and everything downstream works on
+`YYYY-MM-DD` strings that came out of it. A solve at 23:59 in Kolkata belongs to
+that Kolkata day even though UTC has already moved on; a solve at 23:59 in New
+York belongs to that New York day even though UTC has not. Recorded days are
+never re-resolved, so changing timezone affects future days only (**D18**) — the
+settings page says so at the moment the field changes, because a shift can make
+a date appear twice or look skipped, and correct-but-unexplained is
+indistinguishable from a bug.
+
+Two things follow that are worth knowing before touching this module:
+
+- **`Intl` silently remaps legacy abbreviations.** `EST` resolves to
+  `America/Panama`, which has no DST — a user stored that way would be an hour
+  out for half the year with nothing pointing at the cause. Timezones must be
+  `Area/Location` (or `UTC`); abbreviations are rejected.
+- **A frozen day is not a solved day.** Both count toward the streak, only one
+  is something the user did, and the heatmap renders them differently — colour
+  _and_ a hatch, so it survives greyscale and colourblindness.
+
+---
+
 ## Verification
 
 | Command                 | What it proves                                                                         |

@@ -74,6 +74,26 @@
   --accent-foreground: #06101f;
   --success: #5ed6a4;
   --warning: #f0c36d;
+
+  /*
+   * F1.3 · the diagonal hatch on a streak-freeze heatmap cell.
+   *
+   * Lives here rather than in the component because `tests/design/tokens.test.ts`
+   * forbids rgb/hsl/oklch/color-mix anywhere under `components/` — colour values
+   * belong to the token layer, and a hard-coded overlay would not have adapted
+   * to the light theme either.
+   *
+   * The hatch is what makes a frozen day distinguishable from a solved one in
+   * greyscale, for a colourblind viewer, and in a screenshot. Colour alone fails
+   * all three.
+   */
+  --freeze-hatch: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgb(0 0 0 / 0.32) 2px,
+    rgb(0 0 0 / 0.32) 4px
+  );
   --danger: #ff8f8f;
   --focus-ring: #7fb3ff;
 
@@ -91,6 +111,15 @@
   --accent-foreground: #ffffff;
   --success: #0a6b4a;
   --warning: #6b4800;
+
+  /* Light theme: the hatch is a light overlay on a dark warning swatch. */
+  --freeze-hatch: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgb(255 255 255 / 0.38) 2px,
+    rgb(255 255 255 / 0.38) 4px
+  );
   --danger: #b3261e;
   --focus-ring: #1350b8;
 }
