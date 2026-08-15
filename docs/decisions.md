@@ -737,3 +737,37 @@ on the fall-back date. `Intl` resolves one of them, and in practice both
 occurrences carry the same local _date_, so day attribution is safe either way —
 but that safety is a property of the calendar, not of anything we wrote. It is
 asserted explicitly rather than left as an assumption inside a passing test.
+
+### D18 addenda — found while building
+
+**`today` is a parameter, never a clock read.** `computeStreak` and
+`recomputeStreak` take the local date rather than calling `new Date()`
+internally. A streak service that reads the clock cannot be tested across a DST
+boundary, a leap day or a year rollover without changing the machine's clock —
+which is to say it cannot be tested across exactly the boundaries that break
+streak engines. Every DST and leap-day test in `tests/streak/` exists because
+this is a parameter.
+
+**A freeze must not be spent on today.** Coverage is decided over days strictly
+before today. Today is not a missed day — the user has the rest of it — so
+offering it to the freeze logic burns one on every recompute, drains the monthly
+allowance in two days, and hands out protection nobody asked for. The symptom
+was a five-day run reading as six.
+
+**The heatmap distinguishes frozen from solved.** Both count toward the streak;
+only one is something the user did. Rendering them identically shows an unbroken
+wall of green across days with no activity, and the user believes it — worse
+than the confusion D18 describes for the timezone change, because they are not
+confused, they are confidently wrong about their own history. Frozen cells get a
+distinct hue **and** a diagonal hatch, so the distinction survives greyscale,
+colourblindness and a screenshot; colour alone fails all three.
+
+**A test asserted a bug that was not there.** "Yesterday being incomplete breaks
+the streak" used two settled misses and expected a break — but two is exactly
+the monthly freeze allowance, so the chain correctly survived at 7. Every
+previous finding in this project has been the code being wrong; this is the
+first where the expectation was wrong and the code was right, and had the
+implementation happened to match the bad expectation, correct behaviour would
+have been "fixed". The correction asserts `longestStreak === 7` so the freezes
+are visible in the result: a test that cannot distinguish 5-solved-plus-2-frozen
+from 7-solved is not testing what its name says.
