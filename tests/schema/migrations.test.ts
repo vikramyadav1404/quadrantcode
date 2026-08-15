@@ -34,8 +34,10 @@ const EXPECTED_TABLES = [
   'import_jobs', // F1.2
   'problem_tags',
   'problems',
+  'streak_freezes', // F1.3
   'user_problems',
   'user_profiles',
+  'user_streaks', // F1.3
   'users',
   'verification_methods',
 ];

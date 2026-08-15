@@ -21,16 +21,17 @@ return only if the project continued past that.
 
 ### Built
 
-| ID    | Feature                              | Where                       |
-| ----- | ------------------------------------ | --------------------------- |
-| F0.1  | Repository scaffold & CI             | root, `.github/`            |
-| F0.2  | Identity & problem catalog schema    | `server/db/schema/`         |
-| F0.3  | Auth, phone OTP & verification tiers | `server/services/auth/`     |
-| F0.3+ | Auth UI — login, verify, onboarding  | `app/(auth)/`               |
-| F0.4  | Design system & application shell    | `components/`               |
-| F0.5  | User profile & avatar upload         | `server/services/profile/`  |
-| F1.1  | Problem catalog, search & admin CRUD | `server/services/problems/` |
-| F1.2  | CSV ingestion, export & library      | `server/services/ingest/`   |
+| ID    | Feature                                     | Where                       |
+| ----- | ------------------------------------------- | --------------------------- |
+| F0.1  | Repository scaffold & CI                    | root, `.github/`            |
+| F0.2  | Identity & problem catalog schema           | `server/db/schema/`         |
+| F0.3  | Auth, phone OTP & verification tiers        | `server/services/auth/`     |
+| F0.3+ | Auth UI — login, verify, onboarding         | `app/(auth)/`               |
+| F0.4  | Design system & application shell           | `components/`               |
+| F0.5  | User profile & avatar upload                | `server/services/profile/`  |
+| F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/` |
+| F1.2  | CSV ingestion, export & library             | `server/services/ingest/`   |
+| F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`   |
 
 ### Planned — in the target build
 
@@ -52,19 +53,19 @@ return only if the project continued past that.
 
 Not built, not being built. Listed so their absence is a decision on the record.
 
-| ID    | Feature                               | What its absence means today                                                                                                              |
-| ----- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| F1.2* | Curated 100-problem library           | A small verified subset ships; the full list is **BLOCKED** on real data. The importer and `npm run library:verify` are built             |
-| F2.2  | Four-mode revision experience         | F2.1 scores revision; there is no dedicated mode UI                                                                                       |
-| F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. See **D17** |
-| F2.4  | Multi-channel notification engine     | No reminders of any kind — it was queue-dependent                                                                                         |
-| F2.5  | Contest sync & upsolve tracker        | No contest ingestion                                                                                                                      |
-| F4.1  | Original problem CMS & quality gate   | The schema supports original problems; there is no authoring UI, so the catalog is external links only                                    |
-| F4.2  | Structured preparation tracks         | `target_role` is captured at onboarding and unused                                                                                        |
-| F4.3  | Coin ledger, trust score & anti-abuse | **C8** has no path to guard — nothing in scope grants rewards. The constraint stands for anything added later                             |
-| F4.4  | Razorpay subscriptions & entitlements | No billing. **C6** (server-side entitlement checks) is unexercised                                                                        |
-| F4.5  | Timed mock assessment engine          |                                                                                                                                           |
-| F4.7  | Landing, public profile & share cards | No public surface; the disclaimer below still applies to anything published                                                               |
+| ID    | Feature                               | What its absence means today                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1.2* | Curated 100-problem library           | A small verified subset ships; the full list is **BLOCKED** on real data. The importer and `npm run library:verify` are built                                                                                                                                                                                                                                                                                                     |
+| F2.2  | Four-mode revision experience         | F2.1 scores revision; there is no dedicated mode UI                                                                                                                                                                                                                                                                                                                                                                               |
+| F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. See **D17**                                                                                                                                                                                                                                                                                         |
+| F2.4  | Multi-channel notification engine     | No reminders of any kind — it was queue-dependent                                                                                                                                                                                                                                                                                                                                                                                 |
+| F2.5  | Contest sync & upsolve tracker        | No contest ingestion                                                                                                                                                                                                                                                                                                                                                                                                              |
+| F4.1  | Original problem CMS & quality gate   | The schema supports original problems; there is no authoring UI, so the catalog is external links only                                                                                                                                                                                                                                                                                                                            |
+| F4.2  | Structured preparation tracks         | `target_role` is captured at onboarding and unused                                                                                                                                                                                                                                                                                                                                                                                |
+| F4.3  | Coin ledger, trust score & anti-abuse | **C8** has no path to guard — nothing in scope grants rewards; the constraint stands for anything added later. **If this returns: `streak_freezes` is NOT append-only.** It is a projection of current coverage, rewritten by every recompute — a backfill releases a spent freeze by design (D18). Every other ledger in this project is append-only, so auditing freeze history needs a new table, not a query against that one |
+| F4.4  | Razorpay subscriptions & entitlements | No billing. **C6** (server-side entitlement checks) is unexercised                                                                                                                                                                                                                                                                                                                                                                |
+| F4.5  | Timed mock assessment engine          |                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| F4.7  | Landing, public profile & share cards | No public surface; the disclaimer below still applies to anything published                                                                                                                                                                                                                                                                                                                                                       |
 
 ---
 
