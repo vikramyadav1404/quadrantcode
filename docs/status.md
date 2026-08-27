@@ -1,18 +1,19 @@
 # Where the project stands
 
-_Last updated: 2026-08-15, after F1.2 and the scope decision._
+_Last updated: 2026-08-27, after F1.3._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 458 passing, 5 skipped (463 total, 26 files) + 42 Playwright.
+**Tests:** 583 passing, 5 skipped (588 total, 34 files) + 45 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. The F1.2 branch has not been pushed
-yet, so it carries **no CI result**; this line gets the run id when it does.
+on `feat/F0.3-auth-ui` — both jobs success. Neither the F1.2 nor the F1.3 branch
+has been pushed, so both carry **no CI result**; this line gets the run id when
+they do. Both suites were run locally in full against the embedded Postgres.
 
 ---
 
@@ -41,11 +42,12 @@ identity and was never the part to trim.
 
 ## Shippable today
 
-Eight tickets are complete and openable in a browser: a signed-out flow
+Nine tickets are complete and openable in a browser: a signed-out flow
 (`/login` → `/login/verify` → `/onboarding`), an authenticated shell with
 working theme and navigation, a problem catalog with search, filtering and
-keyset pagination, admin CRUD behind a role gate, and a profile page with
-avatar upload.
+keyset pagination, admin CRUD behind a role gate, a profile page with avatar
+upload, and a daily-goals page with a 365-day heatmap whose streak numbers now
+appear in the top bar on every page.
 
 | Ticket | Feature                              | State                          |
 | ------ | ------------------------------------ | ------------------------------ |
@@ -57,6 +59,7 @@ avatar upload.
 | F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED |
 | F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                       |
 | F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED     |
+| F1.3   | Streak & Daily Goal Engine           | **DONE**                       |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -119,6 +122,12 @@ Stated so they are not mistaken for coverage:
 
 ## What I would do next
 
-F1.2 `bulk-ingest` — CSV ingestion, export and the curated library. It is the
-next ticket in order, it needs no credentials, and it is what makes the catalog
-useful with real volume rather than seed data.
+F1.4 `session-timer` — the server-authoritative solve timer. It is the next
+ticket in order, it needs no credentials, and it is the first thing that writes
+`daily_sessions`, which is what makes the streak engine and the heatmap show
+something a user actually did rather than seeded rows.
+
+One decision it inherits: the spec asks for "a background job" to auto-close
+sessions abandoned over six hours. F2.3 is cut, so there is no scheduler — it
+must reuse F1.2's in-process pattern and sweep on the request path, and the
+acceptance record has to say what that costs (D17).

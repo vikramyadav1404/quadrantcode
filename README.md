@@ -37,7 +37,6 @@ return only if the project continued past that.
 
 | ID   | Feature                                     | Notes                                                                                                                                                             |
 | ---- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1.3 | Timezone-correct streak & daily goal engine |                                                                                                                                                                   |
 | F1.4 | Server-authoritative solve session timer    |                                                                                                                                                                   |
 | F1.5 | Attempt history, stuck markers & reflection |                                                                                                                                                                   |
 | F1.6 | Rollup-backed analytics dashboard           |                                                                                                                                                                   |
@@ -347,7 +346,10 @@ presentation, sort state and the cursor. Pagination is cursor-based, never
 
 **Shell** (`components/shell/`): sidebar at ≥768px, bottom nav below it, top bar
 with the streak badge and daily-goal ring. Every dynamic value is a **prop** —
-the shell never queries; F1.3 supplies the real numbers.
+the components never query. The layout makes one call, `summariseForShell`
+(F1.3), which is why the real numbers landed without changing their shape. That
+call recomputes rather than reading the stored streak, because the stored number
+ages overnight and nothing is scheduled to refresh it (**D19**).
 
 **Accessibility:** a skip link, `aria-current` on the active nav item, a visible
 focus ring on every interactive element, `<dialog>` for modals (so focus
