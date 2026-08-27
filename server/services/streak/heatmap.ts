@@ -28,6 +28,7 @@ import type { Database } from '@/server/db';
 import { dailyGoals, dailySessions, streakFreezes } from '@/server/db/schema';
 import type { HeatmapDay } from '@/lib/streak/heatmap-day';
 import { type LocalDate, localDateRange, previousLocalDate } from './day';
+import { targetOn } from './goals';
 import { evaluateDayCompletion } from './rules';
 
 export const HEATMAP_DAYS = 365;
@@ -95,12 +96,10 @@ export async function buildHeatmap(
       return { date, solvedCount, revisionCount, kind: 'frozen' as const };
     }
 
-    // The goal in force on that day, matching the recompute.
-    let target = 2;
-    for (const goal of goals) {
-      if (goal.effectiveFrom <= date) target = goal.targetProblems;
-      else break;
-    }
+    // The goal in force on that day, through the same function the recompute
+    // calls. Two copies of this walk is how a heatmap starts disagreeing with
+    // the streak drawn above it.
+    const target = targetOn(goals, date);
 
     const { completed } = evaluateDayCompletion({
       solvedCount,

@@ -20,6 +20,7 @@ import type { Database } from '@/server/db';
 import { dailyGoals, dailySessions, streakFreezes, userStreaks } from '@/server/db/schema';
 import { type LocalDate, localDateRange, previousLocalDate } from './day';
 import { type FreezeCoverage, coverageFor } from './freezes';
+import { targetOn } from './goals';
 import { evaluateDayCompletion } from './rules';
 
 /**
@@ -205,19 +206,6 @@ export async function recomputeStreak(
   await persistState(db, userId, state, stored);
 
   return state;
-}
-
-/** The active goal covering `date`, falling back to the schema default. */
-function targetOn(
-  goals: readonly { effectiveFrom: string; targetProblems: number }[],
-  date: LocalDate,
-): number {
-  let target = 2; // `daily_goals.target_problems` default
-  for (const goal of goals) {
-    if (goal.effectiveFrom <= date) target = goal.targetProblems;
-    else break; // ordered ascending, so nothing later can apply
-  }
-  return target;
 }
 
 /**

@@ -771,3 +771,58 @@ implementation happened to match the bad expectation, correct behaviour would
 have been "fixed". The correction asserts `longestStreak === 7` so the freezes
 are visible in the result: a test that cannot distinguish 5-solved-plus-2-frozen
 from 7-solved is not testing what its name says.
+
+---
+
+## D19 · The shell recomputes the streak on read
+
+The streak badge and the goal ring sit on every authenticated page. F0.4 built
+both as pure props and left the layout passing `streakDays: 0`, with a standing
+note that F1.3 would supply the real values. It does, through one call —
+`summariseForShell` — so the components still never query.
+
+**The call recomputes rather than reading `user_streaks` as stored.**
+
+**Rejected:** trusting the stored row. It is one indexed read instead of four,
+and it is wrong at exactly the moment that matters. The stored number ages
+overnight with nothing to age it — a user who missed yesterday still carries
+last night's count, and whether a freeze covers that missed day is decided _by_
+the recompute, not by whoever reads the row afterwards. The badge would show a
+streak that has already broken, on the most-visited surface in the product,
+until something unrelated happened to rebuild it. F2.3 is cut, so "something
+unrelated" is not a scheduled job (D17); it is the user opening
+`/settings/goals`.
+
+The cost is bounded and stated rather than assumed: at most a year of narrow
+rows over `daily_sessions_user_date_idx`, and `recomputeStreak` compares before
+it writes, so an unchanged state performs **no writes at all**. A test asserts
+that directly — two calls in a row return the same value and leave the full
+`user_streaks` row byte-identical, `updated_at` included — because "safe to call
+on every page load" is a claim about writes, not about the return value.
+
+### The ring shows solves; `goalMet` says whether the day counted
+
+A day also completes at one solve alongside two revisions. So `goalCompleted`
+can sit below `goalTarget` on a day that is genuinely done, and the two obvious
+fixes are both bad: rounding the count up to the target lies about what the user
+did, and showing `1 of 2` alone contradicts the badge beside it, which has
+already counted the day.
+
+`ShellStreak` therefore carries both facts. The count stays honest and `goalMet`
+fills the arc. The component takes it as a prop and infers nothing — the rule
+stays in `evaluateDayCompletion`, which is the one place allowed to decide what
+a complete day is.
+
+**`atRisk` requires a streak to lose.** It is `currentStreak > 0 && !completed`,
+not `!completed`. The flag turns the badge warning-coloured, and on a zero
+streak that is an alarm about nothing — which is how a colour teaches people to
+stop reading it.
+
+### Three copies of "which target applied" became one
+
+`targetOn` and `DEFAULT_TARGET_PROBLEMS` now live in
+`server/services/streak/goals.ts`. The recompute, the heatmap and the shell each
+had their own copy of the effective-date walk and their own literal `2`. Nothing
+would have failed if one of them drifted; the symptom would have been the
+heatmap disagreeing with the streak drawn directly above it, which is precisely
+what `rules.ts` refuses to allow for the completion rule itself.

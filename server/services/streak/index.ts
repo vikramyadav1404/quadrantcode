@@ -6,6 +6,8 @@
  */
 export * from './day';
 export * from './freezes';
+export * from './goals';
 export * from './heatmap';
 export * from './recompute';
 export * from './rules';
+export * from './summary';
