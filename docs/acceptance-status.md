@@ -302,3 +302,102 @@ was rejected for size and the test asserted the wrong limit while looking right.
 **A seam that would have failed only under its replacement.** `enqueue(jobId)`
 was justified by "the payload is already in the database" — it was not. Every
 test passed because every test ran in-process.
+
+---
+
+## F1.3 · `streak-engine`
+
+| Criterion                                                          | Status   | Evidence                                                                                                                                                                                                            |
+| ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A solve at 23:59 IST counts for that IST day, not the next UTC day | **DONE** | `tests/streak/day.test.ts` — the criterion by name, plus 00:01 IST, 23:59 New York, a 45-minute offset zone, and a cross-check asserting **Node and Postgres resolve the same instant to the same date**            |
+| DST tests pass with no off-by-one day                              | **DONE** | `tests/streak/day.test.ts` — spring-forward, fall-back, and a 25-hour day, all America/New_York. The ambiguous repeated hour is asserted explicitly rather than left as an assumption inside a passing test         |
+| Recompute run twice yields byte-identical state                    | **DONE** | `tests/streak/recompute.test.ts` — asserted on the **full row including `updated_at`**, with a positive control proving the assertion can fail. `recomputeStreak` compares before writing so a no-op writes nothing |
+| Freeze consumption appears in the log with the covered date        | **DONE** | `tests/streak/recompute.test.ts` reads `streak_freezes.covered_local_date` back from the database                                                                                                                   |
+| Backfilling a past session correctly extends or repairs the streak | **DONE** | `tests/streak/recompute.test.ts` — a late session repairs the chain **and releases the freeze that was covering the gap**, because coverage is re-derived rather than transacted (D18)                              |
+| Heatmap renders 365 cells with correct per-day counts              | **DONE** | `tests/streak/heatmap.test.ts` — exact cell count, days with no row filled rather than skipped, per-day counts, a leap day, and no cross-user leakage                                                               |
+
+Tests: **112 passing across 7 files** in `tests/streak/` — `day`, `rules`,
+`goals`, `recompute`, `heatmap`, `summary`, `timezone-change` — plus
+`e2e/goals.spec.ts` (3 browser tests). Full suite at closure: **583 passing, 5
+skipped, 45 Playwright**.
+
+### A decision record was asserting something that was not true
+
+**D18 claimed "a test asserts that copy exists" about the timezone note. No such
+test existed.** The behaviour was right, the copy was on the page, and the
+sentence in the decision record was false — which is worse than an untested
+mitigation, because the next person reads it and stops checking.
+
+It is now `e2e/goals.spec.ts`, and it is a browser test because the claim is
+about **when** the text appears: on change, before submit. That is a rendering
+behaviour, not a return value. It also asserts the note is wired to the field by
+`aria-describedby` rather than merely sitting near it — otherwise a screen-reader
+user moving field to field never meets the explanation at all.
+
+### The case the ticket asked for by name, and it was missing
+
+The spec's test list includes _"a user changing their timezone mid-streak —
+**define and test the chosen behaviour, do not leave it accidental**"_. The
+behaviour was defined (D18), the settings copy was written from it and the
+recompute was built around it — but **nothing asserted it**. It is now
+`tests/streak/timezone-change.test.ts`, and writing it surfaced a cost worth
+stating plainly:
+
+**Moving east spends a freeze on a day the user never lived.** New York →
+Kolkata moves the local date forward, so a calendar date can be skipped
+entirely. To the engine that date is a settled day with no activity —
+indistinguishable from a day the user skipped — so a freeze covers it and the
+streak survives at six. That is correct under D18 (history is immutable, so the
+engine cannot know the day was never available) and it is still a freeze the
+user did not choose to spend. Asserted, so a future change to freeze handling
+has to confront the case rather than discover it in production, where the
+symptom is a balance that dropped for no visible reason.
+
+### The shell now shows real numbers
+
+F0.4 built the streak badge and the goal ring as pure props and left the layout
+passing `streakDays: 0`, with a standing note that F1.3 would supply the values.
+It does, through one call — `summariseForShell` — so the components still never
+query.
+
+| Decision                                                    | Why                                                                                                                                                                                                                        |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The shell **recomputes** rather than reading the stored row | The stored number ages overnight with nothing to age it, and whether a freeze covers a missed day is decided _by_ the recompute. Reading it would show a streak that has already broken, on the most-visited surface (D19) |
+| `goalMet` travels beside `goalCompleted`                    | The revision arm completes a day at one solve, so the count can sit below the target on a day that is done. Rounding the count up lies; showing `1 of 2` alone contradicts the badge next to it                            |
+| `atRisk` requires `currentStreak > 0`                       | The flag turns the badge warning-coloured. On a zero streak that is an alarm about nothing, which is how a colour teaches people to stop reading it                                                                        |
+
+`IS SAFE TO CALL ON EVERY PAGE LOAD` in `tests/streak/summary.test.ts` asserts
+the claim that makes this defensible: two calls in a row return the same value
+and leave the full `user_streaks` row byte-identical, `updated_at` included.
+
+### Found while building
+
+**A freeze was being spent on today.** Today is not a missed day — the user has
+the rest of it — so offering it to the freeze logic burned one on every
+recompute and drained the monthly allowance in two days. The symptom was a
+five-day run reading as six.
+
+**A test asserted a bug that was not there.** "Yesterday being incomplete breaks
+the streak" used two settled misses, which is exactly the monthly allowance, so
+the chain correctly survived. Every previous finding in this project has been
+the code being wrong; this is the first where the expectation was wrong — and
+had the implementation happened to match it, correct behaviour would have been
+"fixed". **D18**.
+
+**`Intl` silently remaps legacy abbreviations.** `EST` resolves to
+`America/Panama`, which has no DST, so a user stored that way would be an hour
+out for half the year with nothing pointing at the cause. Abbreviations are
+rejected; only `Area/Location` and `UTC` are accepted.
+
+**Three copies of "which target applied".** The recompute, the heatmap and the
+shell each carried their own effective-date walk and their own literal `2`.
+Nothing would have failed if one drifted — the symptom would have been the
+heatmap disagreeing with the streak drawn directly above it. Now one function,
+`targetOn` in `server/services/streak/goals.ts`, with `tests/streak/goals.test.ts`
+covering it directly. **D19**.
+
+**Two project guards fired, and both were right.** The client/server boundary
+rejected `components/heatmap` importing a type from `server/` — fixed by moving
+the contract to `lib/streak/heatmap-day.ts`, not by widening the gate. The
+design-token rule rejected the freeze hatch three times, once on the _comment_
+explaining the first two rejections; reworded rather than loosened.
