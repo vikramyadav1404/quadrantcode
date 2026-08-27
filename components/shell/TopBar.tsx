@@ -13,6 +13,7 @@ export function TopBar({
   streakAtRisk,
   goalCompleted,
   goalTarget,
+  goalMet,
   avatarUrl,
   avatarAppearance,
 }: {
@@ -20,6 +21,7 @@ export function TopBar({
   streakAtRisk?: boolean;
   goalCompleted: number;
   goalTarget: number;
+  goalMet?: boolean;
   avatarUrl: string | null;
   avatarAppearance: AvatarAppearanceProps;
 }) {
@@ -29,7 +31,7 @@ export function TopBar({
 
       <div className="flex items-center gap-3">
         <StreakBadge days={streakDays} atRisk={streakAtRisk} />
-        <GoalProgressRing completed={goalCompleted} target={goalTarget} />
+        <GoalProgressRing completed={goalCompleted} met={goalMet} target={goalTarget} />
         <ThemeToggle />
         <Link aria-label="Profile settings" className="rounded-full" href="/settings/profile">
           <Avatar appearance={avatarAppearance} size={28} src={avatarUrl} />

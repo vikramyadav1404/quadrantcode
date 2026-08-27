@@ -1,9 +1,9 @@
 /**
  * Authenticated application shell (F0.4).
  *
- * Streak and goal values are placeholders passed as props — F1.3 replaces the
- * constants below with real reads. The shell itself never queries them, which
- * is what lets F1.3 land without touching this file's structure.
+ * Streak and goal values still arrive as props. The layout reads them once,
+ * through `summariseForShell` (F1.3), and the shell components query nothing —
+ * which is what let the real numbers land without changing their shape.
  */
 import { headers } from 'next/headers';
 import { redirect, unauthorized } from 'next/navigation';
@@ -17,6 +17,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { getDb } from '@/server/db';
 import { getProfile, isProfileComplete } from '@/server/services/profile';
+import { localDateFor, summariseForShell } from '@/server/services/streak';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   /*
@@ -31,9 +32,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await getCurrentUser();
   if (!user) unauthorized();
 
+  const db = getDb();
+
   // One read for the whole shell; `getProfile` supplies the initials fallback
   // so the avatar renders identically whether or not an image is set.
-  const profile = await getProfile(getDb(), user.id);
+  const profile = await getProfile(db, user.id);
 
   /*
    * Onboarding is unskippable on first sign-in.
@@ -55,8 +58,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect(intended ? `/onboarding?returnTo=${encodeURIComponent(intended)}` : '/onboarding');
   }
 
-  // F1.3 (streak-engine) supplies these; typed mock data until then.
-  const shellState = { streakDays: 0, streakAtRisk: false, goalCompleted: 0, goalTarget: 2 };
+  /*
+   * The badge and the ring, resolved in the USER's timezone — the server's zone
+   * appears nowhere, which is the whole point of `day.ts`. Read after the
+   * onboarding gate above, so it never runs for a user who has not yet
+   * confirmed one.
+   */
+  const shellState = await summariseForShell(
+    db,
+    user.id,
+    localDateFor(new Date(), user.timezone),
+  );
 
   return (
     <ToastProvider>
