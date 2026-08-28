@@ -127,10 +127,46 @@ export async function signInAs(
   return String(user!.id);
 }
 
-/** Removes rows created by a spec, matched on the e2e email domain. */
+/**
+ * Removes rows created by a spec, matched on the e2e email domain.
+ *
+ * ## Why this needs a transaction and a flag
+ *
+ * F3.2 made `session_events` append-only with a trigger that refuses DELETE
+ * unless `traceloop.purging` is set. Deleting a user cascades into their
+ * sessions and then into that table, so a plain `DELETE FROM users` is refused
+ * — which is the trigger working, not a bug in it.
+ *
+ * That cost is real and it is not only a test cost: **account deletion in
+ * production has to do the same thing.** F4.8 owns that path, and it will set
+ * the same flag through `server/services/timeline/retention.ts`.
+ *
+ * `set_config(_, true)` is transaction-scoped, so `sql.begin` is not optional
+ * here: outside a transaction the flag would apply to one statement and the
+ * cascade would still be refused.
+ */
 export async function cleanup(sql: ReturnType<typeof postgres>): Promise<void> {
-  await sql`DELETE FROM users WHERE email LIKE '%@e2e.test'`;
-  await sql`DELETE FROM auth_verification_tokens WHERE identifier LIKE '%@e2e.test'`;
+  await sql.begin(async (tx) => {
+    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`DELETE FROM users WHERE email LIKE '%@e2e.test'`;
+    await tx`DELETE FROM auth_verification_tokens WHERE identifier LIKE '%@e2e.test'`;
+  });
+}
+
+/**
+ * Deletes fixture problems, which cascade into sessions and their events.
+ *
+ * Specs used to run a bare `DELETE FROM problems WHERE slug LIKE …`. Same story
+ * as `cleanup`: the cascade reaches the append-only log.
+ */
+export async function deleteProblems(
+  sql: ReturnType<typeof postgres>,
+  slugPattern: string,
+): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`DELETE FROM problems WHERE slug LIKE ${slugPattern}`;
+  });
 }
 
 /** Reads the theme actually applied to <html>. */

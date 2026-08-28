@@ -14,7 +14,7 @@
  */
 import { type Page, expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { cleanup, db, signInAs } from './helpers/auth';
+import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 let sql: ReturnType<typeof postgres>;
 
@@ -39,13 +39,13 @@ test.afterAll(async () => {
    * three specs had each left one — a failure that looked like a keyboard
    * regression and was leftover data.
    */
-  await sql`DELETE FROM problems WHERE slug LIKE 'reflect-%'`;
+  await deleteProblems(sql, 'reflect-%');
   await cleanup(sql);
   await sql.end();
 });
 
 test.beforeEach(async ({ context, baseURL }) => {
-  await sql`DELETE FROM problems WHERE slug LIKE 'reflect-%'`;
+  await deleteProblems(sql, 'reflect-%');
   await sql`
     INSERT INTO problems (slug, title, source_type, platform, external_url, difficulty, status)
     VALUES ('reflect-alpha', 'Reflect Alpha', 'external_link', 'leetcode',
