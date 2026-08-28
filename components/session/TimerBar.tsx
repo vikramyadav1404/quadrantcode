@@ -17,6 +17,9 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { StuckButton } from '@/components/session/StuckButton';
+import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
 
 const HEARTBEAT_MS = 30_000;
@@ -29,6 +32,7 @@ export function TimerBar({
   onResume,
   onComplete,
   onAbandon,
+  onMarkStuck,
 }: {
   state: TimerBarState;
   onPause: Action;
@@ -38,8 +42,14 @@ export function TimerBar({
     ok: boolean;
     message?: string;
   }>;
+  onMarkStuck: (input: {
+    sessionId: string;
+    category: StuckCategory;
+    note?: string;
+  }) => Promise<{ ok: boolean; message?: string }>;
 }) {
   const { sessionId, status } = state;
+  const router = useRouter();
 
   /*
    * Seeded from the server's number and the instant it was true, so a page that
@@ -103,6 +113,18 @@ export function TimerBar({
     const result = await action();
     if (!result.ok) setError(result.message ?? 'That did not work.');
     setBusy(false);
+    return result.ok;
+  };
+
+  /**
+   * Finishing takes the user to the reflection — **the nudge, and the whole of
+   * it** (F1.5). A page they have to leave is harder to miss than a prompt, and
+   * skipping still costs one click, which is what keeps the answers worth
+   * having: a form nobody can escape is answered to get past it.
+   */
+  const finish = async (outcome: 'solved' | 'stuck') => {
+    const ok = await run(() => onComplete({ sessionId, outcome }));
+    if (ok) router.push(`/sessions/${sessionId}/reflect`);
   };
 
   return (
@@ -151,10 +173,13 @@ export function TimerBar({
           </button>
         )}
 
+        {/* Available for as long as the session is live, paused included. */}
+        <StuckButton onMark={onMarkStuck} sessionId={sessionId} />
+
         <button
           aria-disabled={busy}
           className={buttonClass}
-          onClick={() => run(() => onComplete({ sessionId, outcome: 'solved' }))}
+          onClick={() => void finish('solved')}
           type="button"
         >
           Solved
@@ -163,7 +188,7 @@ export function TimerBar({
         <button
           aria-disabled={busy}
           className={buttonClass}
-          onClick={() => run(() => onComplete({ sessionId, outcome: 'stuck' }))}
+          onClick={() => void finish('stuck')}
           type="button"
         >
           Stuck

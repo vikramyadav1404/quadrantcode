@@ -22,35 +22,21 @@ import {
   solveSessions,
   stuckPoints,
 } from '@/server/db/schema';
-import type { MistakeCategory, StuckCategory } from '@/lib/reflection/taxonomy';
+import type { AttemptOutcome, AttemptView } from '@/lib/reflection/attempt-view';
+import type { MistakeCategory } from '@/lib/reflection/taxonomy';
 import { activeDurationSeconds } from '@/server/services/session';
 import { TERMINAL_STATUSES } from '@/server/services/session';
 
-export type AttemptOutcome = 'solved' | 'stuck' | 'abandoned';
-
-export type AttemptEntry = {
-  sessionId: string;
-  /**
-   * 1-based, counting from the oldest — and **null for an abandoned sitting**.
-   *
-   * `user_problems.total_attempts` excludes abandonment (D20), so numbering it
-   * here would put "Attempt 4 of 3" on the page. The row still appears: it
-   * happened, and a user who walked away three times should see that rather
-   * than wonder where the sessions went.
-   */
-  attemptNumber: number | null;
-  outcome: AttemptOutcome;
-  startedAt: Date;
-  endedAt: Date;
-  activeDurationSeconds: number;
-  confidence: 'low' | 'medium' | 'high' | null;
-  stuckMarkers: { category: StuckCategory; elapsedSeconds: number; note: string | null }[];
-  mistakes: MistakeCategory[];
-  approach: string | null;
-  achievedComplexity: string | null;
-  /** False when the user skipped the reflection — not the same as an empty one. */
-  hasReflection: boolean;
-};
+/*
+ * Re-exported from `lib/` rather than declared here: `components/` may not
+ * import from `server/` (F0.1), and this shape is the contract between the
+ * query below and the timeline that renders it — the same arrangement as
+ * `HeatmapDay` and `TimerBarState`.
+ */
+export type {
+  AttemptOutcome,
+  AttemptView as AttemptEntry,
+} from '@/lib/reflection/attempt-view';
 
 /**
  * Every finished session on a problem, newest first.
@@ -62,7 +48,7 @@ export type AttemptEntry = {
 export async function getAttemptHistory(
   db: Database,
   input: { userId: string; problemId: string; now: Date },
-): Promise<AttemptEntry[]> {
+): Promise<AttemptView[]> {
   const { userId, problemId, now } = input;
 
   const sessions = await db
@@ -167,7 +153,7 @@ export async function getAttemptHistory(
       approach: first?.approach ?? null,
       achievedComplexity: first?.achievedComplexity ?? null,
       hasReflection: first !== undefined,
-    } satisfies AttemptEntry;
+    } satisfies AttemptView;
   });
 
   // Numbered oldest-first, shown newest-first.
@@ -181,7 +167,7 @@ export async function getAttemptHistory(
 export async function getLastAttempt(
   db: Database,
   input: { userId: string; problemId: string; now: Date },
-): Promise<AttemptEntry | null> {
+): Promise<AttemptView | null> {
   const history = await getAttemptHistory(db, input);
   return history[0] ?? null;
 }

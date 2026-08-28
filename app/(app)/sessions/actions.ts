@@ -9,13 +9,12 @@
  * is what makes "the client sends intent only" a property of the code rather
  * than a rule someone has to remember.
  *
- * Lives in its own folder rather than beside a page because the timer bar is in
- * the layout: it is on every authenticated screen, so its actions belong to
- * none of them in particular. The folder holds no `page.tsx`, so it is not a
- * route — and the filename is `actions.ts` because that is the path the server
- * boundary rule exempts. The first version was `session-actions.ts` and lint
- * refused it, correctly: the fix is to match the convention, not to widen the
- * pattern that guards the client bundle.
+ * Lives at `sessions/` rather than beside a page because the timer bar is in the
+ * layout: it is on every authenticated screen, so its actions belong to none of
+ * them in particular. The filename is `actions.ts` because that is the path the
+ * server boundary rule exempts — the first version was `session-actions.ts` and
+ * lint refused it, correctly. The fix is to match the convention, not to widen
+ * the pattern that guards the client bundle.
  */
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@/server/db';
@@ -36,6 +35,12 @@ import {
   sessionIdSchema,
   startSessionSchema,
 } from '@/server/services/session/input';
+import {
+  SessionNotLiveError,
+  SessionNotReflectableError,
+  markStuck,
+} from '@/server/services/reflection';
+import { markStuckSchema } from '@/server/services/reflection/input';
 
 export type SessionActionResult =
   | { ok: true; session: SessionView | null }
@@ -58,7 +63,12 @@ function toResult(error: unknown): SessionActionResult {
     };
   }
 
-  if (error instanceof IllegalTransitionError || error instanceof SessionNotFoundError) {
+  if (
+    error instanceof IllegalTransitionError ||
+    error instanceof SessionNotFoundError ||
+    error instanceof SessionNotLiveError ||
+    error instanceof SessionNotReflectableError
+  ) {
     return { ok: false, message: error.message };
   }
 
@@ -117,6 +127,33 @@ export async function completeSessionAction(input: unknown): Promise<SessionActi
     });
     revalidateShell();
     return { ok: true, session };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * "I'm stuck here" (F1.5), from the timer bar.
+ *
+ * Note what the payload does NOT carry: an elapsed time. The service computes
+ * it from the session's event log, exactly as the total is computed, so a
+ * marker is comparable with everything else measured about that solve (D20).
+ */
+export async function markStuckAction(input: unknown): Promise<SessionActionResult> {
+  const user = await requireCurrentUser();
+  const parsed = markStuckSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: 'That is not a category we record.' };
+
+  try {
+    await markStuck(getDb(), {
+      userId: user.id,
+      now: new Date(),
+      sessionId: parsed.data.sessionId,
+      category: parsed.data.category,
+      ...(parsed.data.note ? { note: parsed.data.note } : {}),
+    });
+    revalidateShell();
+    return { ok: true, session: null };
   } catch (error) {
     return toResult(error);
   }
