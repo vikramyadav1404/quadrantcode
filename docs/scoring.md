@@ -92,3 +92,103 @@ not have.
 
 The honest description is the one at the top: it adds up four things you already
 did, and shows you which ones it added.
+
+---
+
+## The forgetting-risk score (F2.1)
+
+**Which of today's due problems to put first.** Six things that already
+happened, normalised to 0–1, weighted, and added up to a 0–100 number. Like the
+weak-topic score above, it ranks — it does not foretell — and every entry in the
+queue carries the sentences that put it where it is.
+
+```
+risk = 100 × ( 0.30 × overdue
+             + 0.20 × lowConfidence
+             + 0.20 × failedAttempts
+             + 0.15 × mistakeSeverity
+             + 0.10 × topicWeakness
+             + 0.05 × hints )
+```
+
+### The six inputs
+
+**Overdue** — days past the due date, over 14. It leads because it is the only
+component that grows on its own, and because being overdue is the thing the
+queue exists to act on. Everything else describes how a solve went; this
+describes how long ago it was.
+
+**Low confidence** — the user's own answer, inverted, with an unanswered
+question contributing exactly nothing either way. The same decision F1.6 makes,
+for the same reason: F1.5 makes the reflection skippable, so silence must not be
+read as either an admission or a boast.
+
+**Failed attempts** — sittings on this problem that ended `stuck`, over 3.
+
+**Mistake severity** — the WORST mistake recorded, not the sum of them:
+
+| Tier                                | Categories                                                                    | Weight |
+| ----------------------------------- | ----------------------------------------------------------------------------- | ------ |
+| Structural — the approach was wrong | `wrong_logic`, `wrong_data_structure`                                         | 1.0    |
+| Conceptual — a case was missed      | `missed_edge_case`, `boundary_condition`, `off_by_one`, `recursion_base_case` | 0.6    |
+| Mechanical — it ran wrong           | `syntax_runtime`, `tle`                                                       | 0.3    |
+| Nothing went wrong                  | `none`                                                                        | 0      |
+
+A wrong data structure plus a typo is a wrong data structure. Summing would rank
+it above an identical problem without the typo, which says nothing useful about
+either.
+
+**Topic weakness** — the F1.6 weak-topic score, reused rather than
+reimplemented. Weighted low because it is a fact about the SUBJECT rather than
+this problem: useful for breaking ties, wrong as a main driver.
+
+**Hints** — weighted smallest, and currently always zero. Hints come from F3.4,
+which is cut. It is weighted honestly now rather than bolted onto a scheduler
+people already trust.
+
+---
+
+## The revision ladder (F2.1)
+
+Not a score, but the other half of the same decision, and the reasoning belongs
+beside it.
+
+```
+standard    1 · 3 · 7 · 14 · 30 days
+compressed  1 · 2 · 5 · 10 · 21 days
+```
+
+**Confidence picks the ladder; every other signal picks the rung.** Low
+confidence is a statement about the whole solve, so it shortens every gap that
+follows rather than knocking off one step and then behaving normally. The two
+ladders are the same length, so "rung 3" means the same thing on both.
+
+Hints taken, two or more failed attempts, and a solve past 1.5× the estimate
+each compress one rung. A solve that is confident AND unaided AND inside the
+estimate stretches one — all three, because a scheduler that stretches eagerly
+loses the problem, and being wrong in that direction costs far more than
+repeating a revision the user did not need.
+
+**Intervals never fall below one day**, however many signals stack.
+
+After a revision: `clean` advances a rung, `struggled` repeats the same
+interval, `failed` returns to one day. `struggled` exists so a user barely
+holding on is not pushed to a longer gap by a system that only knows pass and
+fail.
+
+### What the ninety-day simulation showed
+
+`tests/revision/simulation.test.ts` runs ninety days of a synthetic user against
+the pure module and prints the daily queue depth. At a new problem every other
+day it peaks at **11** against the criterion's ceiling of 20, and **arrears —
+work still waiting more than a week after it came due — stay at zero.**
+
+The daily due count does climb over the ninety days, and that is not the
+scheduler falling behind: a user who adds a problem every other day owns twice
+as many on day 90 as on day 45, and twice as many problems generate twice as
+many revisions.
+
+**At one new problem a day, five revisions a day is not enough.** Arrears appear
+and depth passes 20. So the default cap of five is a statement about how many
+problems a user can take on, not a free parameter — and it is asserted in the
+simulation rather than reasoned about here.
