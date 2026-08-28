@@ -91,6 +91,49 @@ export const importJobStatusEnum = pgEnum('import_job_status', [
 ]);
 
 /**
+ * F1.4 solve-session lifecycle.
+ *
+ * `active` and `paused` are the two live states; the other three are terminal
+ * and a session never leaves them. The split matters because "one active
+ * session per user" has to mean "one LIVE session" — a paused session is still
+ * the user's session, so starting a second one while paused must conflict
+ * rather than quietly orphan the first.
+ *
+ * `stuck` is an outcome, not a state: the user finished the sitting without
+ * solving. F1.5 attaches the reflection that explains it.
+ */
+export const solveSessionStatusEnum = pgEnum('solve_session_status', [
+  'active',
+  'paused',
+  'solved',
+  'stuck',
+  'abandoned',
+]);
+
+/**
+ * F1.4's minimal event taxonomy — **designed to be extended, not replaced**.
+ *
+ * F3.2 turns `session_events` into the full append-only log and adds
+ * `statement_viewed`, `first_keystroke`, `code_snapshot`, `run_attempted`,
+ * `run_failed`, `run_passed`, `hint_requested`, `stuck_marked`, `idle_started`
+ * and `idle_ended`. The names below are deliberately the ones that appear in
+ * that later list, so extending this enum is adding values rather than renaming
+ * rows that already exist.
+ *
+ * `idle_autopause` is F1.4's own: it records that the SERVER paused a session
+ * the user had walked away from, which is a different fact from the user
+ * pressing pause and must stay distinguishable forever.
+ */
+export const sessionEventTypeEnum = pgEnum('session_event_type', [
+  'session_started',
+  'paused',
+  'resumed',
+  'idle_autopause',
+  'session_completed',
+  'session_abandoned',
+]);
+
+/**
  * The outcome of one CSV row.
  *
  * `duplicate` is deliberately not `failed`: re-importing a list you already
