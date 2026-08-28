@@ -32,6 +32,14 @@ test.beforeAll(() => {
 });
 
 test.afterAll(async () => {
+  /*
+   * The catalog is shared by every spec in this suite, so a fixture problem
+   * left behind is a row on /problems for everyone else. `e2e/keyboard.spec.ts`
+   * tabs through that page with a budget and stopped reaching its own rows once
+   * three specs had each left one — a failure that looked like a keyboard
+   * regression and was leftover data.
+   */
+  await sql`DELETE FROM problems WHERE slug LIKE 'reflect-%'`;
   await cleanup(sql);
   await sql.end();
 });
