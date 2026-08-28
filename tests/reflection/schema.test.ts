@@ -101,12 +101,27 @@ suite('F1.5 · reflection storage', () => {
 
     it('KEEPS EVERY TAXONOMY FIELD OUT OF JSONB', async () => {
       /*
-       * The guard that outlives this ticket. `extras` is the only JSONB column
-       * these tables may have, and it exists for questions nobody will ever
-       * filter by. Anyone who later moves a category into it to "avoid a
-       * migration" fails here rather than in F3.5, six months on, when a
-       * GROUP BY turns into a full scan.
+       * The guard that outlives this ticket. Anyone who later moves a category
+       * into JSONB to "avoid a migration" fails here rather than in F3.5, six
+       * months on, when a GROUP BY turns into a full scan.
+       *
+       * ## The allowlist, and why it grew by one
+       *
+       * F1.5 asserted "`extras` is the only JSONB column", which was a proxy for
+       * the actual rule: **no taxonomy value may live in JSON**. F3.3 added
+       * `stuck_points.evidence` — an array of sentences shown beside an inferred
+       * region — and the proxy failed while the rule held.
+       *
+       * Evidence is prose. Nothing filters, groups or sorts by it; it is read
+       * whole and rendered. So the allowlist names it explicitly rather than the
+       * check being loosened to a count, and a NEW jsonb column still fails
+       * until somebody writes down why it belongs.
        */
+      const ALLOWED_JSONB = [
+        { table: 'reflections', column: 'extras' },
+        { table: 'stuck_points', column: 'evidence' },
+      ];
+
       const jsonbColumns = await ctx.sql`
         SELECT table_name, column_name FROM information_schema.columns
         WHERE table_schema = 'public'
@@ -116,9 +131,12 @@ suite('F1.5 · reflection storage', () => {
         ORDER BY table_name, column_name
       `;
 
-      expect(jsonbColumns).toHaveLength(1);
-      expect(String(jsonbColumns[0]!.table_name)).toBe('reflections');
-      expect(String(jsonbColumns[0]!.column_name)).toBe('extras');
+      expect(
+        jsonbColumns.map((row) => ({
+          table: String(row['table_name']),
+          column: String(row['column_name']),
+        })),
+      ).toEqual(ALLOWED_JSONB);
     });
 
     it('stores the taxonomies as real enums, not text', async () => {

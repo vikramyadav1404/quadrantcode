@@ -2,14 +2,14 @@
 
 _Generated 2026-08-19 from `git ls-files` + untracked non-ignored files._
 
-**360 files** — updated 2026-08-29 for F3.2b; `NEW` now marks that ticket's additions. Excludes
+**360 files** — updated 2026-08-29 for F3.3; `NEW` now marks that ticket's additions. Excludes
 `node_modules/`, `.next/`, and `package-lock.json`.
 
 Purposes below are taken from each file's own header comment where it has one,
 not inferred from its name. Files with no header are described from their
 contents.
 
-> **This document is a snapshot and will rot.** It is accurate as of F3.2b. Regenerate the list with
+> **This document is a snapshot and will rot.** It is accurate as of F3.3. Regenerate the list with
 > `git ls-files; git ls-files --others --exclude-standard`, and re-check the
 > description of anything that moved. Nothing enforces that this file matches
 > the tree.
@@ -378,6 +378,17 @@ and `meta/_journal.json`.
 | `statemachine.ts` | Four states, four legal transitions, a typed refusal          |
 | `input.ts`        | Zod at the boundary (C7); caps mirror the CHECK constraints   |
 | `types.ts`        | Re-exports the taxonomy so services never re-declare it       |
+
+### `server/services/inference/` — 6 files (F3.3)
+
+| File                 | Purpose                                                     |
+| -------------------- | ----------------------------------------------------------- |
+| `index.ts` **NEW**   | The inference engine's public surface                       |
+| `signals.ts` **NEW** | Five signals, pure — no clock, no network, no model         |
+| `rank.ts` **NEW**    | Merges overlaps, ranks the user's own marker first          |
+| `persist.ts` **NEW** | Writes inferences; never overwrites an answer the user gave |
+| `session.ts` **NEW** | Loads a real session and shapes it for the pure signals     |
+| `types.ts` **NEW**   | What the signals read and produce                           |
 
 ### `server/services/timeline/` — 8 files (F3.2)
 

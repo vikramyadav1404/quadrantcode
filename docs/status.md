@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-29, after F3.2b._
+_Last updated: 2026-08-29, after F3.3._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 984 passing, 5 skipped (989 total, 58 files) + 77 Playwright.
+**Tests:** 1,052 passing, 5 skipped (1,057 total, 61 files) + 82 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F3.2 are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F3.3 are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -19,10 +19,10 @@ a CI result. Both suites were run locally in full against the embedded Postgres.
 
 ## Target scope — 18 features, not 29
 
-Set by Vikram on 2026-08-15. **14 done + 4 remaining** — 84 of 108 acceptance
+Set by Vikram on 2026-08-15. **15 done + 3 remaining** — 90 of 108 acceptance
 points:
 
-> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1 · F3.2~~ · F3.3 · F3.5 · F4.6 · F4.8
+> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1 · F3.2 · F3.3~~ · F3.5 · F4.6 · F4.8
 
 **Cut:** F2.2, F2.3, F2.4, F2.5, F4.1, F4.2, F4.3, F4.4, F4.5, F4.7, and F1.2's
 curated 100-problem library. The README carries the full built/planned/cut
@@ -54,23 +54,24 @@ history on every problem page, and an analytics dashboard whose figures are
 precomputed and say when they were computed, and a revision queue that schedules
 itself when you solve something.
 
-| Ticket | Feature                              | State                                |
-| ------ | ------------------------------------ | ------------------------------------ |
-| F0.1   | Repository Scaffold & CI             | **DONE**                             |
-| F0.2   | Identity & Problem Catalog Schema    | **DONE**                             |
-| F0.3   | Auth, Phone OTP & Verification Tiers | **DONE** — delivery BLOCKED          |
-| F0.3+  | Auth UI amendment                    | **DONE**                             |
-| F0.4   | Design System & Application Shell    | **DONE**                             |
-| F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED       |
-| F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                             |
-| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED           |
-| F1.3   | Streak & Daily Goal Engine           | **DONE**                             |
-| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)        |
-| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED            |
-| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)        |
-| F2.1   | Spaced Repetition & Risk Scoring     | **DONE** — plus a due page (D23)     |
-| F3.1   | Monaco Editor & Queued Execution     | **DONE** — real execution BLOCKED    |
-| F3.2   | Solve Timeline & Code Snapshots      | **DONE** — interval capture DEFERRED |
+| Ticket | Feature                              | State                                            |
+| ------ | ------------------------------------ | ------------------------------------------------ |
+| F0.1   | Repository Scaffold & CI             | **DONE**                                         |
+| F0.2   | Identity & Problem Catalog Schema    | **DONE**                                         |
+| F0.3   | Auth, Phone OTP & Verification Tiers | **DONE** — delivery BLOCKED                      |
+| F0.3+  | Auth UI amendment                    | **DONE**                                         |
+| F0.4   | Design System & Application Shell    | **DONE**                                         |
+| F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED                   |
+| F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                                         |
+| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED                       |
+| F1.3   | Streak & Daily Goal Engine           | **DONE**                                         |
+| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)                    |
+| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED                        |
+| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)                    |
+| F2.1   | Spaced Repetition & Risk Scoring     | **DONE** — plus a due page (D23)                 |
+| F3.1   | Monaco Editor & Queued Execution     | **DONE** — real execution BLOCKED                |
+| F3.2   | Solve Timeline & Code Snapshots      | **DONE** — interval capture DEFERRED             |
+| F3.3   | Heuristic Stuck-Point Inference      | **DONE** — signal 1 is edit locality, not cursor |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 

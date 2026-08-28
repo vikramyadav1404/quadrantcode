@@ -83,7 +83,9 @@ export async function markStuck(
 
     return {
       id: marker!.id,
-      category: marker!.category,
+      // Written two statements above from a required argument, so the null the
+      // column now allows (F3.3, inferred rows) cannot be this one.
+      category: marker!.category!,
       elapsedSeconds: marker!.elapsedSeconds,
       note: marker!.note,
       createdAt: marker!.createdAt,
@@ -112,5 +114,13 @@ export async function getStuckMarkers(
     .where(and(eq(stuckPoints.sessionId, input.sessionId), eq(stuckPoints.source, 'user')))
     .orderBy(asc(stuckPoints.elapsedSeconds));
 
-  return rows;
+  /*
+   * `category` is nullable since F3.3, for inferred rows only. This query filters
+   * to `source = 'user'`, and the CHECK `stuck_points_user_has_category` is what
+   * turns that filter into a guarantee.
+   *
+   * F1.5's readers stay user-only on purpose: an inference must never appear
+   * where the user expects to see their own words.
+   */
+  return rows as StuckMarker[];
 }
