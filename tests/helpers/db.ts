@@ -63,8 +63,20 @@ export async function setupTestDb(): Promise<TestContext> {
 
 /** Empties every data table between tests without re-running migrations. */
 export async function truncateAll(client: ReturnType<typeof postgres>): Promise<void> {
+  /*
+   * TRUNCATE, not DELETE — and for `audit_logs` and `session_events` that is not
+   * a style choice. Both refuse row-level DELETE by trigger (F4.6, F3.2), and
+   * TRUNCATE does not fire row-level triggers, so it is the only way a test
+   * fixture can reset them.
+   *
+   * Which also names a real gap: an operator with TRUNCATE can erase the audit
+   * trail. The application cannot, which is what the trigger is for; a
+   * least-privilege database role is what would close the rest, and F4.8's
+   * infrastructure section owns that.
+   */
   await client.unsafe(`
     TRUNCATE TABLE
+      audit_logs,
       auth_verification_tokens, auth_sessions, auth_accounts,
       daily_sessions, daily_goals, user_problems,
       problem_tags, problems,

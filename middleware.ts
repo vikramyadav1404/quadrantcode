@@ -15,6 +15,7 @@
  * that carries a session; it lets it through and the layout answers 403.
  */
 import { type NextRequest, NextResponse } from 'next/server';
+import { REQUEST_ID_HEADER, resolveRequestId } from '@/server/lib/observability/request-id';
 import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
 
 const SESSION_COOKIES = ['__Secure-traceloop.session', 'traceloop.session'];
@@ -33,10 +34,34 @@ const PROTECTED_PREFIXES = [
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
+  /*
+   * F4.6 · every request gets an id, before anything else happens.
+   *
+   * Here rather than in each route handler for the same reason redaction is in
+   * the logger: a rule applied per handler holds until somebody adds a handler.
+   * Middleware runs first and runs for everything.
+   *
+   * An id supplied upstream is honoured so a trace can start before us, and
+   * `resolveRequestId` caps and strips it — the value lands in every log line
+   * for the request, so an unbounded one is a way to write megabytes into a log
+   * file with a single call.
+   */
+  const requestId = resolveRequestId(request.headers.get(REQUEST_ID_HEADER));
+
+  /** Attach the id to a response, so a caller can quote it in a bug report. */
+  const withId = (response: NextResponse): NextResponse => {
+    response.headers.set(REQUEST_ID_HEADER, requestId);
+    return response;
+  };
+
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
-  if (!isProtected) return NextResponse.next();
+  if (!isProtected) {
+    const headers = new Headers(request.headers);
+    headers.set(REQUEST_ID_HEADER, requestId);
+    return withId(NextResponse.next({ request: { headers } }));
+  }
 
   const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
   if (hasSession) {
@@ -55,7 +80,8 @@ export function middleware(request: NextRequest): NextResponse {
      */
     const headers = new Headers(request.headers);
     headers.set(PATHNAME_HEADER, `${pathname}${request.nextUrl.search}`);
-    return NextResponse.next({ request: { headers } });
+    headers.set(REQUEST_ID_HEADER, requestId);
+    return withId(NextResponse.next({ request: { headers } }));
   }
 
   /*
@@ -65,7 +91,7 @@ export function middleware(request: NextRequest): NextResponse {
    */
   const login = new URL('/login', request.url);
   login.searchParams.set('returnTo', `${pathname}${request.nextUrl.search}`);
-  return NextResponse.redirect(login);
+  return withId(NextResponse.redirect(login));
 }
 
 export const config = {

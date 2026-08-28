@@ -572,6 +572,76 @@ difference is deliberate: a public profile shows your data to other people, a
 snapshot shows your own history back to you, and it is the entire input to the
 timeline, F3.3 and F3.5.
 
+## Observability and SLOs (F4.6)
+
+### The SLOs, and what was actually measured
+
+**An undocumented or unmeasured SLO is not an SLO**, so each target below is
+followed by a number or by the reason there isn't one.
+
+| SLO                              | Target   | Measured                                                    |
+| -------------------------------- | -------- | ----------------------------------------------------------- |
+| p95 latency, problem catalog     | < 300 ms | **2 ms**                                                    |
+| p95 latency, analytics dashboard | < 500 ms | **5 ms**                                                    |
+| Uptime                           | 99.5%    | **Not measured** — needs a deployment observed over time    |
+| Notification delivery rate       | 95%      | **Not measured** — F2.4 is cut; nothing sends notifications |
+
+Run `npm run slo:measure` to reproduce. The two figures are measured on a
+developer machine against the test database, over 20 samples each — a real
+measurement of this code, not of production. Both are an order of magnitude
+inside their target, which mostly says the dataset is small.
+
+### Redaction is at the logger, not at the call site
+
+`server/lib/observability/logger.ts` is the only sanctioned way to write a log
+line, and everything passed to it goes through `redact()`. There is no parameter
+to skip it. A rule applied at call sites holds only until somebody adds a call
+site — and `no-console` is on everywhere except that one file, so an ad-hoc
+`console.log` that bypasses redaction fails lint.
+
+`user_id` survives redaction deliberately. A log with no identity cannot be
+followed, which is the other half of this ticket.
+
+### One request id, from the edge to the job
+
+Middleware assigns it, `AsyncLocalStorage` carries it down the await chain, and
+that includes the `setImmediate` the in-process runner uses — so an execution is
+traceable back to the click that started it. An id supplied upstream is honoured,
+capped at 64 characters and stripped, because it lands in every log line for the
+request.
+
+**Middleware runs on the Edge runtime**, which has no `node:async_hooks`. That
+is why the header and the id generator live in `request-id.ts` and nothing there
+may import from `node:`.
+
+### The audit log has no escape hatch
+
+`session_events` allows deletion behind a declared flag, because a user may
+erase their own solve history (**D25**). `audit_logs` does not: it exists so
+that the people with power over other people's data cannot quietly erase what
+they did. `actor_id` has no foreign key for the same reason.
+
+**The remaining gap, named:** `TRUNCATE` still works, so anyone with schema
+rights can erase the trail. A least-privilege application role is what closes
+that, and F4.8 owns it.
+
+### What is BLOCKED, and what "alerting" currently means
+
+- **Sentry** — no DSN. Errors go to stdout; nothing is tagged by release and no
+  source maps are uploaded.
+- **Alerts** — the four conditions are implemented and tested, and each fires
+  when triggered. **But `deliver()` writes a log line, and a log line is not an
+  alert.** Nobody is watching stdout at 3am. The seam exists so that supplying a
+  destination is a change to one function.
+- **Half the health dashboard** — queue depth, Judge0 p95, notification delivery,
+  AI spend and Razorpay webhooks all belong to cut tickets. `/admin/health`
+  lists them as not measured, with the reason, rather than showing zeros.
+
+`/api/health` is public and deliberately terse: dependency names and states, no
+error messages and no configuration values. It returns 503 when Postgres is
+unreachable and 200 otherwise — including when dependencies are absent, because
+that is this deployment's known state rather than a fault.
+
 ## Verification
 
 | Command                 | What it proves                                                                                                                      |
