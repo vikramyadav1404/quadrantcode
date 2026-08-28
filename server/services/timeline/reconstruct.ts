@@ -8,13 +8,15 @@
 import { and, asc, desc, eq, lte } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { codeSnapshots, solveSessions } from '@/server/db/schema';
+import type { ExecutionLanguage } from '@/lib/execution/languages';
 import { applyDiff, decodeDiff } from './diff';
 import { SnapshotChainError } from './snapshots';
 
 export type ReconstructedSource = {
   snapshotId: string;
   sequence: number;
-  language: string;
+  /** The column is `execution_language`, so this is the union and not a string. */
+  language: ExecutionLanguage;
   occurredAt: Date;
   source: string;
 };

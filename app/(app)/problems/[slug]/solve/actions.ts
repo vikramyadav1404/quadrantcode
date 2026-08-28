@@ -21,6 +21,7 @@ import {
 } from '@/server/services/execution';
 import { submitExecutionSchema } from '@/server/services/execution/input';
 import { captureSnapshot } from '@/server/services/timeline';
+import { snapshotCaptureEnabled } from '@/server/services/profile';
 
 export type SubmitRunResult = { ok: true; jobId: string } | { ok: false; message: string };
 
@@ -87,11 +88,11 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
         trigger: 'run_attempt',
         occurredAt: new Date(),
         /*
-         * The per-user capture toggle is F3.2b's, along with the privacy copy
-         * that explains it. Until that column exists the answer is the default
-         * the toggle will have — on — and this is the single place it is read.
+         * The user's own setting, from `/settings/privacy`. Read here rather
+         * than passed in: a client that could send `enabled: true` would be
+         * able to switch capture back on for someone who turned it off.
          */
-        enabled: true,
+        enabled: await snapshotCaptureEnabled(getDb(), user.id),
       });
     } catch (error) {
       console.error(
