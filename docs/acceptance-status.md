@@ -692,3 +692,103 @@ It is written down because the risk with a flake is a team learning to ignore
 red. If it recurs, the thing to check first is whether the marker write is
 visible to the assertion's read, since that is the only ordering the test
 depends on.
+
+---
+
+## F3.1 · `execution-pipeline`
+
+**Branch:** `feat/F3.1-execution-pipeline` · **Merged to `main`** ·
+`FEATURE_EXECUTION_PIPELINE=false`
+
+**Partly BLOCKED.** There is no `JUDGE0_URL`, so nothing in this ticket has ever
+run a line of user code. Everything below is honest about which side of that
+line it sits on.
+
+| #   | Criterion                                                              | State                   | Evidence                                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Submitting code returns immediately; the request path never runs it    | **DONE**                | `tests/execution/pipeline.test.ts` — the request-path test asserts the row is `queued` and the provider was never called                                                          |
+| 2   | Illegal state transitions are rejected server-side                     | **DONE**                | `tests/execution/statemachine.test.ts` — all 16 pairs, plus a typed error carrying both states                                                                                    |
+| 3   | The state machine is visible in the UI                                 | **DONE**                | `e2e/execution.spec.ts` — the button reads Run / Queued… / Running…, and a failed job renders its own branch                                                                      |
+| 4   | Output containing `<script>` and `<img onerror>` renders as inert text | **DONE**                | `e2e/execution.spec.ts` in Chromium, **with a positive control that sets the same flag deliberately first**; `tests/execution/rendering.test.ts` greps the route for markup sinks |
+| 5   | The rate-limit message names when capacity returns                     | **DONE**                | `tests/execution/pipeline.test.ts` — asserts the literal reset time in the message                                                                                                |
+| 6   | The concurrency cap holds under a parallel-submit test                 | **DONE**                | `tests/execution/pipeline.test.ts` — 8 simultaneous submissions, exactly 5 accepted                                                                                               |
+| 7   | An external-link problem is a scratchpad with no comparison            | **DONE**                | `tests/execution/pipeline.test.ts` + `e2e/execution.spec.ts` — no test counts rendered, `expectedOutput` is unconditionally null                                                  |
+| 8   | A provider outage degrades without crashing                            | **DONE**                | `tests/execution/pipeline.test.ts` — the job fails, **no `run_attempts` row is written**, and the message promises no retry                                                       |
+| —   | **Real code execution**                                                | **BLOCKED**             | No `JUDGE0_URL`. `Judge0Provider` is written from the published API and has never been run                                                                                        |
+| —   | Per-problem-per-language draft autosave                                | **DONE (localStorage)** | `components/editor/RunPanel.tsx`                                                                                                                                                  |
+| —   | A server-side draft snapshot every 60 s                                | **DEFERRED to F3.2**    | F3.2 owns server-side code storage; a second home for the user's code would guarantee the two disagree                                                                            |
+| —   | BullMQ queue, retries, dead-letter                                     | **CUT**                 | F2.3 is cut (**D17**). The table is the queue                                                                                                                                     |
+
+### What BLOCKED means here, precisely
+
+`resolveProvider` returns `FakeExecutionProvider` when there is no URL, and the
+fake reports `executes: false`. Every test in this ticket, and the whole e2e
+spec, ran against it. So:
+
+- **Verified:** the state machine, both limits, the transaction boundary, the
+  outage path, the stall sweep, IDOR scoping, C1 behaviour, and how output is
+  rendered.
+- **Verified without an instance because it is pure:** Judge0's status-id →
+  verdict mapping, including that an unrecognised id becomes `internal_error`
+  rather than quietly becoming `accepted` after a Judge0 upgrade.
+- **Unverified:** every byte that crosses the network. The submission shape, the
+  base64 handling, the polling contract, the error responses, the language ids,
+  and whether the limits are honoured at all.
+
+**The limits are not a claim about isolation.** `EXECUTION_LIMITS` is what is
+sent with each submission. Whether a 2-second CPU cap and a disabled network are
+enforced is a property of how the Judge0 instance was deployed. Nothing in the
+code, the UI or this document calls it a sandbox.
+
+### The concurrency cap needed a lock, and the criterion knew it
+
+Check-then-insert is not atomic: six submissions arriving together each read a
+count of four and each decide they are the fifth. Written that way the cap holds
+under no parallelism at all — which is exactly why the criterion says _under a
+parallel-submit test_.
+
+`submitExecution` takes `pg_advisory_xact_lock(hashtext(user_id))` inside the
+transaction that counts and inserts, so only a user racing themselves waits. The
+test submits 8 at once and asserts 5 land; without the lock it lets 8 through.
+
+### An outage is not a verdict
+
+A provider failure fails the **job** and writes no `run_attempts` row. Recording
+`internal_error` would put a statement about the user's program into the
+database that nothing observed — "Judge0 is down" arriving as "your code is
+wrong" is the one message this ticket must not get wrong.
+
+Nothing retries. That is D17's cost, and the failure message says so rather than
+promising a recovery that is not coming.
+
+### Found while building
+
+**The XSS grep failed on its own documentation.** The first version of
+`tests/execution/rendering.test.ts` searched whole files and flagged
+`RunOutput.tsx` — whose header says, in prose, that there is no
+`dangerouslySetInnerHTML` in it. A check that cannot tell a warning from a
+violation pressures people to delete the warning. It now strips comments and
+carries three controls: a sink in code is caught, a sink hidden behind a
+trailing comment is caught, prose about one is not.
+
+**An e2e locator matched the copy it was protecting.** `getByText(/tests$/)`,
+meant to prove no `0 / 0 tests` is rendered for a scratchpad run, also matched
+the two sentences that exist to say tests do not apply. Now it matches the digit
+shape.
+
+**Monaco's dependency tree carries four moderate advisories** via
+`dompurify <= 3.4.12`, with no non-breaking fix available. Kept deliberately —
+Monaco is in the locked stack — and handed to **F4.8**. The exposure is bounded:
+`dompurify` reaches the browser only through Monaco's own rendering, and no
+execution output passes through it.
+
+### The state machine, and the sweep that stops it locking people out
+
+`queued → running → completed | failed`, and `queued → failed` for a provider
+that was already unreachable. Nothing leaves a terminal state.
+
+`npm run executions:sweep` fails jobs whose heartbeat is older than 120 s.
+Unlike the session sweep, **something depends on this one running**: a stuck
+`running` row counts against its owner's concurrency cap forever, and five of
+them lock that user out of the feature entirely. A deploy mid-run is enough to
+leave one behind, because the runner is in-process.
