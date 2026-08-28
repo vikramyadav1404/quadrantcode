@@ -26,9 +26,10 @@ import type { TimerBarState } from '@/lib/session/timer-bar-state';
 import {
   abandonSessionAction,
   completeSessionAction,
+  markStuckAction,
   pauseSessionAction,
   resumeSessionAction,
-} from './session/actions';
+} from './sessions/actions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   /*
@@ -112,6 +113,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <TimerBar
             onAbandon={abandonSessionAction}
             onComplete={completeSessionAction}
+            onMarkStuck={markStuckAction}
             onPause={pauseSessionAction}
             onResume={resumeSessionAction}
             state={timer}
