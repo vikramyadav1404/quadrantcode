@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-28, after F3.2a._
+_Last updated: 2026-08-29, after F3.2b._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 966 passing, 5 skipped (971 total, 57 files) + 68 Playwright.
+**Tests:** 984 passing, 5 skipped (989 total, 58 files) + 77 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F3.2a are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F3.2 are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -19,10 +19,10 @@ a CI result. Both suites were run locally in full against the embedded Postgres.
 
 ## Target scope — 18 features, not 29
 
-Set by Vikram on 2026-08-15. **13 done + 5 remaining**, in this order:
+Set by Vikram on 2026-08-15. **14 done + 4 remaining** — 84 of 108 acceptance
+points:
 
-> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1~~ · **F3.2 (a done, b next)** · F3.3 ·
-> F3.5 · F4.6 · F4.8
+> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1 · F3.2~~ · F3.3 · F3.5 · F4.6 · F4.8
 
 **Cut:** F2.2, F2.3, F2.4, F2.5, F4.1, F4.2, F4.3, F4.4, F4.5, F4.7, and F1.2's
 curated 100-problem library. The README carries the full built/planned/cut
@@ -54,23 +54,23 @@ history on every problem page, and an analytics dashboard whose figures are
 precomputed and say when they were computed, and a revision queue that schedules
 itself when you solve something.
 
-| Ticket | Feature                              | State                             |
-| ------ | ------------------------------------ | --------------------------------- |
-| F0.1   | Repository Scaffold & CI             | **DONE**                          |
-| F0.2   | Identity & Problem Catalog Schema    | **DONE**                          |
-| F0.3   | Auth, Phone OTP & Verification Tiers | **DONE** — delivery BLOCKED       |
-| F0.3+  | Auth UI amendment                    | **DONE**                          |
-| F0.4   | Design System & Application Shell    | **DONE**                          |
-| F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED    |
-| F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                          |
-| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED        |
-| F1.3   | Streak & Daily Goal Engine           | **DONE**                          |
-| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)     |
-| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED         |
-| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)     |
-| F2.1   | Spaced Repetition & Risk Scoring     | **DONE** — plus a due page (D23)  |
-| F3.1   | Monaco Editor & Queued Execution     | **DONE** — real execution BLOCKED |
-| F3.2a  | Append-Only Log & Code Snapshots     | **DONE** — UI is F3.2b (D25)      |
+| Ticket | Feature                              | State                                |
+| ------ | ------------------------------------ | ------------------------------------ |
+| F0.1   | Repository Scaffold & CI             | **DONE**                             |
+| F0.2   | Identity & Problem Catalog Schema    | **DONE**                             |
+| F0.3   | Auth, Phone OTP & Verification Tiers | **DONE** — delivery BLOCKED          |
+| F0.3+  | Auth UI amendment                    | **DONE**                             |
+| F0.4   | Design System & Application Shell    | **DONE**                             |
+| F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED       |
+| F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                             |
+| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED           |
+| F1.3   | Streak & Daily Goal Engine           | **DONE**                             |
+| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)        |
+| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED            |
+| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)        |
+| F2.1   | Spaced Repetition & Risk Scoring     | **DONE** — plus a due page (D23)     |
+| F3.1   | Monaco Editor & Queued Execution     | **DONE** — real execution BLOCKED    |
+| F3.2   | Solve Timeline & Code Snapshots      | **DONE** — interval capture DEFERRED |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -98,17 +98,16 @@ build is missing.
 
 ## DEFERRED — recorded, not forgotten
 
-| Item                                                                                                  | Closes in   | Why deferred                                                                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Orphaned-avatar cleanup scheduling                                                                    | **never**   | F2.3 is cut, so nothing will schedule it. Run `npm run avatars:cleanup` on demand; orphans accumulate until you do (D17)                                                                                                  |
-| Automatic retry of a dead import job                                                                  | **never**   | No queue. Recovery is user-driven: re-uploading the same file re-enqueues it, idempotently (D17)                                                                                                                          |
-| Curated 100-problem library                                                                           | **BLOCKED** | A small verified subset ships. The full list needs real data from your solve history — I will not invent URLs (C1)                                                                                                        |
-| Profile save under throttled slow-3G                                                                  | unscheduled | Optimistic save has a 10s timeout and rolls back to the last server-confirmed state, but no Playwright throttling test exists. Recorded as **NOT VERIFIED**, not DONE                                                     |
-| Timeline UI, privacy page, capture toggle, delete-history button, diff summariser, storage projection | **F3.2b**   | F3.2 is past the ~600-line reviewable-diff limit, so it ships in two halves. Every service behind these exists and is tested; what is missing is the surface (D25)                                                        |
-| Snapshot retention actually running                                                                   | **never**   | `npm run snapshots:purge` is on demand (D17). F3.2b's privacy copy promises ninety days — that promise is kept only as often as the command runs, so the copy must describe what happens, not the policy                  |
-| 60-second interval code snapshot                                                                      | **F3.2b**   | Snapshots are taken on every RUN today, which closed D24's deferral. The idle-interval capture from the editor is the remaining half                                                                                      |
-| `dompurify` advisories under Monaco                                                                   | **F4.8**    | Four moderate, no non-breaking fix. Monaco is in the locked stack and is kept. Exposure is bounded — `dompurify` is reached only through Monaco's own rendering, and no execution output passes through it                |
-| Retry of a failed execution                                                                           | **never**   | No queue (D17). A provider outage fails the job and writes no verdict; the message promises no retry because nothing will pick it up. `npm run executions:sweep` frees jobs whose runner died — run it after every deploy |
+| Item                                 | Closes in   | Why deferred                                                                                                                                                                                                              |
+| ------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Orphaned-avatar cleanup scheduling   | **never**   | F2.3 is cut, so nothing will schedule it. Run `npm run avatars:cleanup` on demand; orphans accumulate until you do (D17)                                                                                                  |
+| Automatic retry of a dead import job | **never**   | No queue. Recovery is user-driven: re-uploading the same file re-enqueues it, idempotently (D17)                                                                                                                          |
+| Curated 100-problem library          | **BLOCKED** | A small verified subset ships. The full list needs real data from your solve history — I will not invent URLs (C1)                                                                                                        |
+| Profile save under throttled slow-3G | unscheduled | Optimistic save has a 10s timeout and rolls back to the last server-confirmed state, but no Playwright throttling test exists. Recorded as **NOT VERIFIED**, not DONE                                                     |
+| Snapshot retention actually running  | **never**   | `npm run snapshots:purge` is on demand (D17). F3.2b's privacy copy promises ninety days — that promise is kept only as often as the command runs, so the copy must describe what happens, not the policy                  |
+| 60-second interval code snapshot     | unscheduled | Snapshots are taken on every RUN, which closed D24's deferral. Capturing while a user is only typing is not built — the service rule exists and is tested (`trigger: 'interval'`), nothing calls it                       |
+| `dompurify` advisories under Monaco  | **F4.8**    | Four moderate, no non-breaking fix. Monaco is in the locked stack and is kept. Exposure is bounded — `dompurify` is reached only through Monaco's own rendering, and no execution output passes through it                |
+| Retry of a failed execution          | **never**   | No queue (D17). A provider outage fails the job and writes no verdict; the message promises no retry because nothing will pick it up. `npm run executions:sweep` frees jobs whose runner died — run it after every deploy |
 
 Two criteria that were deferred are now **closed**: skeleton states (by F1.1's
 `/problems`) and full keyboard traversal (by the F0.3 amendment, at the third

@@ -2,14 +2,14 @@
 
 _Generated 2026-08-19 from `git ls-files` + untracked non-ignored files._
 
-**360 files** — updated 2026-08-28 for F3.2a; `NEW` now marks that ticket's additions. Excludes
+**360 files** — updated 2026-08-29 for F3.2b; `NEW` now marks that ticket's additions. Excludes
 `node_modules/`, `.next/`, and `package-lock.json`.
 
 Purposes below are taken from each file's own header comment where it has one,
 not inferred from its name. Files with no header are described from their
 contents.
 
-> **This document is a snapshot and will rot.** It is accurate as of F3.2a. Regenerate the list with
+> **This document is a snapshot and will rot.** It is accurate as of F3.2b. Regenerate the list with
 > `git ls-files; git ls-files --others --exclude-standard`, and re-check the
 > description of anything that moved. Nothing enforces that this file matches
 > the tree.
@@ -379,16 +379,16 @@ and `meta/_journal.json`.
 | `input.ts`        | Zod at the boundary (C7); caps mirror the CHECK constraints   |
 | `types.ts`        | Re-exports the taxonomy so services never re-declare it       |
 
-### `server/services/timeline/` — 6 files (F3.2a)
+### `server/services/timeline/` — 8 files (F3.2)
 
-| File                     | Purpose                                                                       |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| `index.ts` **NEW**       | The timeline's public surface                                                 |
-| `diff.ts` **NEW**        | LCS line diff + exact apply; written, not installed (D25)                     |
-| `snapshots.ts` **NEW**   | The only writer to `code_snapshots`; the capture rules                        |
-| `reconstruct.ts` **NEW** | Rebuilds source at a point; owner-scoped, 404-shaped                          |
-| `retention.ts` **NEW**   | The ONLY module that may delete, and the only one that may set the purge flag |
-| `events.ts` **NEW**      | Loads the log and derives `elapsedMs` — never stored (D25)                    |
+| File             | Purpose                                                                       |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `index.ts`       | The timeline's public surface                                                 |
+| `diff.ts`        | LCS line diff + exact apply; written, not installed (D25)                     |
+| `snapshots.ts`   | The only writer to `code_snapshots`; the capture rules                        |
+| `reconstruct.ts` | Rebuilds source at a point; owner-scoped, 404-shaped                          |
+| `retention.ts`   | The ONLY module that may delete, and the only one that may set the purge flag |
+| `events.ts`      | Loads the log and derives `elapsedMs` — never stored (D25)                    |
 
 ### `server/services/session/` — 8 files (F1.4)
 
@@ -496,7 +496,7 @@ and `meta/_journal.json`.
 
 ---
 
-## `scripts/` (13 files)
+## `scripts/` (14 files)
 
 | File                          | Purpose                                                            |
 | ----------------------------- | ------------------------------------------------------------------ |
@@ -511,7 +511,7 @@ and `meta/_journal.json`.
 | `sweep-sessions.ts`           | F1.4 · close sessions nobody came back to, on demand (D20)         |
 | `rollup-analytics.ts`         | F1.6 · rebuild the rollup for everyone, on demand (D22)            |
 | `sweep-executions.ts`         | F3.1 · free jobs whose runner died — **run after every deploy**    |
-| `purge-snapshots.ts` **NEW**  | F3.2 · 90-day retention; **the only thing keeping that promise**   |
+| `purge-snapshots.ts`          | F3.2 · 90-day retention; **the only thing keeping that promise**   |
 | `verify-admin-403.ts`         | Asserts the F0.3 403 criterion over real HTTP                      |
 | `verify-library-urls.ts`      | Checks curated library URLs; LeetCode 403s all of them             |
 
