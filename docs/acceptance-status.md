@@ -951,3 +951,86 @@ closed D24's deferral. Capturing from the editor while a user is only typing —
 at most once a minute, and only when the code changed — is not built. The
 service rule for it exists and is tested (`trigger: 'interval'`); nothing calls
 it. **DEFERRED**, not done.
+
+---
+
+## F3.3 · `stuck-inference`
+
+**Branch:** `feat/F3.3-stuck-inference` · **Merged to `main`** ·
+`FEATURE_STUCK_INFERENCE=false`
+
+| #   | Criterion                                                            | State                          | Evidence                                                                                                |
+| --- | -------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| 1   | Every inferred stuck point renders with its evidence strings visible | **DONE**                       | `e2e/inference.spec.ts` — the sentences on screen, not the label alone                                  |
+| 2   | Confirm, adjust-range and dismiss all persist correctly              | **DONE**                       | `tests/inference/persist.test.ts` + e2e across a reload                                                 |
+| 3   | Confirmed vs inferred separable in a single SQL query                | **DONE**                       | Asserted with **raw SQL**, in the form F3.5 and F2.1 will use                                           |
+| 4   | Zero AI calls in the module                                          | **DONE**                       | Grep over 8 files **with a control that catches a real AI import**                                      |
+| 5   | No string over-claims certainty                                      | **DONE**                       | Six patterns, **each fired against a string containing it**, plus an on-page check                      |
+| 6   | Each signal has an isolated passing test                             | **DONE (4 of 5 as specified)** | `tests/inference/signals.test.ts` — 27 tests. Signal 1 is `edit_locality`, not cursor dwell — see below |
+
+### Signal 1 is `edit_locality`, not cursor dwell
+
+The ticket names cursor dwell. **There is no cursor telemetry in this project** —
+no event type, nothing in the editor emitting one — and adding it would mean
+sampling a position every few seconds for a whole session, plus rewriting the
+privacy copy F3.2b shipped.
+
+So it measures where the **edits** were: snapshots returning to a narrow window
+over more than two minutes with no passing run. Different measurement, different
+name; calling it cursor dwell would claim something nothing watched. Recorded as
+a deviation rather than as the criterion met, though it is arguably the better
+signal — a still cursor can mean the user is reading in another tab.
+
+### The adversarial tests found three real defects
+
+All three would have shipped as "tells every user they were stuck everywhere",
+which is worse than not having the feature.
+
+1. **Locality chained on consecutive pairs.** Typing down a file, line 1 is near
+   2 is near 3 — forty lines over twenty minutes came back as one region.
+2. **Merging was transitively unbounded.** With the signals fixed, 1–7 still
+   overlapped 8–14 overlapped 15–21 and collapsed back into the whole file.
+3. **Churn counted coverage, not repetition.** Seven lines touched once scored
+   the same as one line rewritten seven times.
+
+Locality also gained a **revisit** condition: without it, a person calmly
+writing a solution trips it. What separates dwelling from progress is that the
+edits stopped moving — which the cursor version gets free.
+
+### The discount factor: 0.4
+
+Documented in `lib/inference/confidence.ts` and `docs/scoring.md`. Chosen so two
+unconfirmed inferences still weigh less than one thing the user said
+(0.8 < 1.0). Dismissed is **0**, not a small number — the user said it was
+wrong, and counting it a little is disagreeing quietly.
+
+`source` and `status` answer different questions: who proposed it, and whether
+the user agreed. A confirmed inference weighs exactly as much as a marker the
+user typed, which is the point of asking.
+
+### Found while building
+
+**`stuck_points.category` had to become nullable**, breaking four call sites.
+All four already filtered `source = 'user'`, so the fix was a narrowing backed
+by the new CHECK rather than a behaviour change — F1.5 had anticipated this.
+
+**A `str.replace` made the wrong column nullable too.** It hit
+`reflection_stuck_areas.category` as well, which has no inferred version and
+nothing for a null to mean. Reverted with a comment saying why that one stays
+NOT NULL.
+
+**`stuck-actions.ts` was rejected by lint, exactly as F1.4's was.** The boundary
+rule exempts `app/**/actions.ts` by PATH; I wrote a comment claiming the file
+did not need the exemption, which was backwards. Moved into the `actions.ts`
+already in that directory.
+
+**F1.5's "extras is the only JSONB column" test failed**, and the rule it
+guards did not. `evidence` is prose that nothing filters or groups by. The
+allowlist now names it explicitly rather than the check becoming a count, so a
+new JSONB column still fails until someone writes down why it belongs.
+
+**The first e2e fixture seeded the conclusion and every test failed with an
+empty panel.** That was the design working: the page re-runs inference on load
+and rewrites unanswered rows, so a hand-written inference with no telemetry
+behind it is correctly deleted. The fixture now seeds snapshots and a failed
+run, and the inference finds the region itself — much better evidence.

@@ -192,3 +192,59 @@ many revisions.
 and depth passes 20. So the default cap of five is a statement about how many
 problems a user can take on, not a free parameter — and it is asserted in the
 simulation rather than reasoned about here.
+
+---
+
+## F3.3 · stuck inference — confidence tiers and the inferred discount
+
+### The four tiers
+
+| Tier          | What produced it                                           | Shown as                 |
+| ------------- | ---------------------------------------------------------- | ------------------------ |
+| `user_marked` | The user pressed "I'm stuck"                               | "You marked this"        |
+| `high`        | A long dwell, heavy churn, or three-plus failures in a row | "Likely a stuck point"   |
+| `medium`      | The same signals at their threshold                        | "Possibly a stuck point" |
+| `low`         | Idle after a failure, always                               | "Might be a stuck point" |
+
+Every label hedges except the first, and the first is not a hedge because it is
+not a guess. A test greps the module and its UI for "detected", "exactly", "you
+got stuck at" and three more, with a control proving each pattern fires.
+
+### The discount factor: 0.4
+
+An unconfirmed inference counts **0.4** against a confirmed one at **1.0**. A
+dismissed one counts **0**.
+
+The number is chosen so two unconfirmed inferences still weigh less than one
+thing the user actually said (0.8 < 1.0). Nothing derived should be able to
+outvote the person, however much of it accumulates.
+
+Dismissed is zero rather than a small number on purpose: the user said it was
+wrong, and continuing to count it a little is disagreeing with them quietly.
+
+**`source` and `status` answer different questions.** `source` is who proposed
+it; `status` is whether the user agreed. An inference they confirmed stays
+`inferred` in origin and becomes `confirmed` in standing — and the standing is
+what decides weight, so a confirmed inference counts exactly as much as a marker
+the user typed. That is the point of asking.
+
+### What each signal will and will not claim
+
+| Signal               | Fires when                                                             | Refuses to fire when                                                     |
+| -------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `edit_locality`      | Edits return to a narrow window for over 2 minutes with no passing run | The edits never come back — that is progress down a file, not dwelling   |
+| `edit_churn`         | A range's edits outnumber its distinct lines, 3+ times                 | Seven lines touched once each; that is coverage, not repetition          |
+| `failure_cluster`    | 2+ consecutive failed runs with edits between them                     | Nothing was edited between the failures — there is no region to point at |
+| `idle_after_failure` | A gap of 90s+ right after a failure                                    | Never above `low`, however long the silence                              |
+| `user_marker`        | The user said so                                                       | Never carries a line range — F1.5 records a marker without asking where  |
+
+### `edit_locality` is not cursor dwell
+
+The ticket names cursor dwell: the cursor within ±3 lines for over two minutes.
+**There is no cursor telemetry in this project** — no event type, nothing in the
+editor emitting one, and adding it would mean sampling a position every few
+seconds for a whole session and rewriting the privacy copy F3.2b shipped.
+
+So this measures where the **edits** were. It is a different measurement and it
+carries a different name, because calling it cursor dwell would be a claim about
+something nothing watched.
