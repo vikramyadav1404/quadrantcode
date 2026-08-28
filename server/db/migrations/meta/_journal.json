@@ -78,6 +78,13 @@
       "when": 1787897409243,
       "tag": "0010_solve_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787902022848,
+      "tag": "0011_reflection_capture",
+      "breakpoints": true
     }
   ]
 }
