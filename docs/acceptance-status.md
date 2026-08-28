@@ -401,3 +401,79 @@ rejected `components/heatmap` importing a type from `server/` — fixed by movin
 the contract to `lib/streak/heatmap-day.ts`, not by widening the gate. The
 design-token rule rejected the freeze hatch three times, once on the _comment_
 explaining the first two rejections; reworded rather than loosened.
+
+---
+
+## F1.4 · `session-timer`
+
+| Criterion                                                                    | Status                  | Evidence                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Close the tab for 2 minutes, reopen: elapsed time is correct                 | **DONE**                | `e2e/session.spec.ts` reloads a real browser after the session's start is moved 20 minutes into the past, and reads the count back off the bar. `tests/session/lifecycle.test.ts` asserts the same at the service layer, and `duration.test.ts` isolates why: a heartbeat gap is not an input to the arithmetic |
+| Forged client duration is ignored (test proves it)                           | **DONE**                | Two layers. `tests/session/adversarial.test.ts` forges ten field names against every schema and asserts none survive `parse`; `e2e/session.spec.ts` POSTs the same forgery to `/api/session/heartbeat` **with a real session cookie** and asserts the stored timestamps are still this year                     |
+| A second startSession while one is active returns a conflict, not a new row  | **DONE**                | `tests/session/lifecycle.test.ts` (also for a merely PAUSED session), `tests/session/schema.test.ts` for the partial unique index behind it, and `e2e/session.spec.ts` for the message the user actually sees                                                                                                   |
+| Pause/resume across three cycles produces arithmetically correct active time | **DONE**                | `tests/session/lifecycle.test.ts` — 60 minutes wall, 3 + 4 + 5 paused, asserted as 48 minutes **and** as the exact event sequence                                                                                                                                                                               |
+| No heartbeat for 5 minutes produces an idle_autopause event                  | **DONE**                | `tests/session/lifecycle.test.ts`, including that the event is stamped at the last heartbeat rather than at discovery, and that it does not fire while heartbeats keep arriving                                                                                                                                 |
+| A 7-hour-old active session is auto-closed by the cleanup job                | **DONE, with a caveat** | `tests/session/lifecycle.test.ts` — closed, with `ended_at` at the last heartbeat. **There is no cleanup JOB** — see below                                                                                                                                                                                      |
+
+Tests: **97 across 5 files** in `tests/session/` — `schema`, `duration`,
+`state`, `lifecycle`, `adversarial` — plus `e2e/session.spec.ts` (5 browser
+tests). Full suite at closure: **680 passing, 5 skipped, 50 Playwright**.
+
+### The cleanup-job criterion, stated as what was built
+
+F2.3 is cut, so "auto-closed by the cleanup job" is satisfied by a sweep on the
+request path plus `npm run sessions:sweep`. Recording it as plain DONE would be
+true of the words and false about the system (**D20**). What it costs:
+
+- **Nobody else's session is closed until a human acts.** The shell closes the
+  CURRENT user's stale session for free — it had already loaded it to draw the
+  timer — but a user who never returns keeps a live row until the script runs.
+- **Nothing is blocked by that.** The owner's own next page load sweeps it
+  before the "one live session" check, so a dead session can never lock someone
+  out of starting a new one. That is asserted.
+- **The only distortion is a count of live sessions**, which nothing yet reads.
+
+### What the ticket asked to be adversarial about
+
+The requirement was a test that posts a forged duration and timestamp to every
+endpoint. It passes for a reason worth stating: **no schema has a field for
+either**, so the forgery is dropped by `parse` rather than rejected by a check.
+
+Two positive controls guard against that passing vacuously — one asserts the
+forged-field list is not empty, the other proves the duration genuinely tracks
+the server's clock by moving it honestly. The forged names live beside the
+schemas, not in the test, so the two cannot drift.
+
+### Found while building
+
+**A raw `sql` fragment will not take a `Date`.** Eight lifecycle tests failed
+inside the ON CONFLICT half of the attempt upsert with "the string argument must
+be of type string, received an instance of Date". Inside a raw fragment drizzle
+hands the value to the driver without the column's encoder — the same `Date`
+works two lines earlier in the typed builder. Fixed with an ISO string and an
+explicit `::timestamptz`.
+
+**The schema caught the first test fixture.** Four constraint tests failed on
+`solve_sessions_ends_after_start` because the fixture left `started_at` to the
+column default while setting `ended_at` from `new Date()` — mixing the database's
+clock with Node's, so every "finished" row ended before it started. The
+constraint was right and the test was wrong.
+
+**The boundary guard rejected `app/(app)/session-actions.ts`.** The exemption is
+by PATH and the path is `app/**/actions.ts`. Moved into its own folder rather
+than widening a pattern that guards what reaches the client bundle — the same
+call as F1.3's heatmap type.
+
+**A test that asserted nothing, again.** The first "close the tab for 2 minutes"
+duration test computed the same expression twice and compared them. It now
+asserts the contrast that is the actual claim: a gap below the idle threshold
+costs nothing, a gap above it costs exactly the idle interval.
+
+### Not done
+
+- **Confidence is captured but not prompted for.** `completeSession` stores it
+  and the timer bar does not ask — the post-solve reflection form is F1.5, and
+  inventing a confidence prompt here would be the wrong shape to replace later.
+- **`session_events` is append-only by convention, not by enforcement.** Nothing
+  updates or deletes a row, and the duration arithmetic depends on that; F3.2
+  adds the database-level rejection its own criterion requires.

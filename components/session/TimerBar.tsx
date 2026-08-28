@@ -15,7 +15,7 @@
  * That is why a refresh, a tab close or a machine with the wrong clock changes
  * nothing — the value came from timestamps the server wrote.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
 
@@ -66,9 +66,6 @@ export function TimerBar({
     const id = setInterval(() => setElapsed((value) => value + 1), 1000);
     return () => clearInterval(id);
   }, [status]);
-
-  const latest = useRef(elapsed);
-  latest.current = elapsed;
 
   // The heartbeat, and the resync that comes back with it.
   useEffect(() => {
