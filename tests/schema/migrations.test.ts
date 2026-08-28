@@ -37,6 +37,8 @@ const EXPECTED_TABLES = [
   'execution_jobs', // F3.1
   'import_job_rows', // F1.2
   'import_jobs', // F1.2
+  'mistake_patterns', // F3.5
+  'mistake_warnings_shown', // F3.5
   'problem_tags',
   'problems',
   'reflection_mistakes', // F1.5
