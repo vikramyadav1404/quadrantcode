@@ -5,6 +5,7 @@
  * it redacts unconditionally — there is no path around it. `audit.ts` writes to
  * a table nothing can update or delete.
  */
+export * from './alerts';
 export * from './audit';
 export * from './health';
 export * from './logger';

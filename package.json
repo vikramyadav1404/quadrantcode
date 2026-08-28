@@ -37,6 +37,7 @@
     "snapshots:purge": "tsx scripts/purge-snapshots.ts",
     "snapshots:measure": "tsx scripts/measure-snapshot-storage.ts",
     "mistakes:rollup": "tsx scripts/rollup-mistakes.ts",
+    "slo:measure": "tsx scripts/measure-slo.ts",
     "analytics:rollup": "tsx scripts/rollup-analytics.ts",
     "library:verify": "tsx scripts/verify-library-urls.ts"
   },
