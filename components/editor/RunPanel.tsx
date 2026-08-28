@@ -40,13 +40,23 @@ type SubmitResult = { ok: true; jobId: string } | { ok: false; message: string }
 
 export function RunPanel({
   problemId,
+  sessionId,
   defaultLanguage,
   onSubmit,
 }: {
   problemId: string;
+  /**
+   * The sitting this run belongs to, resolved on the server.
+   *
+   * Passed through untouched — the panel never invents or edits it. Null means
+   * the editor is open outside a timed session, which is allowed and means the
+   * run leaves no snapshot (F3.2).
+   */
+  sessionId: string | null;
   defaultLanguage: ExecutionLanguage;
   onSubmit: (input: {
     problemId: string;
+    sessionId: string | null;
     language: ExecutionLanguage;
     source: string;
     stdin: string;
@@ -70,10 +80,14 @@ export function RunPanel({
    * Drafts are per problem AND per language, so switching to C++ to check
    * something does not overwrite the Python you were halfway through.
    *
-   * localStorage only. The ticket also asks for a server snapshot every 60s;
-   * F3.2 owns server-side code storage, and building a second home for the
-   * user's code here would guarantee the two disagree. Recorded as DEFERRED
-   * with that reason rather than done twice.
+   * localStorage holds the DRAFT — the latest text, per browser, so a reload
+   * does not lose work. F3.2's `code_snapshots` holds the HISTORY, server-side,
+   * and the two are different things rather than two copies of one: a draft is
+   * overwritten constantly and belongs to a device, a snapshot is immutable and
+   * belongs to a sitting.
+   *
+   * The 60-second interval capture is F3.2b's, from the editor. Today a
+   * snapshot is taken on every run.
    */
   useEffect(() => {
     let stored: string | null = null;
@@ -165,7 +179,7 @@ export function RunPanel({
     setRefusal(null);
     setResult(null);
 
-    const submitted = await onSubmit({ problemId, language, source, stdin });
+    const submitted = await onSubmit({ problemId, sessionId, language, source, stdin });
 
     if (!submitted.ok) {
       // A refused submission wrote no row, so there is nothing to poll.
