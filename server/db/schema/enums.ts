@@ -6,6 +6,7 @@
  * ("queryable with a WHERE clause on an enum column") starts at this file.
  */
 import { pgEnum } from 'drizzle-orm/pg-core';
+import { EXECUTION_LANGUAGES, EXECUTION_VERDICTS } from '@/lib/execution/languages';
 import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/reflection/taxonomy';
 
 /** RBAC roles. `requireRole()` in F0.3 reads this. */
@@ -190,3 +191,40 @@ export const ladderKindEnum = pgEnum('ladder_kind', ['standard', 'compressed']);
  * pushed to a 30-day gap.
  */
 export const revisionOutcomeEnum = pgEnum('revision_outcome', ['clean', 'struggled', 'failed']);
+
+/**
+ * F3.1 · the languages the editor offers.
+ *
+ * Built from `lib/execution/languages.ts`, not re-typed — the same rule the
+ * reflection taxonomy follows (D21). A language the editor offers must be one
+ * the database accepts.
+ */
+export const executionLanguageEnum = pgEnum('execution_language', EXECUTION_LANGUAGES);
+
+/**
+ * F3.1 · where an execution IS.
+ *
+ * The spec lists one enum mixing these with verdicts. They are split because
+ * they answer different questions and only one of them has a state machine:
+ * `queued → running → completed | failed` has illegal transitions worth
+ * rejecting, while "wrong answer" is not a state anything moves out of.
+ *
+ * `failed` is the job failing — the provider was unreachable, the row was
+ * swept — and is distinct from an execution that ran and produced a bad
+ * verdict. Conflating them would make "Judge0 is down" indistinguishable from
+ * "your code is wrong", which is the one message this ticket must not get wrong.
+ */
+export const executionStatusEnum = pgEnum('execution_status', [
+  'queued',
+  'running',
+  'completed',
+  'failed',
+]);
+
+/**
+ * F3.1 · how an execution ENDED, mapped from the provider's own statuses.
+ *
+ * Ours, not Judge0's: a provider swap must not change what the database
+ * records, which is the point of putting an interface in front of it.
+ */
+export const executionVerdictEnum = pgEnum('execution_verdict', EXECUTION_VERDICTS);

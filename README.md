@@ -36,17 +36,17 @@ return only if the project continued past that.
 | F1.5  | Attempt history, stuck markers & reflection | `server/services/reflection/` |
 | F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`  |
 | F2.1  | Spaced repetition & forgetting-risk scoring | `server/services/revision/`   |
+| F3.1  | Monaco editor & queued code execution       | `server/services/execution/`  |
 
 ### Planned — in the target build
 
-| ID   | Feature                                | Notes                                                                                                                                                             |
-| ---- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F3.1 | Monaco editor & Judge0 execution       | **Needs a decision first.** Specified as _queued_ execution; F2.3 is cut, so it must reuse the in-process job pattern from F1.2 or run synchronously. See **D17** |
-| F3.2 | Event log & diff-based code snapshots  |                                                                                                                                                                   |
-| F3.3 | Heuristic stuck-point inference        |                                                                                                                                                                   |
-| F3.5 | Mistake memory & weak-topic engine     |                                                                                                                                                                   |
-| F4.6 | Tracing, health dashboard & audit logs |                                                                                                                                                                   |
-| F4.8 | Security hardening & launch readiness  |                                                                                                                                                                   |
+| ID   | Feature                                | Notes                                                           |
+| ---- | -------------------------------------- | --------------------------------------------------------------- |
+| F3.2 | Event log & diff-based code snapshots  | Also owns the server-side code snapshot F3.1 deferred (**D24**) |
+| F3.3 | Heuristic stuck-point inference        |                                                                 |
+| F3.5 | Mistake memory & weak-topic engine     |                                                                 |
+| F4.6 | Tracing, health dashboard & audit logs |                                                                 |
+| F4.8 | Security hardening & launch readiness  |                                                                 |
 
 ### Cut from the target build
 
@@ -56,7 +56,7 @@ Not built, not being built. Listed so their absence is a decision on the record.
 | ----- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | F1.2* | Curated 100-problem library           | A small verified subset ships; the full list is **BLOCKED** on real data. The importer and `npm run library:verify` are built                                                                                                                                                                                                                                                                                                     |
 | F2.2  | Four-mode revision experience         | F2.1 ships `/revision` — the due list, in risk order, with three outcomes. The four distinct revision **modes** are cut, and nothing pretends otherwise (**D23**)                                                                                                                                                                                                                                                                 |
-| F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. See **D17**                                                                                                                                                                                                                                                                                         |
+| F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. F3.1 shipped under this: `execution_jobs` **is** the queue. See **D17**, **D24**                                                                                                                                                                                                                    |
 | F2.4  | Multi-channel notification engine     | No reminders of any kind — it was queue-dependent                                                                                                                                                                                                                                                                                                                                                                                 |
 | F2.5  | Contest sync & upsolve tracker        | No contest ingestion                                                                                                                                                                                                                                                                                                                                                                                                              |
 | F4.1  | Original problem CMS & quality gate   | The schema supports original problems; there is no authoring UI, so the catalog is external links only                                                                                                                                                                                                                                                                                                                            |
@@ -430,14 +430,69 @@ them:
 
 ---
 
+## Code execution (F3.1)
+
+**There is no Judge0 instance.** Without `JUDGE0_URL`, `resolveProvider` returns
+a fake that executes nothing and reports `executes: false`. The editor, the
+limits, the state machine and the result panel all work; the results are not
+real execution, and nothing in the code or the UI says otherwise.
+
+`Judge0Provider` is written from the published API and is **UNVERIFIED** — it
+has never run against an instance. Supplying the URL is then a configuration
+change rather than a development task.
+
+### These are configured limits, not a sandbox
+
+Every submission carries a 2-second CPU limit, a 5-second wall-clock limit,
+256 MB of memory, no network, and at most 32 KB of captured output. That is what
+is **sent**. Whether it is enforced is a property of how the Judge0 instance was
+deployed — its isolation, its cgroups, its network policy — none of which lives
+in this repository. **Do not describe this as a secure sandbox.**
+
+### Limits a user meets
+
+Twenty runs per rolling hour and five concurrent, both counted in Postgres
+rather than in memory, because two serverless invocations each counting their
+own executions both see one. The hourly message names the time capacity returns,
+computed from the oldest run still inside the window. The concurrency message
+names no time, because that limit clears when a run finishes and inventing a
+clock time would be a promise nothing keeps.
+
+### An outage is never a verdict
+
+A provider failure fails the **job** and writes no `run_attempts` row. Recording
+`internal_error` would be a statement about the user's program that nothing
+observed. Nothing retries — there is no queue (**D17**) — and the message says
+so rather than promising a recovery that is not coming.
+
+**Run `npm run executions:sweep` after every deploy.** A job stuck at `running`
+counts against its owner's concurrency cap forever, and five of them lock that
+user out of the feature entirely. The in-process runner cannot survive a deploy
+mid-run, so this is not hypothetical.
+
+### Program output is rendered, not sanitised
+
+Output reaches the screen through React text nodes and nothing else. `<script>`
+arrives intact and inert: a program that prints a tag should see the tag it
+printed. `e2e/execution.spec.ts` proves it in Chromium, with a positive control
+that sets the same flag deliberately on the same page first — so a CSP could not
+make the test pass by making the payload impossible.
+
+### C1 in the editor
+
+For an external-link problem there is no statement on the page and no comparison
+after a run: `expected_output` is unconditionally null, and test counts are
+`null` rather than `0 / 0`, which would read as a failure rather than as "there
+was nothing to check". The page says it is a scratchpad and links out.
+
 ## Verification
 
-| Command                 | What it proves                                                                         |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `npm test`              | 157 unit + integration tests (Postgres-backed suites skip without `TEST_DATABASE_URL`) |
-| `npm run test:e2e`      | 21 browser tests — viewports, theme flash, auth flow, payload capture                  |
-| `npm run contrast`      | Every token pair against its WCAG threshold; exits non-zero on failure                 |
-| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                 |
+| Command                 | What it proves                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`              | 899 unit + integration tests, 5 skipped (Postgres-backed suites skip without `TEST_DATABASE_URL` — check the count, not the colour) |
+| `npm run test:e2e`      | 68 browser tests — viewports, theme flash, auth flow, payload capture, the timer, reflection, revision, and the editor's XSS proof  |
+| `npm run contrast`      | Every token pair against its WCAG threshold; exits non-zero on failure                                                              |
+| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                              |
 
 CI runs these as **two jobs**: unit/lint/build, and browser. They are separate so
 Chromium flake never blocks a green typecheck.
