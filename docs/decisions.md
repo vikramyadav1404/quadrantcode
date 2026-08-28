@@ -1130,3 +1130,107 @@ so re-renders the queue without the row just answered, erasing the confirmation
 the click produced — the user sees their answer flash and vanish, and never
 learns when the problem comes back. Found by an e2e test that passed alone and
 failed in a full run, which is what that race looks like from outside.
+
+---
+
+## D24 · Execution is a table, a lock, and a provider seam — and never a sandbox
+
+**Context:** F3.1 specifies Monaco plus BullMQ-queued Judge0 execution. Two
+things are missing at once: F2.3 is cut (**D17**) so there is no queue, and
+there is no `JUDGE0_URL` so there is no judge.
+
+### The word "sandbox" does not appear, deliberately
+
+The ticket says it outright, and it is worth writing down why the rule is
+correct rather than merely obeyed.
+
+`EXECUTION_LIMITS` — 2 s CPU, 5 s wall, 256 MB, no network, 32 KB of captured
+output — is **what is submitted with each request**. Whether any of it is
+enforced depends on how the Judge0 instance was deployed: its Docker isolation,
+its cgroup limits, its network policy. None of that is in this repository.
+
+Calling it a sandbox would claim a property this project cannot observe, and the
+person misled is whoever later decides it is safe to run untrusted code. So the
+README, the UI and the code all say what is sent, never what is guaranteed.
+
+### The provider seam is what makes BLOCKED honest instead of vague
+
+`ExecutionProvider` has three implementations' worth of intent behind it: the
+real one, the fake, and the `executes: boolean` flag that lets any caller ask
+whether a result came from running code. `resolveProvider` returns the fake when
+there is no URL — so the feature works end to end, and nothing anywhere claims
+the results are real.
+
+`Judge0Provider` is written and **UNVERIFIED**, with that word in its header
+rather than only in the acceptance record. Supplying a URL is then a
+configuration change, not a development task — and the one part that can be
+checked without an instance is checked: the status-id mapping is pure and
+tested, including that an unknown id becomes `internal_error` rather than
+silently becoming `accepted` after a Judge0 upgrade.
+
+**Rejected:** stubbing the calls out with `throw new Error('not implemented')`.
+It makes the same BLOCKED honest but leaves nothing to review, and the mapping —
+the part most likely to be wrong and cheapest to get right — would not exist.
+
+### The cap is a lock, because the criterion is about parallelism
+
+Counting live rows and then inserting is not atomic. The criterion says the cap
+must hold _under a parallel-submit test_, which is precisely the case
+check-then-insert fails: six concurrent submissions each read four and each
+decide they are the fifth.
+
+`pg_advisory_xact_lock(hashtext(user_id))` inside the submit transaction
+serialises only a user racing themselves. Two users can collide on the hash; the
+cost is that one waits microseconds, which is not worth a wider key to avoid.
+
+The runner is enqueued **after** the transaction commits — a runner that starts
+first reads a row that is not there yet.
+
+**Rejected:** a unique partial index on "live jobs per user". Postgres has no
+count constraint; enforcing five would need five nullable slot columns or a
+trigger counting rows, both of which are heavier and less obvious than a lock
+held for two statements.
+
+### A failed job writes no result
+
+The distinction the whole ticket turns on. `execution_jobs.error` says why the
+job failed; `run_attempts` exists only for jobs that actually ran. Writing
+`internal_error` on an outage would put a claim about the user's program into
+the database that nothing observed — and it would then feed F3.5's mistake
+memory as if the user had made a mistake.
+
+Nothing retries, and the message says so. D17's cost, stated rather than
+implied.
+
+### Output is rendered, never sanitised
+
+Program output reaches the screen through `{value}` and nothing else. It is not
+filtered: `<script>` arrives intact and inert, because a program that prints a
+tag should see the tag it printed. A scratchpad that quietly rewrites your
+output is worse than one that shows it, and a sanitiser is one more thing that
+can have a bug.
+
+The claim is settled in Chromium — with a positive control that sets the same
+flag deliberately on the same page first, so a CSP could not make the test pass
+by making the payload impossible.
+
+### `expected_output` is unconditionally null, not a branch
+
+C1 means no external platform's tests are ever held, so an external-link problem
+can never have expected output. Original problems could — and arrive with F4.1,
+which is cut, so the catalog contains none.
+
+A conditional there would be a branch nothing can take, hiding that comparison
+is impossible behind code that looks like it handles both cases. Test counts are
+`null` rather than `0 / 0`, which reads as a failure rather than as "there was
+nothing to check".
+
+### Drafts are local; the server snapshot waits for F3.2
+
+The ticket asks for localStorage autosave **and** a 60-second server snapshot.
+localStorage is done, per problem and per language. The server half is deferred
+to F3.2, which owns code snapshots.
+
+Building a `code_drafts` table here would create a second home for the user's
+code alongside the one F3.2 is specified to build — two stores of the same thing
+is a drift with a date on it. Recorded as DEFERRED rather than done twice.
