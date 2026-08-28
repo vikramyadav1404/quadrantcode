@@ -126,7 +126,19 @@ export default async function ProblemDetailPage({
       </section>
 
       {/* F1.4 · the timer itself lives in the layout, on every screen. */}
-      <StartSolvingButton onStart={startSessionAction} problemId={problem.id} />
+      <div className="flex flex-wrap items-center gap-4">
+        <StartSolvingButton onStart={startSessionAction} problemId={problem.id} />
+
+        {/*
+          A separate door from the timer on purpose. Starting a session is a
+          commitment; opening a scratchpad to try one idea is not, and making
+          the editor reachable only through the timer would turn the timer into
+          a toll booth.
+        */}
+        <Link className="text-sm underline" href={`/problems/${problem.slug}/solve`}>
+          Open the editor
+        </Link>
+      </div>
 
       <p className="mt-8 text-xs text-[var(--text-muted)]">
         <Link className="underline" href="/problems">
