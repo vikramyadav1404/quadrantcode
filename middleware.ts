@@ -20,11 +20,27 @@ import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
 
 const SESSION_COOKIES = ['__Secure-traceloop.session', 'traceloop.session'];
 
+/**
+ * Every signed-in-only page prefix.
+ *
+ * **`/analytics` and `/mistakes` were missing** — added by F1.6 and F3.5, never
+ * added here. Neither leaked data: both pages call `requireCurrentUser()`,
+ * which throws before any query runs. But an anonymous visitor got a 500 error
+ * page instead of a redirect to login, and the first layer of defence was
+ * absent on two routes.
+ *
+ * Found by F4.8's route enumeration, which is exactly the kind of drift a
+ * hand-maintained list acquires. `tests/security/routes.test.ts` now compares
+ * this array against the routes that exist on disk, so the next omission fails
+ * a test rather than waiting for an audit.
+ */
 const PROTECTED_PREFIXES = [
   '/admin',
   // /onboarding is signed-in-only despite living in the (auth) group.
   '/onboarding',
+  '/analytics',
   '/dashboard',
+  '/mistakes',
   '/problems',
   '/sessions',
   '/revision',
