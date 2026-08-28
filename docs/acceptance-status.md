@@ -864,3 +864,90 @@ fixture was testing a state the product cannot reach.
 empty after the test run. The deletion itself is proved by test, including a
 positive control that a young snapshot survives; the script's own run is
 evidence that it executes, not that it deletes.
+
+---
+
+## F3.2b · `solve-timeline` — the surface
+
+**Branch:** `feat/F3.2b-timeline-ui` · **Merged to `main`** · `FEATURE_TIMELINE=false`
+
+**F3.2 is now complete.** Its six criteria, across both halves:
+
+| #   | Criterion                                                  | State               | Evidence                                                                                                                                   |
+| --- | ---------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | UPDATE against `session_events` rejected at the DB         | **DONE (F3.2a)**    | Raw SQL, plus DELETE, plus an INSERT control, plus SQLSTATE `23001`                                                                        |
+| 2   | `reconstruct()` byte-identical at 3 checkpoints            | **DONE (F3.2a)**    | All 31 of a 31-version session, plus a 34-step, 5-seed property test                                                                       |
+| 3   | Capture toggle off produces zero snapshot rows             | **DONE**            | `e2e/timeline.spec.ts` drives the real checkbox, then counts rows in Postgres — **with a positive control that capture ON does write one** |
+| 4   | "Delete my solve history" leaves no snapshot or event rows | **DONE**            | Same spec: click the button, confirm, count both tables, and assert the session survives                                                   |
+| 5   | Diff summariser stable, zero AI calls                      | **DONE**            | `tests/timeline/summarise.test.ts` — identical output over 5 runs, plus **three** controls on the AI check                                 |
+| 6   | Storage projection with arithmetic in the README           | **DONE, synthetic** | `npm run snapshots:measure` → 2,675 bytes/session. See the caveat below                                                                    |
+
+### The storage figure is measured, and it is not real usage
+
+**2,675 bytes stored per session**, against 7,733 if every version were kept
+whole — a 65% saving, over 500 generated sessions averaging 24.2 snapshots each.
+At an assumed 20 sessions per user per month and 1,000 MAU: **51 MB/month**, and
+**153 MB** held at any time under the 90-day window.
+
+The ticket asks for this "on real usage". There is none — nobody can sign in
+until Resend is unblocked — so these are synthetic sessions, labelled as such in
+the script, in its own output, and in the README. What is real is everything
+being measured: the diff engine, the capture rules and `source_bytes` are the
+production ones, and only the typing is invented.
+
+### Zero AI is trivially true, so the test proves itself three ways
+
+F3.4 is cut. There is no AI gateway anywhere in the repository, so a grep for
+one passes whatever the summariser does — the vacuous pass this project has been
+bitten by twice. The check therefore carries: a control feeding it a real AI
+import (expects a hit), a control feeding it prose about AI (expects none), and
+an assertion that the source contains no `Date`, `Math.random` or `fetch` —
+because a summariser that read the clock would still pass a repetition test
+inside one millisecond.
+
+### The summariser admits what it cannot classify
+
+`boundary`, `conditional`, `data_structure`, or **`other`**. A renamed variable
+is `other` with no evidence rather than being forced into a category, because
+F3.5 will weigh these and a confident wrong label is worse to it than an honest
+unknown.
+
+`boundary` is checked before `conditional` deliberately: `while lo < hi` →
+`while lo <= hi` is a comparison inside a loop, and reporting "a conditional
+changed" would bury the thing that broke. A test on a real binary-search
+correction asserts all four changed lines come back as boundaries.
+
+### Found while building
+
+**A bug the positive control was written to catch, and did.** The solve action
+captured snapshots but recorded no `code_snapshot` or `run_attempted` event, so
+the timeline attached snapshots to events that did not exist and rendered
+nothing. "Toggle off means zero rows" passed against that — zero was the answer
+either way. Runs are now events whether or not a snapshot is taken.
+
+**The append-only cascade found its second and third caller.** `signInAs`
+recreates its user, which cascades into `session_events`; a spec failed on its
+next `beforeEach` rather than on an assertion. Both e2e helpers now use the same
+declared-erasure transaction.
+
+### Beyond the spec, deliberately
+
+**`/sessions` and `/settings` exist now.** Both were 404s linked from the primary
+navigation since F0.4 — every settings page was a direct-URL orphan, and a
+`/sessions/[id]` reachable only by typing a uuid is a page nobody opens. Both are
+minimal and neither is this ticket's feature; they are the doors the nav already
+claimed existed. Same argument as **D23**.
+
+**`/contests` is removed from the navigation.** It pointed at F2.5, which is
+cut, so its page was never going to exist. A "coming soon" stub for a feature
+that is not coming is the dead end that looks handled; an absent link tells the
+truth with less code. An e2e asserts it is gone, with a control that the nav
+renders at all.
+
+### Still owed by F3.2, and now recorded as such
+
+**The 60-second interval capture.** Snapshots are taken on every run, which
+closed D24's deferral. Capturing from the editor while a user is only typing —
+at most once a minute, and only when the code changed — is not built. The
+service rule for it exists and is tested (`trigger: 'interval'`); nothing calls
+it. **DEFERRED**, not done.
