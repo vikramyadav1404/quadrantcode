@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-28, after F1.6._
+_Last updated: 2026-08-28, after F2.1._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 777 passing, 5 skipped (782 total, 47 files) + 60 Playwright.
+**Tests:** 848 passing, 5 skipped (853 total, 51 files) + 65 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F1.6 are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F2.1 are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -42,7 +42,7 @@ identity and was never the part to trim.
 
 ## Shippable today
 
-Twelve tickets are complete and openable in a browser: a signed-out flow
+Thirteen tickets are complete and openable in a browser: a signed-out flow
 (`/login` → `/login/verify` → `/onboarding`), an authenticated shell with
 working theme and navigation, a problem catalog with search, filtering and
 keyset pagination, admin CRUD behind a role gate, a profile page with avatar
@@ -51,22 +51,24 @@ the top bar on every page, and a solve timer that starts from a problem page and
 follows you across the app — server-authoritative, so it survives a refresh, with
 stuck markers during the solve and a reflection afterwards that feeds the attempt
 history on every problem page, and an analytics dashboard whose figures are
-precomputed and say when they were computed.
+precomputed and say when they were computed, and a revision queue that schedules
+itself when you solve something.
 
-| Ticket | Feature                              | State                          |
-| ------ | ------------------------------------ | ------------------------------ |
-| F0.1   | Repository Scaffold & CI             | **DONE**                       |
-| F0.2   | Identity & Problem Catalog Schema    | **DONE**                       |
-| F0.3   | Auth, Phone OTP & Verification Tiers | **DONE** — delivery BLOCKED    |
-| F0.3+  | Auth UI amendment                    | **DONE**                       |
-| F0.4   | Design System & Application Shell    | **DONE**                       |
-| F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED |
-| F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                       |
-| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED     |
-| F1.3   | Streak & Daily Goal Engine           | **DONE**                       |
-| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)  |
-| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED      |
-| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)  |
+| Ticket | Feature                              | State                            |
+| ------ | ------------------------------------ | -------------------------------- |
+| F0.1   | Repository Scaffold & CI             | **DONE**                         |
+| F0.2   | Identity & Problem Catalog Schema    | **DONE**                         |
+| F0.3   | Auth, Phone OTP & Verification Tiers | **DONE** — delivery BLOCKED      |
+| F0.3+  | Auth UI amendment                    | **DONE**                         |
+| F0.4   | Design System & Application Shell    | **DONE**                         |
+| F0.5   | User Profile & Avatar Upload         | **DONE** — live bucket BLOCKED   |
+| F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                         |
+| F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED       |
+| F1.3   | Streak & Daily Goal Engine           | **DONE**                         |
+| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)    |
+| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED        |
+| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)    |
+| F2.1   | Spaced Repetition & Risk Scoring     | **DONE** — plus a due page (D23) |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -129,14 +131,16 @@ Stated so they are not mistaken for coverage:
 
 ## What I would do next
 
-F2.1 `revision-engine` — spaced repetition and the forgetting-risk score. It is
-the next ticket in order, it needs no credentials, and everything it reads now
-exists: confidence, failed attempts, solve times and mistake categories.
+F3.1 `execution-pipeline` — Monaco and code execution. It is the next ticket in
+order and the first that is **partly blocked**: there is no Judge0 URL, so it
+will be built behind an `ExecutionProvider` interface against a fake, with live
+execution recorded as BLOCKED the way R2 and Resend already are.
 
-It is a pure module with one unusual deliverable: a **90-day simulation** for a
-synthetic user, asserting the due queue never exceeds 20 items and that overdue
-work does not pile up without bound. That is the part worth building first — a
-scheduling ladder that looks reasonable and quietly explodes at day 60 is the
-failure the simulation exists to catch.
+Everything else in it is buildable and testable today: the state machine and its
+illegal transitions, the rate limits (20/hour and 5 concurrent, the second
+tracked in the database because per-process would not hold), the XSS-safety of
+rendering user code and output as text, and the rule that external-link problems
+offer no expected-output comparison at all (C1).
 
-Its risk score extends `docs/scoring.md` rather than starting a second document.
+It also inherits a decision F1.2 left it: with F2.3 cut, "queued execution" means
+the in-process job pattern, not a queue (D17).

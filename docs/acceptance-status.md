@@ -624,3 +624,71 @@ spec, and the keyboard test is the one that notices.
 - **The dashboard's "Due for revision" card is gone**, not zeroed. F2.1 owns
   that queue; a `0` would claim nothing is due, which is a different statement
   from "this has not been built".
+
+---
+
+## F2.1 · `revision-engine`
+
+| Criterion                                                              | Status   | Evidence                                                                                                                                                        |
+| ---------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every compression signal has an isolated test and a combined test      | **DONE** | `tests/revision/ladder.test.ts` — hints, failed attempts and slow solve each alone (with their thresholds probed from both sides), then all three at once       |
+| The 1-day floor holds when all compression signals fire simultaneously | **DONE** | Same file: every signal at once from rung 0, plus a loop over the whole index range asserting the interval never drops below the floor. Also a CHECK constraint |
+| All three outcome transitions are test-covered                         | **DONE** | `ladder.test.ts` for the arithmetic, `queue.test.ts` for the persisted result of each, `e2e/revision.spec.ts` for two of them through the page                  |
+| The 90-day simulation stays under a queue depth of 20 throughout       | **DONE** | `tests/revision/simulation.test.ts` — **peak depth 11**, arrears zero. The series is printed, as the ticket asks                                                |
+| The risk API returns contributing factors, not just a number           | **DONE** | `tests/revision/risk.test.ts` (sorted, labelled, non-contributors omitted), and `e2e/revision.spec.ts` reads them off the rendered queue                        |
+| Weights are named constants with a comment, not inline literals        | **DONE** | `RISK_WEIGHTS` and the ladder constants, each with the reasoning for its position; prose in `docs/scoring.md`                                                   |
+
+Tests: **71 across 4 files** in `tests/revision/` — `ladder`, `risk`, `queue`,
+`simulation` — plus `e2e/revision.spec.ts` (5 browser tests). Full suite at
+closure: **848 passing, 5 skipped, 65 Playwright**.
+
+### What the simulation actually found
+
+The "does not accumulate unboundedly" assertion **failed on its first run** —
+mean queue depth climbed from 3.8 in the middle thirty days to 5.9 in the last
+thirty. That was not a scheduler defect: the due count climbs because the
+LIBRARY climbs, and twice as many problems generate twice as many revisions.
+
+The assertion now measures **arrears** — work still waiting more than a week
+after it came due — which is what a scheduler falling behind actually looks
+like. Arrears stay at zero across all ninety days.
+
+**The boundary is recorded rather than reasoned about:** at one new problem a
+day, five revisions a day cannot drain the arrivals, arrears appear and depth
+passes 20. That is asserted in the same file, so the sentence in
+`docs/scoring.md` about the cap is backed by a test.
+
+### Beyond the spec, deliberately
+
+**`/revision` exists.** The ticket puts the revision UI out of scope and names
+F2.2 — which is cut. Shipping only the engine would have left a scheduler
+nothing calls and a sidebar link to a 404. The page is the smallest honest
+surface: the due list, in risk order, with the three outcomes and the true count
+when the cap holds work back. F2.2's four revision MODES remain cut. **D23**.
+
+### Found while building
+
+**The page erased its own confirmation.** Recording an outcome revalidated
+`/revision`, which re-rendered the queue without the row just answered — so the
+message saying when the problem comes back flashed and vanished. Found by an
+e2e test that passed in isolation and failed in a full run, which is what that
+race looks like from the outside.
+
+**A row said the same thing twice.** "9 days overdue" appeared both as the
+row's headline and as the first risk factor. The strict-mode locator that
+refused to match two elements is what surfaced it.
+
+**An unscoped `getByRole('listitem')` counted the sidebar.** Asked for 5, handed 12. The due list now carries an accessible name, which the test targets and a
+screen reader benefits from.
+
+### A flake, recorded rather than ignored
+
+`e2e/reflection.spec.ts` — "a stuck marker is captured from the timer bar" —
+failed **once** in one full browser run during this ticket, and passed in
+isolation and in the two full runs after it. Nothing was changed to "fix" it and
+no cause is claimed.
+
+It is written down because the risk with a flake is a team learning to ignore
+red. If it recurs, the thing to check first is whether the marker write is
+visible to the assertion's read, since that is the only ordering the test
+depends on.

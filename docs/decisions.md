@@ -1055,3 +1055,78 @@ component could assemble a banned phrase from fragments the source grep would
 never match. Both carry positive controls — a guard that scans nothing passes
 every "this word is absent" assertion, which is the same failure shape as the
 0-byte gitleaks run (D4).
+
+---
+
+## D23 · The revision engine, and the page the cut ticket left behind
+
+### The simulation is the deliverable, not the ladder
+
+F2.1's most valuable output is not the scheduling code — it is
+`tests/revision/simulation.test.ts`, because a ladder cannot be checked by
+reading it. Every rung looks reasonable alone; whether the intervals a growing
+library generates stay inside one person's day is emergent.
+
+**It found something on the first run.** The assertion that overdue work "does
+not accumulate unboundedly" failed: mean queue depth climbed from 3.8 in the
+middle thirty days to 5.9 in the last thirty. Chasing it produced the finding
+that matters — the due count climbs because the LIBRARY climbs. Twice as many
+problems generate twice as many revisions; that is arithmetic about the user.
+
+A scheduler falling behind looks different: work that came due and was never
+reached. The assertion now counts **arrears** — items waiting more than a week —
+and they stay at zero.
+
+**The boundary is asserted, not assumed.** At one new problem a day, five
+revisions a day cannot drain the arrivals: arrears appear and depth passes 20.
+The default cap is therefore a statement about how many problems a user can take
+on, and that sentence is backed by a test rather than by reasoning.
+
+### Confidence picks the ladder; everything else picks the rung
+
+**Rejected:** treating low confidence as one more compression step. It reads as
+consistent — every signal moves one rung — and it is wrong about what the signal
+means. Low confidence is a statement about the whole solve, not about the next
+interval, so it should shorten every gap that follows rather than one.
+
+The two ladders are the same LENGTH so that a rung means the same thing on both,
+which keeps `ladder_index` comparable across problems and spares the outcome
+rules a special case.
+
+**Signals move a step rather than scaling the interval.** Multiplying produces
+intervals that are not on the ladder — 4.5 days, 21 on the standard ladder — and
+then "which rung are you on" stops meaning anything, which is the language the
+outcome rules are written in.
+
+### The floor is enforced three times
+
+Clamped index, floored interval, and a CHECK constraint on the column. The
+middle one is redundant while rung 0 is one day, and it stays because the spec's
+rule is about the INTERVAL: a future ladder starting elsewhere must not be able
+to break it quietly.
+
+### Scheduling happens inside the completion transaction
+
+Not afterwards, and not in the action. A completed solve whose revision was
+never scheduled is a problem that silently never comes back — and unlike the
+streak recompute (D19), nothing downstream would notice and repair it.
+
+Re-solving continues from the current rung rather than resetting, so revisiting
+a problem held for months is not punished for the revisit.
+
+### `/revision` exists although the ticket puts UI out of scope
+
+F2.1's OUT OF SCOPE names F2.2 for the revision UI. **F2.2 is cut**, and the
+sidebar has always linked to `/revision`.
+
+Following the letter would have shipped an engine nothing calls and a navigation
+item that 404s — the "dead code that looks handled" this project has refused
+twice before. So the smallest honest surface exists: the due list, in risk
+order, with the three outcomes. F2.2's four revision MODES stay cut and nothing
+here pretends otherwise.
+
+**The page deliberately does not revalidate after recording an outcome.** Doing
+so re-renders the queue without the row just answered, erasing the confirmation
+the click produced — the user sees their answer flash and vanish, and never
+learns when the problem comes back. Found by an e2e test that passed alone and
+failed in a full run, which is what that race looks like from outside.

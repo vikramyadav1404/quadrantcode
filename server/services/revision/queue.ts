@@ -30,36 +30,20 @@ import { type LocalDate, daysBetween } from '@/server/services/streak';
 import { scoreTopic } from '@/server/services/analytics';
 import {
   type Confidence,
-  type LadderKind,
   type RevisionOutcome,
   type SolveSignals,
   applyOutcome,
   dueDateFor,
   scheduleAfterSolve,
 } from './ladder';
-import { type RiskScore, scoreRisk } from './risk';
+import { scoreRisk } from './risk';
+/* The page's shapes live in `lib/` for the boundary rule; see `lib/revision/view.ts`. */
+import type { DueItemView, DueQueueView } from '@/lib/revision/view';
+
+export type { DueItemView as DueItem, DueQueueView as DueQueue } from '@/lib/revision/view';
 
 /** How many due problems the queue hands over at once, unless asked otherwise. */
 export const DEFAULT_DAILY_CAP = 5;
-
-export type DueItem = {
-  problemId: string;
-  slug: string;
-  title: string;
-  dueLocalDate: LocalDate;
-  daysOverdue: number;
-  intervalDays: number;
-  ladderKind: LadderKind;
-  ladderIndex: number;
-  risk: RiskScore;
-};
-
-export type DueQueue = {
-  items: DueItem[];
-  /** Everything due, including what the cap held back. */
-  totalDue: number;
-  cap: number;
-};
 
 /**
  * Schedule (or reschedule) a problem after it has been solved.
@@ -173,7 +157,7 @@ export async function recordRevisionOutcome(
 export async function dueToday(
   db: Database,
   input: { userId: string; today: LocalDate; cap?: number },
-): Promise<DueQueue> {
+): Promise<DueQueueView> {
   const { userId, today } = input;
   const cap = input.cap ?? DEFAULT_DAILY_CAP;
 
@@ -294,7 +278,7 @@ export async function dueToday(
           mistakes: mistakesByProblem.get(row.problemId) ?? [],
           topicWeakness: weakness,
         }),
-      } satisfies DueItem;
+      } satisfies DueItemView;
     })
     .sort(
       (left, right) =>
