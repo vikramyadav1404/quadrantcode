@@ -143,7 +143,10 @@ export async function getAttemptHistory(
       ),
       confidence: session.confidence,
       stuckMarkers: (markersBySession.get(session.id) ?? []).map((marker) => ({
-        category: marker.category,
+        // Nullable since F3.3, but only for inferred rows — and this query
+        // filters to `source = 'user'`, which the CHECK constraint
+        // `stuck_points_user_has_category` makes a guarantee rather than a hope.
+        category: marker.category!,
         elapsedSeconds: marker.elapsedSeconds,
         note: marker.note,
       })),
