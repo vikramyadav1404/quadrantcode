@@ -484,6 +484,33 @@ suite('F1.4 · solve-session lifecycle', () => {
       expect(attempt?.totalAttempts).toBe(2);
     });
 
+    it('A SUB-SECOND SOLVE IS STILL A SOLVE', async () => {
+      /*
+       * The regression. `user_problems_best_time_positive` requires
+       * `best_time_seconds > 0`, and the duration floors to whole seconds — so
+       * a solve completed in under a second arrived as 0 and the database
+       * rejected the whole completion with a 500.
+       *
+       * Every test in this file had missed it by setting `now` twenty minutes
+       * ahead; an e2e test that pressed "Solved" straight after starting found
+       * it. Recording the second, rather than nothing, keeps "they have a best
+       * time" true — the overstatement is under a second.
+       */
+      const session = await startSession(ctx.db, { ...actor(START), problemId });
+
+      const finished = await completeSession(ctx.db, {
+        ...actor(new Date(START.getTime() + 400)),
+        sessionId: session.id,
+        outcome: 'solved',
+      });
+
+      expect(finished.activeDurationSeconds).toBe(0);
+
+      const [attempt] = await ctx.db.select().from(userProblems);
+      expect(attempt?.bestTimeSeconds).toBe(1);
+      expect(attempt?.status).toBe('solved');
+    });
+
     it('keeps the BEST active time across attempts', async () => {
       const slow = await startSession(ctx.db, { ...actor(START), problemId });
       await completeSession(ctx.db, {
