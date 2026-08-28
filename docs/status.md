@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-28, after F1.5._
+_Last updated: 2026-08-28, after F1.6._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 718 passing, 5 skipped (723 total, 43 files) + 55 Playwright.
+**Tests:** 777 passing, 5 skipped (782 total, 47 files) + 60 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F1.5 are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F1.6 are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -42,7 +42,7 @@ identity and was never the part to trim.
 
 ## Shippable today
 
-Eleven tickets are complete and openable in a browser: a signed-out flow
+Twelve tickets are complete and openable in a browser: a signed-out flow
 (`/login` → `/login/verify` → `/onboarding`), an authenticated shell with
 working theme and navigation, a problem catalog with search, filtering and
 keyset pagination, admin CRUD behind a role gate, a profile page with avatar
@@ -50,7 +50,8 @@ upload, a daily-goals page with a 365-day heatmap whose streak numbers appear in
 the top bar on every page, and a solve timer that starts from a problem page and
 follows you across the app — server-authoritative, so it survives a refresh, with
 stuck markers during the solve and a reflection afterwards that feeds the attempt
-history on every problem page.
+history on every problem page, and an analytics dashboard whose figures are
+precomputed and say when they were computed.
 
 | Ticket | Feature                              | State                          |
 | ------ | ------------------------------------ | ------------------------------ |
@@ -65,6 +66,7 @@ history on every problem page.
 | F1.3   | Streak & Daily Goal Engine           | **DONE**                       |
 | F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)  |
 | F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED      |
+| F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)  |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -127,13 +129,14 @@ Stated so they are not mistaken for coverage:
 
 ## What I would do next
 
-F1.6 `analytics-core` — the rollup-backed dashboard. It is the next ticket in
-order, it needs no credentials, and F1.4 and F1.5 have now produced the three
-things it aggregates: durations, outcomes and mistake categories.
+F2.1 `revision-engine` — spaced repetition and the forgetting-risk score. It is
+the next ticket in order, it needs no credentials, and everything it reads now
+exists: confidence, failed attempts, solve times and mistake categories.
 
-Two of its rules are worth reading before starting. Heavy aggregates are
-precomputed into a daily rollup table and the staleness is stated in the UI
-("as of 03:00 today") rather than implied — and with F2.3 cut, nothing schedules
-that rollup, so it runs on the request path like every other job here (D17).
-The other is a naming rule: the weak-topic score is deterministic, and the
-ticket forbids calling it AI or a prediction anywhere in code or UI.
+It is a pure module with one unusual deliverable: a **90-day simulation** for a
+synthetic user, asserting the due queue never exceeds 20 items and that overdue
+work does not pile up without bound. That is the part worth building first — a
+scheduling ladder that looks reasonable and quietly explodes at day 60 is the
+failure the simulation exists to catch.
+
+Its risk score extends `docs/scoring.md` rather than starting a second document.

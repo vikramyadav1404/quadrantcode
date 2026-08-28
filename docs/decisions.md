@@ -980,3 +980,78 @@ so a down migration cannot undo it, and without the clause a single-step
 rollback followed by a re-apply fails on "label already exists". The down
 migration records this, including that `db:generate` will not re-emit the clause
 if the file is ever regenerated.
+
+---
+
+## D22 · The dashboard is precomputed, and says so
+
+F1.6's performance rule is that heavy aggregates are rolled up rather than
+computed on a page load. Three decisions follow from taking that seriously.
+
+### Three rollup tables, not one
+
+A session belongs to a problem, a problem carries zero or more topic tags, and a
+stuck marker carries a category. Those are three different grains, and one table
+cannot hold them without lying about at least one:
+
+- summing a per-topic table to get a headline total **double-counts** a problem
+  tagged both `graphs` and `bfs`
+- and **loses entirely** a problem with no tags
+
+**Rejected:** one wide table with a nullable `topic` column and a grand-total
+row. It is one table instead of three, and it makes every read filter on
+`topic IS NULL` to avoid counting the same session twice — a condition that is
+easy to forget in exactly the query where forgetting it doubles a number.
+
+Sums are stored, never ratios or averages: an average of averages is not an
+average, and a ratio cannot be added across days. `confidence_sum` and
+`confidence_count` travel together, and the division happens once, at the end,
+over whatever range the page is showing.
+
+### Delete-and-rewrite, not upsert
+
+A day's rows are deleted and rewritten inside one transaction. That makes the
+acceptance criterion — "two runs for one day produce one row set" — true by
+construction rather than by care, and it is the only version that stays correct
+when a session is deleted or a topic tag is removed. An upsert leaves the old
+row behind, and the dashboard keeps reporting activity that no longer exists.
+
+Readers are unaffected: Postgres keeps the previous rows visible until the
+transaction commits, so a page loading mid-rollup sees the old numbers rather
+than none.
+
+**`computed_at` comes from the database clock, not from the `now` parameter.**
+It is compared against `solve_sessions.updated_at`, which Postgres writes.
+Comparing two clocks is how every day ends up permanently stale — which is
+precisely what three freshness tests reported before the column default took
+over. `now` is still a parameter, and still used for the arithmetic (D18); it is
+just not the thing being compared against a timestamp the database wrote.
+
+### Inline SVG instead of Recharts
+
+CLAUDE.md's stack names Recharts, and F1.6 is the first ticket that would use it.
+It is not installed, and this ticket needs two charts: a three-segment difficulty
+split and twelve trend bars.
+
+**Deviating, with the reason recorded rather than taken silently.** A charting
+library means a client-side dependency and client components on a page whose
+entire purpose is to be cheap — `/analytics` currently ships **163 B** of route
+JS because every part of it renders on the server. Adding ~100kb of runtime to
+draw fifteen rectangles inverts the thing the ticket is asking for.
+
+This is not a rule against Recharts. When a ticket needs interactive charts —
+tooltips, zoom, live series — the dependency earns its place and should be added
+then. Fifteen rectangles do not earn it.
+
+### The wording rule is guarded at two layers
+
+The ticket forbids calling the score AI or a prediction anywhere, and C4 forbids
+the product over-claiming certainty generally. A weak-topic panel is where that
+temptation lives, because the honest phrasing is longer than the dishonest one.
+
+`tests/analytics/wording.test.ts` greps the service, components, page and
+`docs/scoring.md`. `e2e/analytics.spec.ts` reads the **rendered** page, because a
+component could assemble a banned phrase from fragments the source grep would
+never match. Both carry positive controls — a guard that scans nothing passes
+every "this word is absent" assertion, which is the same failure shape as the
+0-byte gitleaks run (D4).

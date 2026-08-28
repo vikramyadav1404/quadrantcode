@@ -2,14 +2,14 @@
 
 _Generated 2026-08-19 from `git ls-files` + untracked non-ignored files._
 
-**281 files** — updated 2026-08-28 for F1.5; `NEW` now marks that ticket's additions. Excludes
+**300 files** — updated 2026-08-28 for F1.6; `NEW` now marks that ticket's additions. Excludes
 `node_modules/`, `.next/`, and `package-lock.json`.
 
 Purposes below are taken from each file's own header comment where it has one,
 not inferred from its name. Files with no header are described from their
 contents.
 
-> **This document is a snapshot and will rot.** It is accurate as of F1.5. Regenerate the list with
+> **This document is a snapshot and will rot.** It is accurate as of F1.6. Regenerate the list with
 > `git ls-files; git ls-files --others --exclude-standard`, and re-check the
 > description of anything that moved. Nothing enforces that this file matches
 > the tree.
@@ -51,25 +51,26 @@ contents.
 
 ### Authenticated shell — `app/(app)/`
 
-| File                                     | Purpose                                                              |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| `layout.tsx`                             | Authenticated application shell (F0.4)                               |
-| `dashboard/page.tsx`                     | Placeholder dashboard; F1.6 fills it with real numbers               |
-| `dashboard/loading.tsx`                  | Renders `StatGridSkeleton` while the dashboard loads                 |
-| `problems/page.tsx`                      | Problem catalog list                                                 |
-| `problems/loading.tsx`                   | Skeleton for the catalog list                                        |
-| `problems/[slug]/page.tsx`               | Problem detail                                                       |
-| `session/actions.ts`                     | F1.4 · the timer bar's server actions (no page, so no route)         |
-| `sessions/[id]/actions.ts` **NEW**       | F1.5 · save a reflection (skipping needs no action)                  |
-| `sessions/[id]/reflect/page.tsx` **NEW** | F1.5 · the reflection, where completion lands                        |
-| `settings/goals/page.tsx`                | F1.3 · daily goal, timezone, and the activity heatmap                |
-| `settings/goals/GoalsForm.tsx`           | Daily-goal settings form, including timezone                         |
-| `settings/goals/actions.ts`              | Server actions for daily-goal settings                               |
-| `settings/import/page.tsx`               | F1.2 · bring a list in, take your data out                           |
-| `settings/import/ImportPanel.tsx`        | Import a CSV: choose → preview → confirm → progress                  |
-| `settings/profile/page.tsx`              | Profile settings; loads via `getProfile` behind `requireCurrentUser` |
-| `settings/profile/ProfileForm.tsx`       | Profile form with an **optimistic** save                             |
-| `settings/profile/actions.ts`            | Profile save — thin adapter: session check, then the service         |
+| File                               | Purpose                                                              |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `layout.tsx`                       | Authenticated application shell (F0.4)                               |
+| `dashboard/page.tsx`               | Placeholder dashboard; F1.6 fills it with real numbers               |
+| `dashboard/loading.tsx`            | Renders `StatGridSkeleton` while the dashboard loads                 |
+| `problems/page.tsx`                | Problem catalog list                                                 |
+| `problems/loading.tsx`             | Skeleton for the catalog list                                        |
+| `problems/[slug]/page.tsx`         | Problem detail                                                       |
+| `session/actions.ts`               | F1.4 · the timer bar's server actions (no page, so no route)         |
+| `sessions/[id]/actions.ts`         | F1.5 · save a reflection (skipping needs no action)                  |
+| `sessions/[id]/reflect/page.tsx`   | F1.5 · the reflection, where completion lands                        |
+| `analytics/page.tsx` **NEW**       | F1.6 · the dashboard; 163 B of route JS                              |
+| `settings/goals/page.tsx`          | F1.3 · daily goal, timezone, and the activity heatmap                |
+| `settings/goals/GoalsForm.tsx`     | Daily-goal settings form, including timezone                         |
+| `settings/goals/actions.ts`        | Server actions for daily-goal settings                               |
+| `settings/import/page.tsx`         | F1.2 · bring a list in, take your data out                           |
+| `settings/import/ImportPanel.tsx`  | Import a CSV: choose → preview → confirm → progress                  |
+| `settings/profile/page.tsx`        | Profile settings; loads via `getProfile` behind `requireCurrentUser` |
+| `settings/profile/ProfileForm.tsx` | Profile form with an **optimistic** save                             |
+| `settings/profile/actions.ts`      | Profile save — thin adapter: session check, then the service         |
 
 ### Signed-out — `app/(auth)/`
 
@@ -127,53 +128,59 @@ contents.
 
 ## `components/` (21 files)
 
-| File                                 | Purpose                                                              |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| `auth/PhoneVerificationForm.tsx`     | Minimal functional OTP form (F0.3)                                   |
-| `avatar/Avatar.tsx`                  | Avatar with a deterministic initials fallback                        |
-| `avatar/AvatarUploader.tsx`          | Three-step upload: prepare → presign → PUT → confirm                 |
-| `avatar/prepare-image.ts`            | Client-side square crop → downscale → WebP                           |
-| `heatmap/Heatmap.tsx`                | GitHub-style 365-day contribution heatmap                            |
-| `shell/Sidebar.tsx`                  | Primary navigation, hidden below 768px                               |
-| `shell/BottomNav.tsx`                | Shown under 768px only, where the sidebar is hidden                  |
-| `shell/nav-items.ts`                 | Single source of truth for navigation — both navs share it           |
-| `shell/TopBar.tsx`                   | Top bar: avatar, goal ring, streak badge, theme toggle               |
-| `shell/StreakBadge.tsx`              | Takes its value as a **prop** — F0.4 forbids it querying             |
-| `shell/GoalProgressRing.tsx`         | Daily-goal ring, pure presentation over props                        |
-| `shell/ThemeToggle.tsx`              | Writes `data-theme` on `<html>` and persists the choice              |
-| `session/TimerBar.tsx`               | F1.4 · the persistent timer; its clock is decoration                 |
-| `session/StartSolvingButton.tsx`     | F1.4 · start, and the conflict message when one is live              |
-| `session/StuckButton.tsx` **NEW**    | F1.5 · "I'm stuck", on `<dialog>`; asks for no elapsed time          |
-| `session/ReflectionForm.tsx` **NEW** | F1.5 · the post-solve form, skippable                                |
-| `session/AttemptHistory.tsx` **NEW** | F1.5 · the timeline and the last-attempt panel                       |
-| `ui/ConfirmDialog.tsx`               | Built on `<dialog>` for free focus trapping and Escape-to-close      |
-| `ui/DataTable.tsx`                   | Generic, cursor-paginated, sortable table                            |
-| `ui/EmptyState.tsx`                  | Shown instead of an empty table — never a blank panel                |
-| `ui/PageHeader.tsx`                  | Title + optional description and actions; every page starts with one |
-| `ui/Skeleton.tsx`                    | Shimmer placeholder; every list and card shape has one (F0.4)        |
-| `ui/StatCard.tsx`                    | Stat tile with `neutral` / `success` / `warning` / `danger` tones    |
-| `ui/Toast.tsx`                       | Minimal toast system                                                 |
+| File                                      | Purpose                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| `auth/PhoneVerificationForm.tsx`          | Minimal functional OTP form (F0.3)                                   |
+| `avatar/Avatar.tsx`                       | Avatar with a deterministic initials fallback                        |
+| `avatar/AvatarUploader.tsx`               | Three-step upload: prepare → presign → PUT → confirm                 |
+| `avatar/prepare-image.ts`                 | Client-side square crop → downscale → WebP                           |
+| `heatmap/Heatmap.tsx`                     | GitHub-style 365-day contribution heatmap                            |
+| `shell/Sidebar.tsx`                       | Primary navigation, hidden below 768px                               |
+| `shell/BottomNav.tsx`                     | Shown under 768px only, where the sidebar is hidden                  |
+| `shell/nav-items.ts`                      | Single source of truth for navigation — both navs share it           |
+| `shell/TopBar.tsx`                        | Top bar: avatar, goal ring, streak badge, theme toggle               |
+| `shell/StreakBadge.tsx`                   | Takes its value as a **prop** — F0.4 forbids it querying             |
+| `shell/GoalProgressRing.tsx`              | Daily-goal ring, pure presentation over props                        |
+| `shell/ThemeToggle.tsx`                   | Writes `data-theme` on `<html>` and persists the choice              |
+| `session/TimerBar.tsx`                    | F1.4 · the persistent timer; its clock is decoration                 |
+| `session/StartSolvingButton.tsx`          | F1.4 · start, and the conflict message when one is live              |
+| `session/StuckButton.tsx`                 | F1.5 · "I'm stuck", on `<dialog>`; asks for no elapsed time          |
+| `session/ReflectionForm.tsx`              | F1.5 · the post-solve form, skippable                                |
+| `session/AttemptHistory.tsx`              | F1.5 · the timeline and the last-attempt panel                       |
+| `analytics/WeakTopics.tsx` **NEW**        | F1.6 · score plus the sentences that produced it                     |
+| `analytics/TopicTable.tsx` **NEW**        | F1.6 · one row per topic                                             |
+| `analytics/DifficultySplit.tsx` **NEW**   | F1.6 · inline SVG, no charting dependency (D22)                      |
+| `analytics/SpeedTrend.tsx` **NEW**        | F1.6 · 12 weekly buckets; an empty week is not a zero                |
+| `analytics/StuckDistribution.tsx` **NEW** | F1.6 · marked vs reflected, kept apart                               |
+| `ui/ConfirmDialog.tsx`                    | Built on `<dialog>` for free focus trapping and Escape-to-close      |
+| `ui/DataTable.tsx`                        | Generic, cursor-paginated, sortable table                            |
+| `ui/EmptyState.tsx`                       | Shown instead of an empty table — never a blank panel                |
+| `ui/PageHeader.tsx`                       | Title + optional description and actions; every page starts with one |
+| `ui/Skeleton.tsx`                         | Shimmer placeholder; every list and card shape has one (F0.4)        |
+| `ui/StatCard.tsx`                         | Stat tile with `neutral` / `success` / `warning` / `danger` tones    |
+| `ui/Toast.tsx`                            | Minimal toast system                                                 |
 
 ---
 
 ## `lib/` — client-safe shared code (12 files)
 
-| File                                 | Purpose                                                               |
-| ------------------------------------ | --------------------------------------------------------------------- |
-| `env.ts`                             | **Shared** environment — public values only, safe in a client bundle  |
-| `flags.ts`                           | Feature flags (F0.1 requirement 4)                                    |
-| `utils.ts`                           | Class-name merge helper expected by shadcn/ui primitives              |
-| `contrast.ts`                        | WCAG 2.1 relative luminance and contrast ratio                        |
-| `design-tokens.ts`                   | Token values in TypeScript, so they can be **measured**               |
-| `auth/mask-email.ts`                 | Masks an address for the "check your email" panel                     |
-| `auth/pathname-header.ts`            | The header middleware uses to tell server components the current path |
-| `auth/return-to.ts`                  | `returnTo` validation — an open redirect here is a real finding       |
-| `problems/schemas.ts`                | Zod schemas for the catalog — one schema, two consumers               |
-| `profile/schemas.ts`                 | Profile schemas, isomorphic, importable from a Client Component       |
-| `streak/heatmap-day.ts`              | The heatmap cell contract, in the client-safe layer                   |
-| `session/timer-bar-state.ts`         | F1.4 · what the timer bar renders, plus `formatElapsed`               |
-| `reflection/taxonomy.ts` **NEW**     | F1.5 · **the one declaration** the pgEnums are built from (D21)       |
-| `reflection/attempt-view.ts` **NEW** | F1.5 · one row of attempt history, client-safe                        |
+| File                         | Purpose                                                               |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `env.ts`                     | **Shared** environment — public values only, safe in a client bundle  |
+| `flags.ts`                   | Feature flags (F0.1 requirement 4)                                    |
+| `utils.ts`                   | Class-name merge helper expected by shadcn/ui primitives              |
+| `contrast.ts`                | WCAG 2.1 relative luminance and contrast ratio                        |
+| `design-tokens.ts`           | Token values in TypeScript, so they can be **measured**               |
+| `auth/mask-email.ts`         | Masks an address for the "check your email" panel                     |
+| `auth/pathname-header.ts`    | The header middleware uses to tell server components the current path |
+| `auth/return-to.ts`          | `returnTo` validation — an open redirect here is a real finding       |
+| `problems/schemas.ts`        | Zod schemas for the catalog — one schema, two consumers               |
+| `profile/schemas.ts`         | Profile schemas, isomorphic, importable from a Client Component       |
+| `streak/heatmap-day.ts`      | The heatmap cell contract, in the client-safe layer                   |
+| `session/timer-bar-state.ts` | F1.4 · what the timer bar renders, plus `formatElapsed`               |
+| `reflection/taxonomy.ts`     | F1.5 · **the one declaration** the pgEnums are built from (D21)       |
+| `reflection/attempt-view.ts` | F1.5 · one row of attempt history, client-safe                        |
+| `analytics/view.ts` **NEW**  | F1.6 · the page shapes plus its formatters                            |
 
 ---
 
@@ -188,18 +195,19 @@ contents.
 
 ### `server/db/schema/` — 9 files
 
-| File                    | Purpose                                                          |
-| ----------------------- | ---------------------------------------------------------------- |
-| `index.ts`              | Barrel — a table missing here is invisible to `drizzle-kit`      |
-| `enums.ts`              | 11 shared Postgres enums                                         |
-| `users.ts`              | Identity: users, profiles, verification methods                  |
-| `auth.ts`               | Auth.js persistence: accounts, sessions, verification tokens     |
-| `problems.ts`           | Problem catalog — **holds the C1 and C3 CHECK constraints**      |
-| `tracking.ts`           | Per-user tracking: `userProblems`, `dailyGoals`, `dailySessions` |
-| `streak.ts`             | F1.3 · `userStreaks`, `streakFreezes`                            |
-| `session.ts`            | F1.4 · `solveSessions`, `sessionEvents` — no duration column     |
-| `reflection.ts` **NEW** | F1.5 · `stuckPoints`, `reflections` and the two child tables     |
-| `ingest.ts`             | F1.2 · `importJobs`, `importJobRows`                             |
+| File                   | Purpose                                                          |
+| ---------------------- | ---------------------------------------------------------------- |
+| `index.ts`             | Barrel — a table missing here is invisible to `drizzle-kit`      |
+| `enums.ts`             | 11 shared Postgres enums                                         |
+| `users.ts`             | Identity: users, profiles, verification methods                  |
+| `auth.ts`              | Auth.js persistence: accounts, sessions, verification tokens     |
+| `problems.ts`          | Problem catalog — **holds the C1 and C3 CHECK constraints**      |
+| `tracking.ts`          | Per-user tracking: `userProblems`, `dailyGoals`, `dailySessions` |
+| `streak.ts`            | F1.3 · `userStreaks`, `streakFreezes`                            |
+| `session.ts`           | F1.4 · `solveSessions`, `sessionEvents` — no duration column     |
+| `reflection.ts`        | F1.5 · `stuckPoints`, `reflections` and the two child tables     |
+| `analytics.ts` **NEW** | F1.6 · three rollup tables at three grains                       |
+| `ingest.ts`            | F1.2 · `importJobs`, `importJobRows`                             |
 
 ### `server/db/migrations/` — 34 files
 
@@ -219,7 +227,8 @@ and a Drizzle snapshot in `meta/` — 1:1, same numbering.
 | `0008_import_job_content.sql`          | Stores job payload in the DB — fixed the `enqueue(jobId)` seam                 |
 | `0009_streak_state.sql`                | F1.3 streak state and freeze coverage                                          |
 | `0010_solve_sessions.sql`              | F1.4 solve sessions and their event log                                        |
-| `0011_reflection_capture.sql` **NEW**  | F1.5 stuck points, reflections, and `stuck_marked`                             |
+| `0011_reflection_capture.sql`          | F1.5 stuck points, reflections, and `stuck_marked`                             |
+| `0012_analytics_rollups.sql` **NEW**   | F1.6 daily / topic / stuck rollups                                             |
 
 Plus `down/0000–0009_*.down.sql` (10), `meta/0000–0009_snapshot.json` (10),
 and `meta/_journal.json`.
@@ -299,16 +308,25 @@ and `meta/_journal.json`.
 | `console.ts`  | Local-dev provider — prints the code to the server console           |
 | `index.ts`    | Provider selection                                                   |
 
+### `server/services/analytics/` — 4 files (F1.6)
+
+| File                   | Purpose                                                       |
+| ---------------------- | ------------------------------------------------------------- |
+| `index.ts` **NEW**     | The analytics layer's public surface                          |
+| `scoring.ts` **NEW**   | The weak-topic score: named weights, four components, reasons |
+| `rollup.ts` **NEW**    | Delete-and-rewrite per day; no scheduler exists (D22)         |
+| `dashboard.ts` **NEW** | Reads only the rollup — never a raw session                   |
+
 ### `server/services/reflection/` — 6 files (F1.5)
 
-| File                    | Purpose                                                  |
-| ----------------------- | -------------------------------------------------------- |
-| `index.ts` **NEW**      | The reflection layer's public surface                    |
-| `taxonomy.ts` **NEW**   | Re-exports the one declaration in `lib/`                 |
-| `stuck.ts` **NEW**      | Markers; elapsed computed from the event log, never sent |
-| `reflection.ts` **NEW** | Save, replace and read; skipping writes nothing          |
-| `history.ts` **NEW**    | Attempt timeline and last-attempt panel, four queries    |
-| `errors.ts` **NEW**     | Not-live and not-reflectable, typed                      |
+| File            | Purpose                                                  |
+| --------------- | -------------------------------------------------------- |
+| `index.ts`      | The reflection layer's public surface                    |
+| `taxonomy.ts`   | Re-exports the one declaration in `lib/`                 |
+| `stuck.ts`      | Markers; elapsed computed from the event log, never sent |
+| `reflection.ts` | Save, replace and read; skipping writes nothing          |
+| `history.ts`    | Attempt timeline and last-attempt panel, four queries    |
+| `errors.ts`     | Not-live and not-reflectable, typed                      |
 
 ### `server/services/streak/` — 8 files (F1.3)
 
@@ -347,70 +365,75 @@ and `meta/_journal.json`.
 
 ## `tests/` (41 files)
 
-| File                                    | Purpose                                                           |
-| --------------------------------------- | ----------------------------------------------------------------- |
-| `smoke.test.ts`                         | F0.1 smoke test — makes the CI `test` step real                   |
-| `helpers/db.ts`                         | Integration-test database harness                                 |
-| `fixtures/perf-dataset.ts`              | Synthetic 20k-row perf fixture — **test-only, not seed data**     |
-| `boundary/server-boundary.test.ts`      | The client/server boundary as a regression test                   |
-| `boundary/env-example.test.ts`          | F0.1 — every env var in `.env.example` has a comment              |
-| `design/tokens.test.ts`                 | F0.4 criteria that can be checked mechanically                    |
-| `schema/constraints.test.ts`            | F0.2 constraints against real Postgres                            |
-| `schema/indexes.test.ts`                | F0.2 seed correctness and index usage                             |
-| `schema/migrations.test.ts`             | F0.2 — migrations run up **and down** cleanly                     |
-| `auth/adapter.test.ts`                  | F0.3 Auth.js adapter                                              |
-| `auth/onboarding.test.ts`               | F0.3 onboarding completion and magic-link state                   |
-| `auth/otp.test.ts`                      | F0.3 phone OTP against real Postgres                              |
-| `auth/ratelimit.test.ts`                | F0.3 rate limiting                                                |
-| `auth/rbac.test.ts`                     | F0.3 RBAC and verification tiers                                  |
-| `auth/return-to.test.ts`                | F0.3 `returnTo` validation                                        |
-| `problems/pagination.test.ts`           | F1.1 cursor pagination and filtering                              |
-| `problems/search.test.ts`               | F1.1 full-text title search                                       |
-| `problems/policy.test.ts`               | F1.1 content-policy gate (C1)                                     |
-| `problems/plans.test.ts`                | F1.1 — the list must use an index, not a sequential scan          |
-| `profile/profile.test.ts`               | F0.5 profile writes and the initials fallback                     |
-| `profile/avatar.test.ts`                | F0.5 avatar upload security                                       |
-| `profile/storage-contract.test.ts`      | Does the **real** provider hold the contract the fake implements? |
-| `ingest/csv.test.ts`                    | F1.2 parsing, the caps, spreadsheet safety                        |
-| `ingest/normalise-url.test.ts`          | F1.2 normaliser — 47-case table test                              |
-| `ingest/import.test.ts`                 | F1.2 import against a real database                               |
-| `ingest/export.test.ts`                 | F1.2 export and the **two-lap** round trip                        |
-| `ingest/jobs.test.ts`                   | F1.2 the job seam, incl. polling for live progress                |
-| `ingest/dedup-constraint.test.ts`       | F1.2 dedup as a **database** guarantee                            |
-| `ingest/library.test.ts`                | F1.2 the curated library, such as it is                           |
-| `streak/day.test.ts`                    | F1.3 the day boundary (20 cases)                                  |
-| `streak/rules.test.ts`                  | F1.3 completion and freeze arithmetic, both pure (18)             |
-| `streak/recompute.test.ts`              | F1.3 the recompute (24)                                           |
-| `streak/heatmap.test.ts`                | F1.3 the heatmap (8)                                              |
-| `streak/goals.test.ts`                  | F1.3 which goal applied on a day                                  |
-| `streak/summary.test.ts`                | F1.3 what the application shell shows                             |
-| `streak/timezone-change.test.ts`        | F1.3 a user changing timezone mid-streak                          |
-| `session/schema.test.ts`                | F1.4 what the database guarantees about a session (10)            |
-| `session/duration.test.ts`              | F1.4 the duration arithmetic, pure (20)                           |
-| `session/state.test.ts`                 | F1.4 all 25 transition pairs (32)                                 |
-| `session/lifecycle.test.ts`             | F1.4 the lifecycle against a real database (27)                   |
-| `session/adversarial.test.ts`           | F1.4 a forged payload changes nothing (8)                         |
-| `reflection/schema.test.ts` **NEW**     | F1.5 the storage rule, checked against the database (12)          |
-| `reflection/stuck.test.ts` **NEW**      | F1.5 stuck markers and their elapsed times (7)                    |
-| `reflection/reflection.test.ts` **NEW** | F1.5 saving, replacing and skipping (10)                          |
-| `reflection/history.test.ts` **NEW**    | F1.5 attempt ordering and the last-attempt panel (8)              |
+| File                                  | Purpose                                                           |
+| ------------------------------------- | ----------------------------------------------------------------- |
+| `smoke.test.ts`                       | F0.1 smoke test — makes the CI `test` step real                   |
+| `helpers/db.ts`                       | Integration-test database harness                                 |
+| `fixtures/perf-dataset.ts`            | Synthetic 20k-row perf fixture — **test-only, not seed data**     |
+| `boundary/server-boundary.test.ts`    | The client/server boundary as a regression test                   |
+| `boundary/env-example.test.ts`        | F0.1 — every env var in `.env.example` has a comment              |
+| `design/tokens.test.ts`               | F0.4 criteria that can be checked mechanically                    |
+| `schema/constraints.test.ts`          | F0.2 constraints against real Postgres                            |
+| `schema/indexes.test.ts`              | F0.2 seed correctness and index usage                             |
+| `schema/migrations.test.ts`           | F0.2 — migrations run up **and down** cleanly                     |
+| `auth/adapter.test.ts`                | F0.3 Auth.js adapter                                              |
+| `auth/onboarding.test.ts`             | F0.3 onboarding completion and magic-link state                   |
+| `auth/otp.test.ts`                    | F0.3 phone OTP against real Postgres                              |
+| `auth/ratelimit.test.ts`              | F0.3 rate limiting                                                |
+| `auth/rbac.test.ts`                   | F0.3 RBAC and verification tiers                                  |
+| `auth/return-to.test.ts`              | F0.3 `returnTo` validation                                        |
+| `problems/pagination.test.ts`         | F1.1 cursor pagination and filtering                              |
+| `problems/search.test.ts`             | F1.1 full-text title search                                       |
+| `problems/policy.test.ts`             | F1.1 content-policy gate (C1)                                     |
+| `problems/plans.test.ts`              | F1.1 — the list must use an index, not a sequential scan          |
+| `profile/profile.test.ts`             | F0.5 profile writes and the initials fallback                     |
+| `profile/avatar.test.ts`              | F0.5 avatar upload security                                       |
+| `profile/storage-contract.test.ts`    | Does the **real** provider hold the contract the fake implements? |
+| `ingest/csv.test.ts`                  | F1.2 parsing, the caps, spreadsheet safety                        |
+| `ingest/normalise-url.test.ts`        | F1.2 normaliser — 47-case table test                              |
+| `ingest/import.test.ts`               | F1.2 import against a real database                               |
+| `ingest/export.test.ts`               | F1.2 export and the **two-lap** round trip                        |
+| `ingest/jobs.test.ts`                 | F1.2 the job seam, incl. polling for live progress                |
+| `ingest/dedup-constraint.test.ts`     | F1.2 dedup as a **database** guarantee                            |
+| `ingest/library.test.ts`              | F1.2 the curated library, such as it is                           |
+| `streak/day.test.ts`                  | F1.3 the day boundary (20 cases)                                  |
+| `streak/rules.test.ts`                | F1.3 completion and freeze arithmetic, both pure (18)             |
+| `streak/recompute.test.ts`            | F1.3 the recompute (24)                                           |
+| `streak/heatmap.test.ts`              | F1.3 the heatmap (8)                                              |
+| `streak/goals.test.ts`                | F1.3 which goal applied on a day                                  |
+| `streak/summary.test.ts`              | F1.3 what the application shell shows                             |
+| `streak/timezone-change.test.ts`      | F1.3 a user changing timezone mid-streak                          |
+| `session/schema.test.ts`              | F1.4 what the database guarantees about a session (10)            |
+| `session/duration.test.ts`            | F1.4 the duration arithmetic, pure (20)                           |
+| `session/state.test.ts`               | F1.4 all 25 transition pairs (32)                                 |
+| `session/lifecycle.test.ts`           | F1.4 the lifecycle against a real database (27)                   |
+| `session/adversarial.test.ts`         | F1.4 a forged payload changes nothing (8)                         |
+| `reflection/schema.test.ts`           | F1.5 the storage rule, checked against the database (12)          |
+| `reflection/stuck.test.ts`            | F1.5 stuck markers and their elapsed times (7)                    |
+| `reflection/reflection.test.ts`       | F1.5 saving, replacing and skipping (10)                          |
+| `reflection/history.test.ts`          | F1.5 attempt ordering and the last-attempt panel (8)              |
+| `analytics/scoring.test.ts` **NEW**   | F1.6 each weight isolated at its maximum (22)                     |
+| `analytics/rollup.test.ts` **NEW**    | F1.6 idempotency, and what a re-run must drop (20)                |
+| `analytics/dashboard.test.ts` **NEW** | F1.6 six months, measured at 4.7ms (9)                            |
+| `analytics/wording.test.ts` **NEW**   | F1.6 the source never calls this AI or a prediction (8)           |
 
 ## `e2e/` (11 files)
 
-| File                         | Purpose                                                              |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `auth-flow.spec.ts`          | The sign-in journey, end to end in a browser                         |
-| `goals.spec.ts`              | F1.3 — the timezone copy appears on change, before saving (D18)      |
-| `session.spec.ts`            | F1.4 — the timer in a browser, and a forged heartbeat over real HTTP |
-| `reflection.spec.ts` **NEW** | F1.5 — the stuck dialog, the nudge, and the skip                     |
-| `onboarding.spec.ts`         | F0.3 onboarding gate, tested by **direct navigation**                |
-| `profile.spec.ts`            | F0.5 — the two criteria that need a browser                          |
-| `theme.spec.ts`              | F0.4 — `data-theme` switch with no flash of the wrong theme          |
-| `viewports.spec.ts`          | F0.4 — layout intact at 375 / 768 / 1440px                           |
-| `keyboard.spec.ts`           | F0.4 keyboard traversal (**Chromium only**)                          |
-| `payload-capture.spec.ts`    | Proves the capture helper works — was for F2.2, now **cut**          |
-| `helpers/auth.ts`            | Auth helpers for browser tests                                       |
-| `helpers/payload.ts`         | Client-payload capture                                               |
+| File                        | Purpose                                                              |
+| --------------------------- | -------------------------------------------------------------------- |
+| `auth-flow.spec.ts`         | The sign-in journey, end to end in a browser                         |
+| `goals.spec.ts`             | F1.3 — the timezone copy appears on change, before saving (D18)      |
+| `session.spec.ts`           | F1.4 — the timer in a browser, and a forged heartbeat over real HTTP |
+| `reflection.spec.ts`        | F1.5 — the stuck dialog, the nudge, and the skip                     |
+| `analytics.spec.ts` **NEW** | F1.6 — the rendered page, and the wording rule on it                 |
+| `onboarding.spec.ts`        | F0.3 onboarding gate, tested by **direct navigation**                |
+| `profile.spec.ts`           | F0.5 — the two criteria that need a browser                          |
+| `theme.spec.ts`             | F0.4 — `data-theme` switch with no flash of the wrong theme          |
+| `viewports.spec.ts`         | F0.4 — layout intact at 375 / 768 / 1440px                           |
+| `keyboard.spec.ts`          | F0.4 keyboard traversal (**Chromium only**)                          |
+| `payload-capture.spec.ts`   | Proves the capture helper works — was for F2.2, now **cut**          |
+| `helpers/auth.ts`           | Auth helpers for browser tests                                       |
+| `helpers/payload.ts`        | Client-payload capture                                               |
 
 ---
 
@@ -427,6 +450,7 @@ and `meta/_journal.json`.
 | `backfill-normalised-urls.ts` | Idempotent backfill of `external_url_normalised`                   |
 | `cleanup-avatars.ts`          | Orphaned-avatar cleanup, **on demand only** — nothing schedules it |
 | `sweep-sessions.ts`           | F1.4 · close sessions nobody came back to, on demand (D20)         |
+| `rollup-analytics.ts` **NEW** | F1.6 · rebuild the rollup for everyone, on demand (D22)            |
 | `verify-admin-403.ts`         | Asserts the F0.3 403 criterion over real HTTP                      |
 | `verify-library-urls.ts`      | Checks curated library URLs; LeetCode 403s all of them             |
 
