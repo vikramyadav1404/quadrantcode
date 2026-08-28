@@ -1,19 +1,19 @@
 # Where the project stands
 
-_Last updated: 2026-08-27, after F1.3._
+_Last updated: 2026-08-28, after F1.4._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 583 passing, 5 skipped (588 total, 34 files) + 45 Playwright.
+**Tests:** 680 passing, 5 skipped (685 total, 39 files) + 50 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. Neither the F1.2 nor the F1.3 branch
-has been pushed, so both carry **no CI result**; this line gets the run id when
-they do. Both suites were run locally in full against the embedded Postgres.
+on `feat/F0.3-auth-ui` — both jobs success. F1.2, F1.3 and F1.4 are merged into
+local `main` but **nothing since F1.1 has been pushed**, so none of them carries
+a CI result. Both suites were run locally in full against the embedded Postgres.
 
 ---
 
@@ -42,12 +42,13 @@ identity and was never the part to trim.
 
 ## Shippable today
 
-Nine tickets are complete and openable in a browser: a signed-out flow
+Ten tickets are complete and openable in a browser: a signed-out flow
 (`/login` → `/login/verify` → `/onboarding`), an authenticated shell with
 working theme and navigation, a problem catalog with search, filtering and
 keyset pagination, admin CRUD behind a role gate, a profile page with avatar
-upload, and a daily-goals page with a 365-day heatmap whose streak numbers now
-appear in the top bar on every page.
+upload, a daily-goals page with a 365-day heatmap whose streak numbers appear in
+the top bar on every page, and a solve timer that starts from a problem page and
+follows you across the app — server-authoritative, so it survives a refresh.
 
 | Ticket | Feature                              | State                          |
 | ------ | ------------------------------------ | ------------------------------ |
@@ -60,6 +61,7 @@ appear in the top bar on every page.
 | F1.1   | Problem Catalog, Search & Admin CRUD | **DONE**                       |
 | F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED     |
 | F1.3   | Streak & Daily Goal Engine           | **DONE**                       |
+| F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)  |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -122,12 +124,12 @@ Stated so they are not mistaken for coverage:
 
 ## What I would do next
 
-F1.4 `session-timer` — the server-authoritative solve timer. It is the next
-ticket in order, it needs no credentials, and it is the first thing that writes
-`daily_sessions`, which is what makes the streak engine and the heatmap show
-something a user actually did rather than seeded rows.
+F1.5 `reflection-capture` — attempt history, stuck markers and the post-solve
+reflection. It is the next ticket in order, it needs no credentials, and F1.4
+just built the thing it attaches to: a session now ends with an outcome and a
+confidence, and F1.5 is what turns that into data worth analysing.
 
-One decision it inherits: the spec asks for "a background job" to auto-close
-sessions abandoned over six hours. F2.3 is cut, so there is no scheduler — it
-must reuse F1.2's in-process pattern and sweep on the request path, and the
-acceptance record has to say what that costs (D17).
+Its one non-negotiable is a schema rule, not a feature: reflection data must be
+enum columns and normalised child rows, queryable with a WHERE clause. A JSONB
+dump would pass every test in the ticket and fail F1.6 and F3.5, which are the
+tickets that read it.

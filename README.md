@@ -32,12 +32,12 @@ return only if the project continued past that.
 | F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/` |
 | F1.2  | CSV ingestion, export & library             | `server/services/ingest/`   |
 | F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`   |
+| F1.4  | Server-authoritative solve session timer    | `server/services/session/`  |
 
 ### Planned — in the target build
 
 | ID   | Feature                                     | Notes                                                                                                                                                             |
 | ---- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1.4 | Server-authoritative solve session timer    |                                                                                                                                                                   |
 | F1.5 | Attempt history, stuck markers & reflection |                                                                                                                                                                   |
 | F1.6 | Rollup-backed analytics dashboard           |                                                                                                                                                                   |
 | F2.1 | Spaced repetition & forgetting-risk scoring |                                                                                                                                                                   |
@@ -379,6 +379,30 @@ Two things follow that are worth knowing before touching this module:
 - **A frozen day is not a solved day.** Both count toward the streak, only one
   is something the user did, and the heatmap renders them differently — colour
   _and_ a hatch, so it survives greyscale and colourblindness.
+
+## The solve timer (F1.4)
+
+**The server owns every timestamp.** The client sends intent — start, pause,
+resume, finish — and never a duration or a time. There is no
+`active_duration_seconds` column either: the number is computed from the event
+log on every read, so the events are the record and the value is always a
+function of them (**D20**).
+
+That is what makes elapsed time survive a refresh, a closed tab, or a machine
+with the wrong clock. A test forges a duration and three timestamps against every
+schema and a browser posts the same forgery to the heartbeat endpoint with a real
+session cookie; nothing moves, because no schema has a field to put them in.
+
+Two consequences worth knowing before building on it:
+
+- **A session that crosses midnight is credited to the day it ENDED.** Both local
+  dates are stored, each resolved when it was written. Crediting the day the
+  sitting began would let someone hold a session open across midnight to bank a
+  solve for a day they did not finish.
+- **There is no scheduler.** A session nobody returns to is closed by the owner's
+  own next page load, or by `npm run sessions:sweep`. Six hours of silence ends a
+  session, stamped at the last heartbeat rather than at the moment it was noticed
+  — a user who closed their laptop stopped working when the heartbeats stopped.
 
 ---
 

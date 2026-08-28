@@ -826,3 +826,76 @@ had their own copy of the effective-date walk and their own literal `2`. Nothing
 would have failed if one of them drifted; the symptom would have been the
 heatmap disagreeing with the streak drawn directly above it, which is precisely
 what `rules.ts` refuses to allow for the completion rule itself.
+
+---
+
+## D20 · The session record is its events, not a duration column
+
+F1.4's schema has no `active_duration_seconds`. The number is computed from
+`session_events` on every read.
+
+**Rejected:** a counter on the session, incremented as pause intervals close.
+One query instead of two, and wrong in a way nothing detects. A counter
+incremented twice is silently and permanently off; the events version answers
+the same for a duplicated `paused`, because a pause while already paused opens
+no new interval. That idempotence is the property a counter cannot have, and it
+is what makes the value safe to recompute rather than repair.
+
+It also removes the field a hostile client would aim at. There is nowhere in the
+schema to put a duration, so there is nothing to defend.
+
+### Two local dates, and the streak credits the later one
+
+A session begun 23:50 and solved 00:30 spans a day boundary. `started_local_date`
+and `ended_local_date` are each resolved in the user's timezone at the moment
+they are written and never re-resolved — D18's rule applied to sessions.
+
+The streak credits `ended_local_date`: the day the solve became a fact.
+
+**Rejected:** crediting the day the sitting began. It reads more naturally
+("I started this last night") and it hands out a way to game the streak — hold a
+session open across midnight and bank a solve for a day you did not finish. The
+version that cannot be gamed wins, and the cost is a session that occasionally
+counts for the day after the one it felt like.
+
+### The six-hour rule holds without anything scheduling it
+
+The ticket asks for "a background job" to auto-close abandoned sessions. F2.3 is
+cut (D17), so there is none. Instead:
+
+- the shell's own read closes the CURRENT user's stale session — free, because
+  it had already loaded that session to draw the timer
+- `npm run sessions:sweep` closes everyone else's, on demand
+
+**What that costs:** a session belonging to someone who never returns stays live
+until a human runs the script. It blocks nothing — the owner's next page load
+sweeps it first — and distorts nothing except a count of live sessions. That is
+a smaller cost than F1.2's dead import jobs, and it is the same shape: recovery
+is user-driven, not scheduled.
+
+**Both the autopause and the abandonment are stamped `last_heartbeat_at`**, not
+the moment the server noticed. A user who closed their laptop stopped working
+when their heartbeats stopped; stamping discovery time would have credited 86
+minutes of work to someone who had walked away, which a test asserts directly.
+
+### Abandonment is not an attempt
+
+`user_problems` is untouched when a session is abandoned, by the user or by the
+sweep. An attempt is something the user finished making a claim about — solved,
+or explicitly stuck. Counting abandonment would inflate `total_attempts` for
+everyone who ever closed a tab, and the sweep does it on their behalf, so the
+inflation would be automatic and invisible.
+
+The same instinct, from the other side: a later `stuck` sitting never un-solves a
+problem. Solving it is a fact about the past.
+
+### The client cannot forge a time because there is no field for one
+
+The adversarial requirement is met by the SHAPE of the contract rather than by a
+branch that ignores suspicious input. No schema in `server/services/session/input.ts`
+mentions a duration, an elapsed count or a timestamp, so Zod drops a forged one
+before any handler runs, and `now` is resolved inside the adapter.
+
+That distinction matters for the future: a defensive branch can be deleted by
+someone who believes it is dead code, whereas adding a `durationSeconds` field to
+a schema is an obvious and reviewable change.
