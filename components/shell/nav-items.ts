@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/problems', label: 'Problems', short: 'Problems', icon: '☰' },
   { href: '/sessions', label: 'Sessions', short: 'Sessions', icon: '⏱' },
   { href: '/revision', label: 'Revision', short: 'Revision', icon: '↻' },
+  { href: '/mistakes', label: 'Mistakes', short: 'Mistakes', icon: '⌁' },
   { href: '/analytics', label: 'Analytics', short: 'Stats', icon: '▤' },
   { href: '/settings', label: 'Settings', short: 'Settings', icon: '⚙' },
 ];

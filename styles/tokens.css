@@ -138,3 +138,52 @@
   --color-danger: var(--danger);
   --radius-token: var(--radius);
 }
+
+/**
+ * F3.5 · printing the monthly report.
+ *
+ * This is what makes the "PDF matches the HTML" criterion true by
+ * construction rather than by test: there is no second renderer, so the PDF a
+ * user saves IS this page. What changes below is only what a sheet of paper
+ * cannot carry — the app shell, the navigation, and the button that started
+ * the print.
+ *
+ * Colours are forced to black on white rather than left to the theme. A dark
+ * theme printed as-is wastes a cartridge and reads badly, and the tokens are
+ * chosen for a screen.
+ */
+@media print {
+  /* The shell is navigation. Paper has none. */
+  nav,
+  header,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  :root {
+    --background: #ffffff;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --text-primary: #000000;
+    --text-muted: #333333;
+    --border: #999999;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* A report page should not break a mistake across two sheets. */
+  .report li,
+  .report section {
+    break-inside: avoid;
+  }
+
+  .report a[href^='http']::after {
+    /* A link in print is a dead end unless it says where it went. */
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+  }
+}
