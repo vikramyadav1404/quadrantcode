@@ -1165,3 +1165,74 @@ it**.
 pipeline, so the sanctioned logger must call `console.log`. Exempting the single
 file in the ESLint config rather than disabling the line keeps the rule meaning
 what it should: every other console call bypasses redaction.
+
+---
+
+## F4.8 · `security-audit`
+
+**Branch:** `feat/F4.8-security-audit` · **Merged to `main`**
+
+The deliverable is `docs/security-audit.md` — findings, fixes, and accepted
+risks with reasons. This table is the criteria; the report is the substance.
+
+| #   | Criterion                                                      | State                   | Evidence                                                                       |
+| --- | -------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| 1   | A written audit report with findings, fixes and accepted risks | **DONE**                | `docs/security-audit.md` — 3 findings, 5 accepted risks, 3 unverifiable        |
+| 2   | Route enumeration test passes and covers every route           | **DONE**                | Walks the filesystem; **a route nobody has classified fails the test**         |
+| 3   | Every IDOR attempt is blocked                                  | **DONE**                | `e2e/idor.spec.ts` — 404 for each, over real HTTP, as a signed-in stranger     |
+| 4   | Secret scanner over full history returns clean                 | **DONE**                | 79 commits, no leaks — after one finding was reviewed and one canary was fixed |
+| 5   | A restore was actually performed and verified                  | **BLOCKED**             | There are no backups, because there is no deployment                           |
+| 6   | Load test results recorded with p95 numbers                    | **DONE, service layer** | 100 concurrent: catalog p95 **146 ms**, dashboard p95 **146 ms**, 0 failures   |
+
+### The findings
+
+**Two protected pages were missing from the middleware.** `/analytics` (F1.6)
+and `/mistakes` (F3.5) were never added to `PROTECTED_PREFIXES`. No data
+exposure — both call `requireCurrentUser()`, which throws first — but an
+anonymous visitor got a 500 instead of a login redirect. Fixed, and the
+enumeration test now compares the middleware's list against the routes on disk.
+
+**The secret-scan canary was vacuous, again.** F0.1 recorded that its canary
+"passed" against AWS's documentation key. Re-running it today produced the same
+non-result. Re-verified against a freshly generated `sk_live_` token, which the
+config does catch.
+
+**One gitleaks finding, reviewed and not a leak.** `provider.ts:150` reads
+`JUDGE0_API_KEY` from the environment; the rule matched the identifier on
+entropy. Allowlisted **by fingerprint** — one commit, one file, one rule, one
+line — so a real key on that line changes the fingerprint and fires again.
+
+### The accepted risk that matters most
+
+**`drizzle-orm` has a HIGH-severity SQL injection advisory** (GHSA-gpj5-g38j-94v9),
+and this project is not exposed to it. Assessed rather than assumed: every
+`sql.raw` call was enumerated (three, all compile-time constants in CHECK
+constraints), and no column or table name is ever selected from user input.
+
+Accepted because a major ORM bump at the end of the build is a larger risk than
+the one it removes. **Revisit the moment any user-controlled value becomes an
+identifier** — a sortable column being the likely first.
+
+### What this audit could not do
+
+**No restore drill.** The criterion asks for a restore actually performed. There
+are no backups because there is no deployed database — the only Postgres this
+project has run against is the embedded test instance, recreated from migrations
+each run. **BLOCKED**, not done.
+
+**The load test is service-layer.** 100 concurrent callers against real queries,
+with the dataset size reported alongside (2 problems, 0 sessions) because
+latency without a denominator is a number that looks measured. No HTTP, no
+rendering, no cold starts — a floor, not an end-to-end figure.
+
+### Found while building
+
+**The IDOR test passed for the wrong reason.** Playwright's bare `request`
+fixture is a separate context with no cookies, so every assertion passed with
+401 rather than 404 — an anonymous rejection, which proves nothing about a
+signed-in stranger. `page.request` carries the session.
+
+That is the third time this project has been caught by a test passing for the
+wrong reason: F0.3's "gets 403" asserted on an error type, F0.1's gitleaks
+canary, and this. All three are in the audit report, because the pattern is more
+useful than any one instance.
