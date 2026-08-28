@@ -18,6 +18,17 @@ import { getCurrentUser } from '@/server/services/auth/session';
 import { getDb } from '@/server/db';
 import { getProfile, isProfileComplete } from '@/server/services/profile';
 import { localDateFor, summariseForShell } from '@/server/services/streak';
+import { eq } from 'drizzle-orm';
+import { problems } from '@/server/db/schema';
+import { type SessionView, getActiveSession } from '@/server/services/session';
+import { TimerBar } from '@/components/session/TimerBar';
+import type { TimerBarState } from '@/lib/session/timer-bar-state';
+import {
+  abandonSessionAction,
+  completeSessionAction,
+  pauseSessionAction,
+  resumeSessionAction,
+} from './session/actions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   /*
@@ -64,11 +75,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
    * onboarding gate above, so it never runs for a user who has not yet
    * confirmed one.
    */
-  const shellState = await summariseForShell(
-    db,
-    user.id,
-    localDateFor(new Date(), user.timezone),
-  );
+  const now = new Date();
+  const shellState = await summariseForShell(db, user.id, localDateFor(now, user.timezone));
+
+  /*
+   * The live session, if there is one (F1.4). This read is also what closes a
+   * session the user walked away from: `getActiveSession` sweeps and autopauses
+   * before it answers, which is how the six-hour rule holds without a scheduler
+   * to run it (D17).
+   */
+  const active = await getActiveSession(db, {
+    userId: user.id,
+    timeZone: user.timezone,
+    now,
+  });
+
+  const timer = active ? await toTimerBarState(db, active, now) : null;
 
   return (
     <ToastProvider>
@@ -86,6 +108,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           avatarUrl={profile.avatarUrl}
         />
 
+        {timer ? (
+          <TimerBar
+            onAbandon={abandonSessionAction}
+            onComplete={completeSessionAction}
+            onPause={pauseSessionAction}
+            onResume={resumeSessionAction}
+            state={timer}
+          />
+        ) : null}
+
         <div className="flex flex-1">
           <Sidebar />
           <main className="min-w-0 flex-1 px-4 pt-6 pb-20 md:px-6 md:pb-6" id="main">
@@ -97,4 +129,36 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
     </ToastProvider>
   );
+}
+
+/**
+ * The bar's props: the session, plus the problem's name so it can link to it.
+ *
+ * The join lives here rather than in `getActiveSession` because a title and a
+ * slug are what this bar happens to draw, not part of what a session IS — and
+ * it costs a query only on the pages where a session is actually live.
+ */
+async function toTimerBarState(
+  db: ReturnType<typeof getDb>,
+  session: SessionView,
+  now: Date,
+): Promise<TimerBarState | null> {
+  const [problem] = await db
+    .select({ title: problems.title, slug: problems.slug })
+    .from(problems)
+    .where(eq(problems.id, session.problemId))
+    .limit(1);
+
+  if (!problem) return null;
+
+  return {
+    sessionId: session.id,
+    problemId: session.problemId,
+    problemTitle: problem.title,
+    problemSlug: problem.slug,
+    // Only a live session reaches here, so the status is one of these two.
+    status: session.status === 'paused' ? 'paused' : 'active',
+    activeDurationSeconds: session.activeDurationSeconds,
+    asOf: now.toISOString(),
+  };
 }

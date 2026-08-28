@@ -11,6 +11,8 @@ import { StatCard } from '@/components/ui/StatCard';
 import { getDb } from '@/server/db';
 import { ProblemNotFoundError, getProblemBySlug } from '@/server/services/problems';
 import { getCurrentUser } from '@/server/services/auth/session';
+import { StartSolvingButton } from '@/components/session/StartSolvingButton';
+import { startSessionAction } from '../../session/actions';
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '—';
@@ -124,19 +126,8 @@ export default async function ProblemDetailPage({
         )}
       </section>
 
-      {/*
-        The solve-session CTA is wired in F1.4 (session-timer). Rendering a
-        disabled control now, rather than a working-looking one, keeps the page
-        honest about what exists.
-      */}
-      <button
-        className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-muted)]"
-        disabled
-        title="Timed solve sessions arrive with F1.4"
-        type="button"
-      >
-        Start solving (coming in F1.4)
-      </button>
+      {/* F1.4 · the timer itself lives in the layout, on every screen. */}
+      <StartSolvingButton onStart={startSessionAction} problemId={problem.id} />
 
       <p className="mt-8 text-xs text-[var(--text-muted)]">
         <Link className="underline" href="/problems">
