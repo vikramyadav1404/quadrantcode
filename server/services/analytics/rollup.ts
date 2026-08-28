@@ -290,7 +290,16 @@ export async function rollUpDays(
     stuckRows.set(key, row);
   };
 
-  for (const marker of markers) bumpStuck(marker.sessionId, marker.category, 'marked');
+  /*
+   * `category` is nullable since F3.3 — but only for INFERRED rows, and this
+   * query already filters to `source = 'user'`. The CHECK constraint
+   * `stuck_points_user_has_category` is what makes that a narrowing rather than
+   * a hopeful `!`.
+   *
+   * Inferred stuck points deliberately never reach the rollup: a guess about
+   * where someone struggled must not inflate a count they will read as fact.
+   */
+  for (const marker of markers) bumpStuck(marker.sessionId, marker.category!, 'marked');
   for (const area of reflected) bumpStuck(area.sessionId, area.category, 'reflected');
 
   await db.transaction(async (tx) => {

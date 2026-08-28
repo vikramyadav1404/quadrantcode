@@ -120,6 +120,13 @@
       "when": 1787942921905,
       "tag": "0016_snapshot_capture_toggle",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787944937950,
+      "tag": "0017_stuck_inference",
+      "breakpoints": true
     }
   ]
 }

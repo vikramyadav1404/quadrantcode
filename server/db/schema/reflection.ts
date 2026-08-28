@@ -37,7 +37,13 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { mistakeCategoryEnum, stuckCategoryEnum, stuckSourceEnum } from './enums';
+import {
+  mistakeCategoryEnum,
+  stuckCategoryEnum,
+  stuckConfidenceEnum,
+  stuckSourceEnum,
+  stuckStatusEnum,
+} from './enums';
 import { solveSessions } from './session';
 
 /**
@@ -56,7 +62,16 @@ export const stuckPoints = pgTable(
       .notNull()
       .references(() => solveSessions.id, { onDelete: 'cascade' }),
 
-    category: stuckCategoryEnum().notNull(),
+    /**
+     * What kind of stuck.
+     *
+     * **Nullable since F3.3**, and only for inferred rows. Timing and edit
+     * locality can say *where* a user struggled; they cannot say whether it was
+     * the algorithm or the syntax. Guessing a category to satisfy a NOT NULL
+     * would be exactly the over-claim C4 forbids, so an inference leaves it
+     * empty and the CHECK below keeps user-marked rows honest.
+     */
+    category: stuckCategoryEnum(),
 
     /**
      * Active seconds when the marker was dropped — **computed by the server**
@@ -78,7 +93,47 @@ export const stuckPoints = pgTable(
      */
     source: stuckSourceEnum().notNull().default('user'),
 
+    /**
+     * F3.3 · what the user has done about an inference.
+     *
+     * A row the user created is `confirmed` on arrival — they said it. An
+     * inferred row starts at `inferred` and moves when the user agrees or
+     * disagrees, and it is this column, not `source`, that decides weight
+     * downstream (see `lib/inference/confidence.ts`).
+     */
+    status: stuckStatusEnum().notNull().default('confirmed'),
+
+    confidence: stuckConfidenceEnum().notNull().default('user_marked'),
+
+    /**
+     * The region, 1-based and inclusive. Null for a user-marked point, which
+     * F1.5 records without asking where.
+     *
+     * Always a RANGE. A signal that found one line still reports a range,
+     * because a single line stated precisely is a claim about the user's
+     * attention that nothing here observed.
+     */
+    lineStart: integer(),
+    lineEnd: integer(),
+
+    /** When the region's evidence begins and ends, in active session time. */
+    startedSeconds: integer(),
+    endedSeconds: integer(),
+
+    /**
+     * The sentences shown beside the region, stored rather than recomputed.
+     *
+     * They are a record of what the user was shown when they confirmed or
+     * dismissed it — not a derivation. Recomputing would let a later change to
+     * the signals silently rewrite the reasons someone already agreed with.
+     *
+     * JSONB and nothing will ever filter on it, which is F1.5's rule for what
+     * may stay unstructured (D21).
+     */
+    evidence: jsonb().notNull().default([]),
+
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     /**
@@ -88,6 +143,27 @@ export const stuckPoints = pgTable(
      *   WHERE session_id = $1 ORDER BY elapsed_seconds
      */
     index('stuck_points_session_elapsed_idx').on(table.sessionId, table.elapsedSeconds),
+
+    /**
+     * A user-marked point always says what kind. An inference never claims to.
+     *
+     * The backstop for the nullable column above: without it, a bug in the
+     * inference writer could put a guessed category on a row the user will
+     * later see as their own words.
+     */
+    check(
+      'stuck_points_user_has_category',
+      sql`(${table.source} = 'user' and ${table.category} is not null)
+          or ${table.source} = 'inferred'`,
+    ),
+
+    /** A range is either fully known or absent, and never inverted. */
+    check(
+      'stuck_points_line_range_coherent',
+      sql`(${table.lineStart} is null and ${table.lineEnd} is null)
+          or (${table.lineStart} is not null and ${table.lineEnd} is not null
+              and ${table.lineStart} >= 1 and ${table.lineEnd} >= ${table.lineStart})`,
+    ),
 
     /**
      * Serves F3.5's recurrence counting, which reads by category across
@@ -204,6 +280,12 @@ export const reflectionStuckAreas = pgTable(
       .notNull()
       .references(() => reflections.id, { onDelete: 'cascade' }),
 
+    /**
+     * NOT nullable, unlike `stuck_points.category`.
+     *
+     * A reflection stuck-area is something the user typed into a form. There is
+     * no inferred version of it and there is nothing for a null to mean here.
+     */
     category: stuckCategoryEnum().notNull(),
   },
   (table) => [

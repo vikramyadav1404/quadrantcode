@@ -9,6 +9,7 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 import { EXECUTION_LANGUAGES, EXECUTION_VERDICTS } from '@/lib/execution/languages';
 import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/reflection/taxonomy';
 import { SESSION_EVENT_TYPES, SNAPSHOT_TRIGGERS } from '@/lib/timeline/events';
+import { STUCK_CONFIDENCE, STUCK_STATUS } from '@/lib/inference/confidence';
 
 /** RBAC roles. `requireRole()` in F0.3 reads this. */
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
@@ -130,6 +131,17 @@ export const sessionEventTypeEnum = pgEnum('session_event_type', SESSION_EVENT_T
 
 /** F3.2 · why a code snapshot was taken. See `lib/timeline/events.ts`. */
 export const snapshotTriggerEnum = pgEnum('snapshot_trigger', SNAPSHOT_TRIGGERS);
+
+/**
+ * F3.3 · how sure an inferred stuck point is, and what the user did about it.
+ *
+ * Built from `lib/inference/confidence.ts`, which also holds the discount factor
+ * and the hedging labels — the values and the wording that must go with them
+ * cannot end up in two files (**D21**).
+ */
+export const stuckConfidenceEnum = pgEnum('stuck_confidence', STUCK_CONFIDENCE);
+
+export const stuckStatusEnum = pgEnum('stuck_status', STUCK_STATUS);
 
 /**
  * F1.5 · the reflection taxonomy, as database enums.
