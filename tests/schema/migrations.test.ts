@@ -25,6 +25,9 @@ const UP_DIR = 'server/db/migrations';
  * That is exactly what happened when F1.2 added the two below.
  */
 const EXPECTED_TABLES = [
+  'analytics_daily', // F1.6
+  'analytics_stuck_daily', // F1.6
+  'analytics_topic_daily', // F1.6
   'auth_accounts',
   'auth_sessions',
   'auth_verification_tokens',
