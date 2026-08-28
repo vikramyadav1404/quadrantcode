@@ -21,24 +21,24 @@ return only if the project continued past that.
 
 ### Built
 
-| ID    | Feature                                     | Where                       |
-| ----- | ------------------------------------------- | --------------------------- |
-| F0.1  | Repository scaffold & CI                    | root, `.github/`            |
-| F0.2  | Identity & problem catalog schema           | `server/db/schema/`         |
-| F0.3  | Auth, phone OTP & verification tiers        | `server/services/auth/`     |
-| F0.3+ | Auth UI — login, verify, onboarding         | `app/(auth)/`               |
-| F0.4  | Design system & application shell           | `components/`               |
-| F0.5  | User profile & avatar upload                | `server/services/profile/`  |
-| F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/` |
-| F1.2  | CSV ingestion, export & library             | `server/services/ingest/`   |
-| F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`   |
-| F1.4  | Server-authoritative solve session timer    | `server/services/session/`  |
+| ID    | Feature                                     | Where                         |
+| ----- | ------------------------------------------- | ----------------------------- |
+| F0.1  | Repository scaffold & CI                    | root, `.github/`              |
+| F0.2  | Identity & problem catalog schema           | `server/db/schema/`           |
+| F0.3  | Auth, phone OTP & verification tiers        | `server/services/auth/`       |
+| F0.3+ | Auth UI — login, verify, onboarding         | `app/(auth)/`                 |
+| F0.4  | Design system & application shell           | `components/`                 |
+| F0.5  | User profile & avatar upload                | `server/services/profile/`    |
+| F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/`   |
+| F1.2  | CSV ingestion, export & library             | `server/services/ingest/`     |
+| F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`     |
+| F1.4  | Server-authoritative solve session timer    | `server/services/session/`    |
+| F1.5  | Attempt history, stuck markers & reflection | `server/services/reflection/` |
 
 ### Planned — in the target build
 
 | ID   | Feature                                     | Notes                                                                                                                                                             |
 | ---- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1.5 | Attempt history, stuck markers & reflection |                                                                                                                                                                   |
 | F1.6 | Rollup-backed analytics dashboard           |                                                                                                                                                                   |
 | F2.1 | Spaced repetition & forgetting-risk scoring |                                                                                                                                                                   |
 | F3.1 | Monaco editor & Judge0 execution            | **Needs a decision first.** Specified as _queued_ execution; F2.3 is cut, so it must reuse the in-process job pattern from F1.2 or run synchronously. See **D17** |
@@ -403,6 +403,30 @@ Two consequences worth knowing before building on it:
   own next page load, or by `npm run sessions:sweep`. Six hours of silence ends a
   session, stamped at the last heartbeat rather than at the moment it was noticed
   — a user who closed their laptop stopped working when the heartbeats stopped.
+
+## Reflection data (F1.5)
+
+**The taxonomy is declared once**, in `lib/reflection/taxonomy.ts`, and the
+Postgres enums are built from that array. The database, the form validation and
+the checkboxes therefore cannot disagree about what a category is — a test
+asserts `enum_range(NULL::mistake_category)` equals the array, so the generation
+is proved rather than assumed (**D21**).
+
+Every taxonomy value is an enum column or a normalised child row. The rule for
+what may live in the JSONB `extras` column is short: **if anything will ever
+filter, group or sort by it, it is a column instead.** Two tests hold that line
+— one runs `WHERE category = 'off_by_one'` as SQL, the other asserts `extras` is
+the only jsonb column across all four tables.
+
+Two distinctions the data preserves, because everything downstream depends on
+them:
+
+- **A skipped reflection is not "nothing went wrong".** No row means the
+  question was never answered; `mistakes: ['none']` means it was. Merging them
+  would make every skipped question read as a clean solve.
+- **A stuck marker's elapsed time is the server's**, computed from the session's
+  event log like every other duration, so a marker at "12 minutes in" is
+  comparable with the session total and with other sessions.
 
 ---
 

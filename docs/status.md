@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-28, after F1.4._
+_Last updated: 2026-08-28, after F1.5._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 680 passing, 5 skipped (685 total, 39 files) + 50 Playwright.
+**Tests:** 718 passing, 5 skipped (723 total, 43 files) + 55 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2, F1.3 and F1.4 are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F1.5 are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -42,13 +42,15 @@ identity and was never the part to trim.
 
 ## Shippable today
 
-Ten tickets are complete and openable in a browser: a signed-out flow
+Eleven tickets are complete and openable in a browser: a signed-out flow
 (`/login` → `/login/verify` → `/onboarding`), an authenticated shell with
 working theme and navigation, a problem catalog with search, filtering and
 keyset pagination, admin CRUD behind a role gate, a profile page with avatar
 upload, a daily-goals page with a 365-day heatmap whose streak numbers appear in
 the top bar on every page, and a solve timer that starts from a problem page and
-follows you across the app — server-authoritative, so it survives a refresh.
+follows you across the app — server-authoritative, so it survives a refresh, with
+stuck markers during the solve and a reflection afterwards that feeds the attempt
+history on every problem page.
 
 | Ticket | Feature                              | State                          |
 | ------ | ------------------------------------ | ------------------------------ |
@@ -62,6 +64,7 @@ follows you across the app — server-authoritative, so it survives a refresh.
 | F1.2   | CSV Ingestion & Export               | **DONE** — library BLOCKED     |
 | F1.3   | Streak & Daily Goal Engine           | **DONE**                       |
 | F1.4   | Server-Authoritative Session Timer   | **DONE** — no scheduler (D20)  |
+| F1.5   | Attempt History & Reflection         | **DONE** — hints DEFERRED      |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
@@ -124,12 +127,13 @@ Stated so they are not mistaken for coverage:
 
 ## What I would do next
 
-F1.5 `reflection-capture` — attempt history, stuck markers and the post-solve
-reflection. It is the next ticket in order, it needs no credentials, and F1.4
-just built the thing it attaches to: a session now ends with an outcome and a
-confidence, and F1.5 is what turns that into data worth analysing.
+F1.6 `analytics-core` — the rollup-backed dashboard. It is the next ticket in
+order, it needs no credentials, and F1.4 and F1.5 have now produced the three
+things it aggregates: durations, outcomes and mistake categories.
 
-Its one non-negotiable is a schema rule, not a feature: reflection data must be
-enum columns and normalised child rows, queryable with a WHERE clause. A JSONB
-dump would pass every test in the ticket and fail F1.6 and F3.5, which are the
-tickets that read it.
+Two of its rules are worth reading before starting. Heavy aggregates are
+precomputed into a daily rollup table and the staleness is stated in the UI
+("as of 03:00 today") rather than implied — and with F2.3 cut, nothing schedules
+that rollup, so it runs on the request path like every other job here (D17).
+The other is a naming rule: the weak-topic score is deterministic, and the
+ticket forbids calling it AI or a prediction anywhere in code or UI.
