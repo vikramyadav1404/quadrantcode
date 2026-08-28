@@ -1,0 +1,30 @@
+# Reviewed findings that are not leaks.
+#
+# One fingerprint per line: commit:file:rule:line. Gitleaks reads this file
+# automatically; the allowlist in .gitleaks.toml has no `fingerprints` key, and
+# the first attempt at this put one there and was silently ignored.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# F4.8 · server/services/execution/provider.ts:150
+#
+#     ...(env.JUDGE0_API_KEY ? { apiKey: env.JUDGE0_API_KEY } : {})
+#
+# `generic-api-key` matched the identifier beside `apiKey:` on entropy. There is
+# no secret VALUE here — the line reads from the environment, this repository
+# has never contained a Judge0 key, and there is no Judge0 instance to have one.
+#
+# WHY A FINGERPRINT AND NOT A RULE OR A PATH
+#
+# This pins the exemption to one commit, one file, one rule and one line. Change
+# that line to hold a real key and the fingerprint changes and the scan fires
+# again. Disabling `generic-api-key`, or allowlisting the file, would silence
+# every future finding in the place most likely to grow one.
+#
+# AND THE SCANNER WAS PROVED STILL ALIVE
+#
+# F0.1's canary "passed" against AWS's documentation key, which gitleaks
+# allowlists by default — a check that verified nothing. Re-verified here
+# against a freshly generated `sk_live_` token, which it caught. Anyone
+# changing this file should re-verify the same way, with a secret that is not
+# on somebody's known-example list.
+be8931d7605d18940d03f63b80c5c7b25a527635:server/services/execution/provider.ts:generic-api-key:150

@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-29, after F4.6._
+_Last updated: 2026-08-29, after F4.8 — the build is complete._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 1,133 passing, 5 skipped (1,138 total, 67 files) + 95 Playwright.
+**Tests:** 1,148 passing, 5 skipped (1,153 total, 68 files) + 104 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F4.6 are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F4.8 are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -19,10 +19,9 @@ a CI result. Both suites were run locally in full against the embedded Postgres.
 
 ## Target scope — 18 features, not 29
 
-Set by Vikram on 2026-08-15. **17 done + 1 remaining** — 102 of 108 acceptance
-points:
+Set by Vikram on 2026-08-15. **ALL 18 DONE** — 107 of 108 acceptance points met, 1 BLOCKED:
 
-> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1 · F3.2 · F3.3 · F3.5 · F4.6~~ · F4.8
+> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1 · F3.2 · F3.3 · F3.5 · F4.6 · F4.8~~
 
 **Cut:** F2.2, F2.3, F2.4, F2.5, F4.1, F4.2, F4.3, F4.4, F4.5, F4.7, and F1.2's
 curated 100-problem library. The README carries the full built/planned/cut

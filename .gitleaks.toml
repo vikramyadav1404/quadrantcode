@@ -16,7 +16,7 @@ title = "TraceLoop"
 useDefault = true
 
 [allowlist]
-description = "Build output and lockfiles that cannot contain committed secrets"
+description = "Build output, lockfiles, and reviewed findings that are not leaks"
 paths = [
   '''^\.next/''',
   '''^node_modules/''',
