@@ -540,3 +540,71 @@ before anything was changed.
   solve.
 - Abandoned sittings appear in the timeline without an attempt number, so the
   timeline and `user_problems.total_attempts` cannot disagree.
+
+---
+
+## F1.6 · `analytics-core`
+
+| Criterion                                                          | Status                  | Evidence                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard renders in <500ms on the six-month dataset               | **DONE**                | `tests/analytics/dashboard.test.ts` — **4.7ms** over 235 sessions across 180 days, from a fixed seed so the figure is reproducible. A second test empties the rollup and asserts the page reports zero, proving the read never falls back to raw sessions |
+| Weak-topic formula documented in code with named weights           | **DONE**                | `WEAK_TOPIC_WEIGHTS` in `server/services/analytics/scoring.ts`, with the ordering argued in the comment block; prose in `docs/scoring.md`. Tests isolate each component at its maximum and assert the score equals exactly 100 × that weight              |
+| Every weak-topic row surfaces a human-readable reason              | **DONE**                | `tests/analytics/scoring.test.ts` (never empty, ordered by contribution, names its numbers), `dashboard.test.ts` at the service layer, and `e2e/analytics.spec.ts` reading the rendered panel                                                             |
+| Rollup job is idempotent: two runs for one day produce one row set | **DONE, with a caveat** | `tests/analytics/rollup.test.ts` — two runs, then four, byte-compared with a positive control. **There is no job** — see below                                                                                                                            |
+| Nowhere in the codebase or UI is this called AI or a prediction    | **DONE**                | Two guards at two layers: `tests/analytics/wording.test.ts` greps service, components, page and `docs/scoring.md`; `e2e/analytics.spec.ts` greps the **rendered** page. Both carry positive controls                                                      |
+
+Tests: **59 across 4 files** in `tests/analytics/` — `scoring`, `rollup`,
+`dashboard`, `wording` — plus `e2e/analytics.spec.ts` (5 browser tests). Full
+suite at closure: **777 passing, 5 skipped, 60 Playwright**.
+
+### The "rollup job" criterion, stated as what was built
+
+F2.3 is cut, so `jobs/analytics-rollup.processor.ts` does not exist and `jobs/`
+stays empty. The rollup is kept current by two things instead (D17, D22):
+
+- **the request path**, which tops up the current user's stale days on load,
+  capped at 30. In steady state that is one day — today — because yesterday was
+  rolled up yesterday.
+- **`npm run analytics:rollup`**, which rebuilds a window for every user, on
+  demand, resolving each user's "today" in their own timezone (D18).
+
+What that costs: a user with months of history behind them catches up over two
+or three visits rather than one, and the page says "still catching up on older
+days" while that is true. Nobody else's rollup advances until a human runs the
+script.
+
+### The performance number, and what makes it honest
+
+4.7ms is the read only, and the read is four queries against the rollup. The
+first load of a cold account also pays for the top-up, which is why the cap
+exists — that path is bounded, not free, and the acceptance figure is not
+claimed for it.
+
+The dataset is generated from a fixed seed rather than randomly. A perf test on
+random data fails on the unlucky run and cannot be reproduced, which teaches a
+team to re-run red builds until they go green.
+
+### Found while building
+
+**Three freshness tests failed because two clocks were being compared.** The
+rollup stamped `computed_at` from the caller's `now` while staleness compared it
+against `solve_sessions.updated_at`, which Postgres writes — so every day
+reported itself stale forever. The rows now omit the column and let its default
+fire. Same class of mistake the F1.4 schema caught in a test fixture, arriving
+from the other direction.
+
+**A positive control failed, correctly.** The six-month generator produces 235
+sessions; the control asserted more than 300. The threshold was a hopeful round
+number rather than the generator's real output — and a control failing that way
+is the useful direction, because it means the number is being read rather than
+assumed.
+
+### Not done
+
+- **Recharts is not used**, though the locked stack names it. Two charts of
+  fifteen rectangles do not justify a client-side charting dependency on a page
+  whose point is to be cheap; `/analytics` ships 163 B of route JS as a result.
+  Recorded as a deliberate deviation in **D22**, not an oversight.
+- **The dashboard's "Due for revision" card is gone**, not zeroed. F2.1 owns
+  that queue; a `0` would claim nothing is due, which is a different statement
+  from "this has not been built".

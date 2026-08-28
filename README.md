@@ -34,12 +34,12 @@ return only if the project continued past that.
 | F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`     |
 | F1.4  | Server-authoritative solve session timer    | `server/services/session/`    |
 | F1.5  | Attempt history, stuck markers & reflection | `server/services/reflection/` |
+| F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`  |
 
 ### Planned — in the target build
 
 | ID   | Feature                                     | Notes                                                                                                                                                             |
 | ---- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1.6 | Rollup-backed analytics dashboard           |                                                                                                                                                                   |
 | F2.1 | Spaced repetition & forgetting-risk scoring |                                                                                                                                                                   |
 | F3.1 | Monaco editor & Judge0 execution            | **Needs a decision first.** Specified as _queued_ execution; F2.3 is cut, so it must reuse the in-process job pattern from F1.2 or run synchronously. See **D17** |
 | F3.2 | Event log & diff-based code snapshots       |                                                                                                                                                                   |
