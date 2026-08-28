@@ -21,8 +21,9 @@ import type { Database } from '@/server/db';
 import { executionJobs, problems, runAttempts } from '@/server/db/schema';
 import { checkExecutionLimits, type LimitVerdict } from './limits';
 import { type ExecutionProvider, ProviderUnavailableError } from './provider';
-import { LIVE_STATUSES, assertTransition, type ExecutionStatus } from './statemachine';
-import type { ExecutionLanguage, ExecutionVerdict } from './types';
+import { LIVE_STATUSES, assertTransition } from './statemachine';
+import type { ExecutionResultView } from '@/lib/execution/view';
+import type { ExecutionLanguage } from './types';
 
 /** A job whose heartbeat is older than this is treated as dead. */
 export const EXECUTION_STALE_SECONDS = 120;
@@ -35,27 +36,16 @@ export interface ExecutionRunner {
 export type SubmitResult =
   { ok: true; jobId: string } | { ok: false; limit: Extract<LimitVerdict, { allowed: false }> };
 
-export type ExecutionView = {
-  jobId: string;
-  status: ExecutionStatus;
-  language: ExecutionLanguage;
-  /**
-   * True when this problem lives on another platform, so nothing here is a
-   * claim about correctness (C1).
-   */
-  scratchpad: boolean;
-  /** Null until the job finishes, and for a job that failed to run at all. */
-  verdict: ExecutionVerdict | null;
-  runtimeMs: number | null;
-  memoryKb: number | null;
-  testsPassed: number | null;
-  testsTotal: number | null;
-  stdout: string | null;
-  stderr: string | null;
-  compileOutput: string | null;
-  /** Why the JOB failed. Never a statement about the user's code. */
-  error: string | null;
-};
+/**
+ * What `getExecution` returns, and what the poll route sends over the wire.
+ *
+ * Declared in `lib/execution/view.ts` and re-exported here rather than written
+ * out twice. The result panel cannot import from `server/` (F0.1), and two
+ * hand-maintained copies of a shape that crosses the network is a drift waiting
+ * for the day someone adds a field to one of them — the same reason the
+ * reflection taxonomy is declared once (D21).
+ */
+export type ExecutionView = ExecutionResultView;
 
 /**
  * Queue an execution, or explain why not.
