@@ -14,6 +14,13 @@
  * The prose version of everything below lives in `docs/scoring.md`.
  */
 import type { LocalDate } from '@/server/services/streak';
+/*
+ * Re-exported rather than declared here: `components/` may not import from
+ * `server/` (F0.1), and the weak-topic panel renders exactly this shape.
+ */
+import type { ScoreComponents, WeakTopic } from '@/lib/analytics/view';
+
+export type { ScoreComponents, WeakTopic } from '@/lib/analytics/view';
 
 /**
  * ## The formula
@@ -101,26 +108,6 @@ export type TopicSummary = {
   confidenceSum: number;
   confidenceCount: number;
   lastPractisedDate: LocalDate | null;
-};
-
-/** The four components, kept on the result so a row can explain itself. */
-export type ScoreComponents = {
-  staleness: number;
-  failureRate: number;
-  lowConfidence: number;
-  slowness: number;
-};
-
-export type WeakTopic = {
-  topic: string;
-  /** 0..100, rounded. Higher means more in need of attention. */
-  score: number;
-  components: ScoreComponents;
-  /** Plain sentences, strongest contributor first. Never empty. */
-  reasons: string[];
-  daysSincePractice: number;
-  failureRate: number;
-  averageConfidence: number | null;
 };
 
 /**

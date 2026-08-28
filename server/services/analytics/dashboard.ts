@@ -19,7 +19,11 @@ import {
   userStreaks,
 } from '@/server/db/schema';
 import { type LocalDate, localDateRange, previousLocalDate } from '@/server/services/streak';
-import { type WeakTopic, rankWeakTopics } from './scoring';
+import { rankWeakTopics } from './scoring';
+/* The page's shapes live in `lib/` for the boundary rule; see `scoring.ts`. */
+import type { DashboardData, TopicRow, TrendPoint, WeakTopic } from '@/lib/analytics/view';
+
+export type { DashboardData, TopicRow, TrendPoint } from '@/lib/analytics/view';
 
 /**
  * How far back the topic and stuck reads go.
@@ -33,43 +37,6 @@ export const WINDOW_DAYS = 180;
 
 /** Buckets on the speed trend, each seven days wide. */
 export const TREND_WEEKS = 12;
-
-export type TopicRow = {
-  topic: string;
-  solvedCount: number;
-  stuckCount: number;
-  sessionCount: number;
-  averageActiveSeconds: number | null;
-  failedAttemptRatio: number;
-  averageConfidence: number | null;
-  lastPractisedDate: LocalDate | null;
-};
-
-export type TrendPoint = {
-  /** First day of the seven-day bucket. */
-  weekStart: LocalDate;
-  /** Active minutes per problem solved, or null when nothing was solved that week. */
-  averageMinutesPerProblem: number | null;
-};
-
-export type DashboardData = {
-  /** When the rollup behind these numbers was computed. Null when nothing is rolled up yet. */
-  asOf: Date | null;
-  /** True when older days are still waiting to be rolled up. */
-  catchingUp: boolean;
-  headline: {
-    currentStreak: number;
-    longestStreak: number;
-    totalSolved: number;
-    solvedThisWeek: number;
-    averageActiveSeconds: number | null;
-  };
-  difficulty: { easy: number; medium: number; hard: number };
-  topics: TopicRow[];
-  weakTopics: WeakTopic[];
-  trend: TrendPoint[];
-  stuckDistribution: { category: string; marked: number; reflected: number }[];
-};
 
 export async function readDashboard(
   db: Database,
