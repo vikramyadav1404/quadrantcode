@@ -51,6 +51,21 @@ type SessionRow = typeof solveSessions.$inferSelect;
 /** Everything a caller may supply. Note what is absent: any notion of time. */
 type Actor = { userId: string; timeZone: string; now: Date };
 
+/**
+ * One session, or a not-found the caller cannot distinguish from "not yours".
+ *
+ * Exported because F1.5 attaches to sessions and must apply the same ownership
+ * rule. Two implementations of "is this session yours" is one too many: the
+ * second one is where the IDOR gets in.
+ */
+export async function loadOwnedSession(
+  db: Database,
+  sessionId: string,
+  userId: string,
+): Promise<SessionRow> {
+  return loadOwned(db, sessionId, userId);
+}
+
 async function loadOwned(db: Database, sessionId: string, userId: string): Promise<SessionRow> {
   const [row] = await db
     .select()
