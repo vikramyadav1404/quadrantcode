@@ -56,9 +56,14 @@ export const TREND_FLOOR = 2;
 /** Below this many solves in the recent window, no trend is claimed. */
 export const NEEDS_ACTIVITY = 3;
 
-export const MISTAKE_TRENDS = ['improving', 'flat', 'worsening'] as const;
+/**
+ * The values and the labels live in `lib/mistakes/trends.ts` — the panel needs
+ * them and `components/` may not reach into `server/` (F0.1). Re-exported here
+ * so this module reads as one thing, but declared once (**D21**).
+ */
+import { type MistakeTrend } from '@/lib/mistakes/trends';
 
-export type MistakeTrend = (typeof MISTAKE_TRENDS)[number];
+export { MISTAKE_TRENDS, TREND_LABELS, type MistakeTrend } from '@/lib/mistakes/trends';
 
 export type TrendInput = {
   /** Occurrences in the last `TREND_WINDOW_DAYS`. */
@@ -95,13 +100,6 @@ export function classifyTrend(input: TrendInput): MistakeTrend {
 
   return 'flat';
 }
-
-/** The sentence shown beside a pattern. Plain, and never congratulatory. */
-export const TREND_LABELS: Record<MistakeTrend, string> = {
-  improving: 'less often lately',
-  flat: 'about the same',
-  worsening: 'more often lately',
-};
 
 /**
  * How much a pattern should weigh, from its recurrence and its direction.
