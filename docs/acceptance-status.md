@@ -599,6 +599,22 @@ number rather than the generator's real output — and a control failing that wa
 is the useful direction, because it means the number is being read rather than
 assumed.
 
+### A failure that looked like a keyboard regression
+
+The full browser suite went red on `e2e/keyboard.spec.ts` — "/problems traverses
+in order" — the moment this ticket's spec was added. Nothing about the keyboard
+had changed.
+
+**The catalog is shared by every spec in the suite**, and three specs (F1.4's,
+F1.5's and this one) each created a fixture problem and never removed it. That
+spec tabs through `/problems` with a budget of stops, and three extra rows was
+enough to push its own rows out of reach.
+
+Fixed by making each of those specs delete its fixtures in `afterAll` rather
+than only before each test. **Worth knowing before adding another browser spec:**
+any spec that inserts a problem changes what `/problems` renders for every other
+spec, and the keyboard test is the one that notices.
+
 ### Not done
 
 - **Recharts is not used**, though the locked stack names it. Two charts of
