@@ -10,4 +10,4 @@
  */
 import 'server-only';
 
-export { getDb, closeDb, schema, type Database } from './client';
+export { getDb, closeDb, schema, type Database, type Transaction } from './client';

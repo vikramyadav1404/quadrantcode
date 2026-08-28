@@ -20,6 +20,16 @@ import * as schema from './schema';
 
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
+/**
+ * What `db.transaction(async (tx) => …)` hands its callback.
+ *
+ * Derived rather than written out, so it cannot drift from the driver's real
+ * type. Needed the moment a helper has to run both inside a transaction and on
+ * its own — F1.4's event writer is the first — because typing that helper as
+ * `Database` silently excludes `tx`.
+ */
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
 let client: ReturnType<typeof postgres> | undefined;
 let database: Database | undefined;
 
