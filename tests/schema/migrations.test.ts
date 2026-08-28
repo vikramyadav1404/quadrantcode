@@ -31,6 +31,7 @@ const EXPECTED_TABLES = [
   'auth_accounts',
   'auth_sessions',
   'auth_verification_tokens',
+  'code_snapshots', // F3.2
   'daily_goals',
   'daily_sessions',
   'execution_jobs', // F3.1

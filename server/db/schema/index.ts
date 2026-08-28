@@ -5,7 +5,8 @@
  * Phase 0: identity, problem catalog, per-user tracking (F0.2) and Auth.js
  * session persistence (F0.3). Phase 1 adds CSV import jobs (F1.2), streak state
  * (F1.3), solve sessions (F1.4), reflection capture (F1.5), the analytics
- * rollups (F1.6), the revision schedule (F2.1) and code execution (F3.1).
+ * rollups (F1.6), the revision schedule (F2.1), code execution (F3.1) and the
+ * solve timeline (F3.2).
  * Later phases append their own modules; nothing here is reshaped afterwards.
  */
 
@@ -21,3 +22,4 @@ export * from './reflection';
 export * from './analytics';
 export * from './revision';
 export * from './execution';
+export * from './timeline';

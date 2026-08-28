@@ -20,6 +20,7 @@ import {
   submitExecution,
 } from '@/server/services/execution';
 import { submitExecutionSchema } from '@/server/services/execution/input';
+import { captureSnapshot } from '@/server/services/timeline';
 
 export type SubmitRunResult = { ok: true; jobId: string } | { ok: false; message: string };
 
@@ -57,7 +58,51 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
    * time capacity returns. Flattening it to "try again later" here would throw
    * away the only part the user can act on.
    */
-  return result.ok
-    ? { ok: true, jobId: result.jobId }
-    : { ok: false, message: result.limit.message };
+  if (!result.ok) return { ok: false, message: result.limit.message };
+
+  /*
+   * F3.2 · snapshot the source that was just submitted.
+   *
+   * This closes the half of the ticket D24 deferred: F3.1 autosaves drafts to
+   * localStorage, and the server-side record waited for the table that owns
+   * code history rather than getting a second home of its own.
+   *
+   * Only inside a session. `code_snapshots.session_id` is NOT NULL because a
+   * snapshot is part of a sitting — a run with no session is a scratch run, and
+   * inventing a session to hold it would put a sitting in the user's history
+   * that they never started.
+   *
+   * After the submission, never before: a snapshot for a run that was refused
+   * by the rate limit is a record of something that did not happen. And it must
+   * not be able to fail the run — the code is already queued, and losing a
+   * snapshot is worth strictly less than losing the run.
+   */
+  if (parsed.data.sessionId) {
+    try {
+      await captureSnapshot(getDb(), {
+        sessionId: parsed.data.sessionId,
+        userId: user.id,
+        language: parsed.data.language,
+        source: parsed.data.source,
+        trigger: 'run_attempt',
+        occurredAt: new Date(),
+        /*
+         * The per-user capture toggle is F3.2b's, along with the privacy copy
+         * that explains it. Until that column exists the answer is the default
+         * the toggle will have — on — and this is the single place it is read.
+         */
+        enabled: true,
+      });
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: 'timeline.snapshot_failed',
+          sessionId: parsed.data.sessionId,
+          reason: error instanceof Error ? error.message : 'unknown',
+        }),
+      );
+    }
+  }
+
+  return { ok: true, jobId: result.jobId };
 }
