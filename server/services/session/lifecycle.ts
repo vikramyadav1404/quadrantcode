@@ -407,6 +407,22 @@ async function recordAttempt(
   const solved = outcome === 'solved';
 
   /*
+   * At least one second, because `user_problems_best_time_positive` requires
+   * `best_time_seconds > 0` and the duration arithmetic floors to whole
+   * seconds — so a solve that took 900ms arrives here as 0 and the insert is
+   * rejected by the database.
+   *
+   * Found by an e2e test that started a session and pressed "Solved"
+   * immediately, which every service test had missed because they all set
+   * `now` twenty minutes ahead. It is a real path: a user re-solving something
+   * they already know, or clicking through to record a solve done elsewhere.
+   *
+   * Rounding up rather than storing null keeps "they have a best time" true.
+   * The overstatement is under a second, on a column whose unit is seconds.
+   */
+  const bestSeconds = Math.max(1, seconds);
+
+  /*
    * An ISO string with an explicit cast, not the Date.
    *
    * Inside a raw `sql` fragment drizzle hands the value straight to the driver
@@ -426,7 +442,7 @@ async function recordAttempt(
       firstSolvedAt: solved ? now : null,
       lastAttemptedAt: now,
       totalAttempts: 1,
-      bestTimeSeconds: solved ? seconds : null,
+      bestTimeSeconds: solved ? bestSeconds : null,
       confidence: confidence ?? null,
     })
     // Targeted per D16: the only conflict this absorbs is "the user has
@@ -453,7 +469,7 @@ async function recordAttempt(
         // not a time to beat.
         ...(solved
           ? {
-              bestTimeSeconds: sql`least(coalesce(${userProblems.bestTimeSeconds}, ${seconds}), ${seconds})`,
+              bestTimeSeconds: sql`least(coalesce(${userProblems.bestTimeSeconds}, ${bestSeconds}), ${bestSeconds})`,
             }
           : {}),
 
