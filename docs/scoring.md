@@ -248,3 +248,73 @@ seconds for a whole session and rewriting the privacy copy F3.2b shipped.
 So this measures where the **edits** were. It is a different measurement and it
 carries a different name, because calling it cursor dwell would be a claim about
 something nothing watched.
+
+---
+
+## F3.5 · mistake memory — the trend rule and the composite
+
+### The trend rule
+
+Compare the **rate** over the last 30 days against the rate over the 30 before
+that. A running total only goes up, so every pattern would read "worsening"
+forever and the word would stop meaning anything.
+
+```
+improving  ·  recent < earlier × 0.8   AND   earlier − recent >= 2
+worsening  ·  recent > earlier × 1.2   AND   recent − earlier >= 2
+flat       ·  everything else
+```
+
+**Two thresholds, not one.** A percentage margin alone does not protect small
+patterns: 20% of four is 0.8, so a single occurrence clears it and most patterns
+flip label on one event. The absolute floor of 2 is what stops that — and the
+test caught the omission on its first run.
+
+**A user who stopped practising has not improved.** Fewer than 3 solves in the
+recent window and no trend is claimed, in either direction. Counting mistakes
+rather than mistakes-per-attempt has that blind spot, and `NEEDS_ACTIVITY` is
+where it is admitted rather than hidden.
+
+### Severity, and what it does to a revision
+
+```
+base       = min(1, occurrences / 5)
+direction  = worsening 1.2 · flat 1.0 · improving 0.6
+severity   = min(1, base × direction)
+```
+
+Fed into F2.1's `MISTAKE_SEVERITY`, which has had a slot for it since that
+ticket. The risk factor takes the **max** of the worst mistake on this problem
+and this recurrence figure — not a sum, not an average. A severe one-off and a
+mild habit are both reasons to revise sooner, and neither should cancel the
+other out.
+
+When recurrence is what raised the score, the factor's label says so ("a mistake
+you keep repeating") rather than naming this attempt. The reason has to match
+the number, or it points the user at the wrong thing.
+
+### The weekly plan
+
+```
+score = severity × recency
+recency = 1 within a week, tapering to 0 at 90 days
+```
+
+Top 3 areas, 5 problems shared in proportion, everyone gets at least one. A plan
+that assigns four to one area and zero to another is one item pretending to be
+three.
+
+**Every recommendation carries its reason**, produced by the same function from
+the same inputs — there is no code path that emits one without the other. The
+reason names what actually drove it (direction, confirmed stuck points, or
+recency), because a reason that would fit any recommendation is not a reason.
+
+### Two taxonomies, counted apart
+
+`occurrences` counts `mistake_category` — what went wrong.
+`confirmedStuckCount` counts `stuck_category` — where the struggle was. Adding
+them would produce a number that means neither.
+
+Only **confirmed** stuck points count. An unanswered inference is a guess, and
+padding a user's record with guesses they never saw makes the panel something to
+argue with rather than act on.

@@ -1034,3 +1034,69 @@ empty panel.** That was the design working: the page re-runs inference on load
 and rewrites unanswered rows, so a hand-written inference with no telemetry
 behind it is correctly deleted. The fixture now seeds snapshots and a failed
 run, and the inference finds the region itself — much better evidence.
+
+---
+
+## F3.5 · `mistake-memory`
+
+**Branch:** `feat/F3.5-mistake-memory` · **Merged to `main`** ·
+`FEATURE_MISTAKE_MEMORY=false`
+
+| #   | Criterion                                             | State                         | Evidence                                                                                                                  |
+| --- | ----------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Trend covered for improving, flat, worsening          | **DONE**                      | `tests/mistakes/trend.test.ts` — all three plus every boundary either side                                                |
+| 2   | Warning at most once per pattern per day, dismissible | **DONE**                      | Unique index, not a query. Tested with a control that the NEXT day it returns                                             |
+| 3   | Inferred stuck points do not inflate mistake counts   | **DONE**                      | Controls on both sides: confirming moves the number, dismissing moves it back                                             |
+| 4   | Every weekly-plan recommendation displays its reason  | **DONE**                      | At the data layer and per row in the browser                                                                              |
+| 5   | Mistake severity measurably changes a risk score      | **DONE**                      | Two real scores compared, not a field asserted present                                                                    |
+| 6   | Monthly report PDF generates and matches the HTML     | **DONE, by print stylesheet** | See below                                                                                                                 |
+| —   | `hints` in the weak-topic composite                   | **OMITTED**                   | F3.4 is cut; nothing produces a hint. An input fixed at 0 makes a composite look deeper, not better — same call F2.1 made |
+| —   | `jobs/monthly-report.processor.ts`                    | **CUT**                       | No queue (D17). `npm run mistakes:rollup` instead                                                                         |
+
+### The PDF is the page, printed
+
+A PDF library would be a second renderer that can drift from the HTML — which is
+exactly the risk criterion 6 is written against. The print stylesheet makes them
+**the same document**, so the match is structural rather than something a test
+has to keep re-checking.
+
+The cost, stated: no server-generated file. The user presses the button and
+their browser writes it. Recorded as a deviation rather than as the criterion
+met the way it was probably imagined.
+
+The e2e uses `emulateMedia({ media: 'print' })` to prove the rules **apply**
+rather than merely existing in the CSS, with a control that the content survives
+— a stylesheet that hid everything would also pass "the button is hidden".
+
+### The trend rule needed two thresholds, and the test found it
+
+I wrote "four occurrences becoming three is noise" in the header, then wrote a
+rule that called it improvement: 20% of four is 0.8, so one occurrence clears a
+proportional margin. Most patterns are small, so most patterns would have
+flipped label on a single event. A change now needs to be both proportionally
+large **and** at least two occurrences.
+
+The rule also refuses to congratulate someone who stopped practising — under
+three solves in the window and no trend is claimed, in either direction.
+
+### Two taxonomies, and the first draft added them together
+
+`reflection_mistakes.category` is `mistake_category`; `stuck_points.category` is
+`stuck_category`. The first version of the aggregate pushed both into one
+column, which would have failed at the enum boundary — the database catching a
+category error rather than a type error. They are separate columns now, and
+`confirmedStuckCount` is what makes criterion 3 non-vacuous: there has to be
+somewhere for confirmation to make a difference.
+
+### Found while building
+
+**I duplicated a taxonomy and wrote a comment excusing it.** `MISTAKE_TRENDS`
+existed in both `lib/` and `server/`, with a note explaining why a second copy
+was fine here. It was not — **D21** exists for this, and a comment justifying a
+rule you are breaking is worse than the breakage. Declared once in `lib/`.
+
+**Two things put in for no reason.** `usersWithSessions` had an upper bound of
+`new Date(8.64e15)`, which means nothing and which Postgres rejects outright —
+the rollup script crashed on its first run. And the report's "as of" line
+printed today's date rather than when the rollup ran, which is the exact failure
+F1.6 named.
