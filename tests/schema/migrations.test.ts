@@ -34,9 +34,13 @@ const EXPECTED_TABLES = [
   'import_jobs', // F1.2
   'problem_tags',
   'problems',
+  'reflection_mistakes', // F1.5
+  'reflection_stuck_areas', // F1.5
+  'reflections', // F1.5
   'session_events', // F1.4
   'solve_sessions', // F1.4
   'streak_freezes', // F1.3
+  'stuck_points', // F1.5
   'user_problems',
   'user_profiles',
   'user_streaks', // F1.3

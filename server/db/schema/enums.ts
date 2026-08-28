@@ -6,6 +6,7 @@
  * ("queryable with a WHERE clause on an enum column") starts at this file.
  */
 import { pgEnum } from 'drizzle-orm/pg-core';
+import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/reflection/taxonomy';
 
 /** RBAC roles. `requireRole()` in F0.3 reads this. */
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
@@ -131,7 +132,29 @@ export const sessionEventTypeEnum = pgEnum('session_event_type', [
   'idle_autopause',
   'session_completed',
   'session_abandoned',
+  /** F1.5 — the user pressed "I'm stuck". F3.2's taxonomy already names it. */
+  'stuck_marked',
 ]);
+
+/**
+ * F1.5 · the reflection taxonomy, as database enums.
+ *
+ * **Built from `lib/reflection/taxonomy.ts`, not re-typed here.** That file is
+ * the single declaration the ticket requires; these three lines are the database
+ * reading it. A second hand-written copy would eventually differ from the form's
+ * copy, and the symptom is a category the UI offers and Postgres rejects on
+ * submit — after the user has typed a paragraph.
+ *
+ * They are real enums rather than text for the criterion's sake: mistake
+ * categories must be queryable with a `WHERE` clause, with no JSON extraction
+ * for any taxonomy field.
+ */
+export const stuckCategoryEnum = pgEnum('stuck_category', STUCK_CATEGORIES);
+
+export const mistakeCategoryEnum = pgEnum('mistake_category', MISTAKE_CATEGORIES);
+
+/** Who identified the stuck point. F1.5 writes only `user`; F3.3 adds `inferred`. */
+export const stuckSourceEnum = pgEnum('stuck_source', STUCK_SOURCES);
 
 /**
  * The outcome of one CSV row.
