@@ -37,6 +37,7 @@ return only if the project continued past that.
 | F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`  |
 | F2.1  | Spaced repetition & forgetting-risk scoring | `server/services/revision/`   |
 | F3.1  | Monaco editor & queued code execution       | `server/services/execution/`  |
+| F3.2a | Append-only solve log & code snapshots      | `server/services/timeline/`   |
 
 ### Planned — in the target build
 
@@ -485,11 +486,60 @@ after a run: `expected_output` is unconditionally null, and test counts are
 `null` rather than `0 / 0`, which would read as a failure rather than as "there
 was nothing to check". The page says it is a scratchpad and links out.
 
+## The solve log (F3.2)
+
+**`session_events` is append-only, enforced by a database trigger.** UPDATE is
+always refused. DELETE is refused too, _unless_ a transaction has set
+`traceloop.purging` — and one module may set it,
+`server/services/timeline/retention.ts`.
+
+That exception exists because deletion is also a requirement: "delete my solve
+history" has to leave no rows, and deleting an account cascades into this table.
+Without the flag no path removes a row, so an accidental `DELETE` in a migration
+or a console fails loudly instead of quietly dropping someone's history.
+
+**If you add a path that deletes users, problems or sessions, it cascades here
+and must go through the retention service.** This is not theoretical — adding
+the trigger broke ten browser tests that were tearing down fixtures, which is
+the same cascade account deletion runs.
+
+### Elapsed time is derived, not stored
+
+There is no `elapsed_ms` column. The timeline still prints `00:00 / 05:20`, but
+the number is computed from the event log on read, subtracting paused intervals
+with F1.4's own arithmetic.
+
+A derived value stored in an append-only table is wrong forever the day the
+derivation is wrong, because the trigger refuses the fix. Derived on read, one
+repair fixes every session that ever ran. See **D25**, and **D20** which made the
+same call one level up.
+
+### Code history is stored as diffs
+
+The first snapshot of a session holds the full source; each later one holds a
+line diff against the version before. `reconstruct()` replays the chain.
+
+The diff engine is written here rather than installed, because `diff`'s
+`applyPatch` is deliberately fuzzy — it matches drifted context, which is right
+for patching and wrong for a guarantee of byte-identical rebuilds. A near miss
+would return code the user never wrote. Newlines are content: nothing trims,
+normalises CRLF, or adds a final newline.
+
+Snapshots are taken on every run, on every stuck marker, and otherwise at most
+once a minute and only when the code actually changed.
+
+### Retention is on demand, and that is a caveat not a footnote
+
+Snapshots are kept for ninety days by `npm run snapshots:purge`. **Nothing
+schedules it** (F2.3 is cut — see **D17**), so that retention window is honoured
+only as often as the command is run. Any privacy copy has to be written against
+what actually happens, not against the intended policy.
+
 ## Verification
 
 | Command                 | What it proves                                                                                                                      |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`              | 899 unit + integration tests, 5 skipped (Postgres-backed suites skip without `TEST_DATABASE_URL` — check the count, not the colour) |
+| `npm test`              | 966 unit + integration tests, 5 skipped (Postgres-backed suites skip without `TEST_DATABASE_URL` — check the count, not the colour) |
 | `npm run test:e2e`      | 68 browser tests — viewports, theme flash, auth flow, payload capture, the timer, reflection, revision, and the editor's XSS proof  |
 | `npm run contrast`      | Every token pair against its WCAG threshold; exits non-zero on failure                                                              |
 | `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                              |

@@ -11,7 +11,7 @@
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { cleanup, db, signInAs } from './helpers/auth';
+import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 let sql: ReturnType<typeof postgres>;
 
@@ -29,13 +29,13 @@ test.afterAll(async () => {
    * three specs had each left one — a failure that looked like a keyboard
    * regression and was leftover data.
    */
-  await sql`DELETE FROM problems WHERE slug LIKE 'stats-%'`;
+  await deleteProblems(sql, 'stats-%');
   await cleanup(sql);
   await sql.end();
 });
 
 test.beforeEach(async ({ context, baseURL }) => {
-  await sql`DELETE FROM problems WHERE slug LIKE 'stats-%'`;
+  await deleteProblems(sql, 'stats-%');
   await signInAs(context, sql, { email: EMAIL, baseUrl: baseURL! });
 
   const [user] = await sql`SELECT id FROM users WHERE email = ${EMAIL}`;
