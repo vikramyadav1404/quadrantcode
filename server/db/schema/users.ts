@@ -91,6 +91,21 @@ export const userProfiles = pgTable(
     /** F4.7: public profiles are OPT-IN and default OFF. */
     publicProfileEnabled: boolean().notNull().default(false),
 
+    /**
+     * F3.2 · whether code snapshots are captured during a solve.
+     *
+     * Default ON, unlike `publicProfileEnabled` above, and the difference is
+     * deliberate. A public profile shows the user's data to OTHER PEOPLE, so
+     * off is the only safe default. A snapshot is the user's own history shown
+     * back to them, and it is the entire input to the timeline, to F3.3's stuck
+     * inference and to F3.5's mistake memory — off by default would ship three
+     * features that are empty until someone finds a settings page.
+     *
+     * The privacy page states what is captured, how long it is kept, and how to
+     * erase it, which is what makes an on-by-default honest rather than sly.
+     */
+    snapshotCaptureEnabled: boolean().notNull().default(true),
+
     /** What the user is preparing for. Drives F4.2 track suggestions. */
     targetRole: targetRoleEnum(),
 

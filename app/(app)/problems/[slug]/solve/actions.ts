@@ -21,6 +21,8 @@ import {
 } from '@/server/services/execution';
 import { submitExecutionSchema } from '@/server/services/execution/input';
 import { captureSnapshot } from '@/server/services/timeline';
+import { snapshotCaptureEnabled } from '@/server/services/profile';
+import { recordEvent } from '@/server/services/session';
 
 export type SubmitRunResult = { ok: true; jobId: string } | { ok: false; message: string };
 
@@ -79,24 +81,57 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
    */
   if (parsed.data.sessionId) {
     try {
-      await captureSnapshot(getDb(), {
-        sessionId: parsed.data.sessionId,
+      const occurredAt = new Date();
+      const sessionId = parsed.data.sessionId;
+
+      /*
+       * The run itself is an event, whether or not a snapshot is taken.
+       *
+       * These are separate facts and the timeline needs both: "you ran your
+       * code" happened even for a user who has turned capture off, and a
+       * timeline that showed nothing for them would misreport their session as
+       * one where nothing occurred.
+       */
+      await recordEvent(getDb(), {
+        sessionId,
+        type: 'run_attempted',
+        occurredAt,
+        payload: { language: parsed.data.language },
+      });
+
+      const captured = await captureSnapshot(getDb(), {
+        sessionId,
         userId: user.id,
         language: parsed.data.language,
         source: parsed.data.source,
         trigger: 'run_attempt',
-        occurredAt: new Date(),
+        occurredAt,
         /*
-         * The per-user capture toggle is F3.2b's, along with the privacy copy
-         * that explains it. Until that column exists the answer is the default
-         * the toggle will have — on — and this is the single place it is read.
+         * The user's own setting, from `/settings/privacy`. Read here rather
+         * than passed in: a client that could send `enabled: true` would be
+         * able to switch capture back on for someone who turned it off.
          */
-        enabled: true,
+        enabled: await snapshotCaptureEnabled(getDb(), user.id),
       });
+
+      /*
+       * Only when a row was actually written. `captureSnapshot` declines an
+       * unchanged source, and an event saying the code changed when it did not
+       * is worse than no event — the timeline would show an edit that never
+       * happened, and F3.3 would read it as churn.
+       */
+      if (captured.captured) {
+        await recordEvent(getDb(), {
+          sessionId,
+          type: 'code_snapshot',
+          occurredAt,
+          payload: { sequence: captured.sequence },
+        });
+      }
     } catch (error) {
       console.error(
         JSON.stringify({
-          event: 'timeline.snapshot_failed',
+          event: 'timeline.capture_failed',
           sessionId: parsed.data.sessionId,
           reason: error instanceof Error ? error.message : 'unknown',
         }),

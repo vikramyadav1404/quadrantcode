@@ -37,7 +37,7 @@ return only if the project continued past that.
 | F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`  |
 | F2.1  | Spaced repetition & forgetting-risk scoring | `server/services/revision/`   |
 | F3.1  | Monaco editor & queued code execution       | `server/services/execution/`  |
-| F3.2a | Append-only solve log & code snapshots      | `server/services/timeline/`   |
+| F3.2  | Solve timeline, code snapshots & privacy    | `server/services/timeline/`   |
 
 ### Planned — in the target build
 
@@ -535,12 +535,49 @@ schedules it** (F2.3 is cut — see **D17**), so that retention window is honour
 only as often as the command is run. Any privacy copy has to be written against
 what actually happens, not against the intended policy.
 
+### What a session costs to store
+
+Measured with `npm run snapshots:measure` over **500 generated sessions**:
+
+```
+snapshots per session        24.2
+stored bytes per session    2,675
+if every version were kept  7,733     ->  65% smaller
+```
+
+Projecting to 1,000 monthly active users, at an assumed 20 sessions each:
+
+```
+2,675 bytes  x  20 sessions  x  1,000 users  =  53.5 MB / month
+53.5 MB  x  3 months (the 90-day window)     =  ~153 MB held at any time
+```
+
+**These are synthetic sessions, not observed traffic.** The ticket asks for a
+measurement on real usage; there is none yet, because nobody can sign in until
+Resend is unblocked. What is real is everything being measured — the diff
+engine, the capture rules and `source_bytes` are the production ones, and only
+the typing is generated. The assumption doing the most work is 20 sessions per
+user per month, and it is a guess: it is written here rather than folded into a
+single number.
+
+### The privacy page says what happens, not what the policy is
+
+`/settings/privacy` states that snapshots are kept for ninety days **and that
+the cleanup runs manually rather than on a schedule**, because that is true —
+`snapshots:purge` is on demand (D17). The delete button is the thing that erases
+immediately.
+
+Capture defaults to ON, unlike `publicProfileEnabled` which defaults OFF. The
+difference is deliberate: a public profile shows your data to other people, a
+snapshot shows your own history back to you, and it is the entire input to the
+timeline, F3.3 and F3.5.
+
 ## Verification
 
 | Command                 | What it proves                                                                                                                      |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`              | 966 unit + integration tests, 5 skipped (Postgres-backed suites skip without `TEST_DATABASE_URL` — check the count, not the colour) |
-| `npm run test:e2e`      | 68 browser tests — viewports, theme flash, auth flow, payload capture, the timer, reflection, revision, and the editor's XSS proof  |
+| `npm test`              | 984 unit + integration tests, 5 skipped (Postgres-backed suites skip without `TEST_DATABASE_URL` — check the count, not the colour) |
+| `npm run test:e2e`      | 77 browser tests — viewports, theme flash, auth flow, payload capture, the timer, reflection, revision, and the editor's XSS proof  |
 | `npm run contrast`      | Every token pair against its WCAG threshold; exits non-zero on failure                                                              |
 | `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                              |
 
