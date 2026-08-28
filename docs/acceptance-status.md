@@ -1100,3 +1100,68 @@ rule you are breaking is worse than the breakage. Declared once in `lib/`.
 the rollup script crashed on its first run. And the report's "as of" line
 printed today's date rather than when the rollup ran, which is the exact failure
 F1.6 named.
+
+---
+
+## F4.6 · `observability`
+
+**Branch:** `feat/F4.6-observability` · **Merged to `main`**
+
+| #   | Criterion                                               | State                       | Evidence                                                                                                                                                                         |
+| --- | ------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | One `request_id` traceable HTTP → service → job         | **DONE**                    | `tests/observability/redaction.test.ts` asserts three log lines share an id, including across the runner's `setImmediate`; `e2e/health.spec.ts` checks the header over real HTTP |
+| 2   | Grep the log output for an email and a phone: zero hits | **DONE**                    | Real `formatLine` output, greppedcontrol on both sides                                                                                                                           |
+| 3   | Health dashboard shows live numbers, not placeholders   | **DONE, half of it**        | A real Postgres latency and real dependency states. **The other panels the ticket lists cannot exist** — see below                                                               |
+| 4   | Each of the four alert conditions fires when triggered  | **DONE, delivery BLOCKED**  | All four tested at their thresholds. **`deliver()` writes a log line, and a log line is not an alert**                                                                           |
+| 5   | An UPDATE on `audit_logs` is rejected at the database   | **DONE**                    | Plus DELETE, plus a control that INSERT works, plus that the event log's purge flag does nothing here                                                                            |
+| 6   | SLOs documented AND measured                            | **DONE, 2 of 4 measurable** | catalog p95 **2 ms**, dashboard p95 **5 ms** via `npm run slo:measure`. Uptime and notification delivery cannot be measured — reasons in the README                              |
+| —   | Sentry integration                                      | **BLOCKED**                 | No DSN. Errors go to stdout; no release tagging, no source maps                                                                                                                  |
+
+### "A log line is not an alert"
+
+The four conditions are real, pure and tested at their thresholds. What does not
+exist is anywhere for one to go — no Sentry, no webhook, no email. `deliver()`
+writes a log line and **says so in its own payload**, because whoever finds that
+line is the person who needed the alert.
+
+Recording this as DONE would be the same overclaim F3.1 refused to make about
+its sandbox.
+
+### Half the health dashboard is panels that cannot exist
+
+The ticket lists queue depths, dead-letter counts, Judge0 success rate and p95,
+notification delivery by channel, AI spend against budget, and Razorpay webhook
+failures. F2.3, F3.4 and F4.4 are cut and there is no Judge0 URL, so **five of
+the seven have nothing behind them**.
+
+`/admin/health` lists them by name with the ticket that was cut, rather than
+showing zeros. A panel reporting `0` is a number that looks measured.
+
+`not_configured` is also a distinct state from `up`. A health check that
+reported an absent dependency as green would be a dashboard that lies by
+default — worse than none, because somebody would trust it.
+
+### Found while building
+
+**The phone pattern ate every timestamp.** `2026-08-28` is eight digits joined
+by dashes, which is exactly what a loose phone regex looks for. The first
+version required seven digits and would have redacted the date on every log
+line. Nine is what separates a phone number from a date. The test found it
+because its own grep had the same fault and failed every assertion.
+
+**Middleware cannot load `node:async_hooks`.** It runs on the Edge runtime, and
+importing `trace.ts` there failed the BUILD — which is the good news. The
+edge-safe half now lives in `request-id.ts`, and nothing in that file may import
+from `node:`.
+
+**The audit test's fixture could not clean up after itself.** `DELETE FROM
+audit_logs` is refused by the very trigger the file tests, so rows leaked
+between tests. `TRUNCATE` does not fire row-level triggers and is what the
+helper uses — which names a real gap: an operator with schema rights can still
+erase the trail. A least-privilege application role closes that, and **F4.8 owns
+it**.
+
+**`no-console` had to be relaxed for one file.** On Vercel stdout is the log
+pipeline, so the sanctioned logger must call `console.log`. Exempting the single
+file in the ESLint config rather than disabling the line keeps the rule meaning
+what it should: every other console call bypasses redaction.
