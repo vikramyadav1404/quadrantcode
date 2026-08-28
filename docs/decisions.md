@@ -899,3 +899,84 @@ before any handler runs, and `now` is resolved inside the adapter.
 That distinction matters for the future: a defensive branch can be deleted by
 someone who believes it is dead code, whereas adding a `durationSeconds` field to
 a schema is an obvious and reviewable change.
+
+---
+
+## D21 · The taxonomy is declared once, and JSONB holds nothing anyone will query
+
+F1.5's storage rule is the ticket, and both halves of it are decisions with a
+cost.
+
+### One array, three consumers
+
+`lib/reflection/taxonomy.ts` declares the categories. `pgEnum` is built from it
+and the form's labels come from it, so the Postgres enum, the Zod schema and the
+checkboxes cannot disagree.
+
+**Rejected:** writing the list where each consumer needs it. It reads more
+directly at every single site and drifts at exactly one — and the symptom is a
+category the form offers, the user picks, and the database rejects on submit,
+after they have typed a paragraph. A test asserts
+`enum_range(NULL::mistake_category)` equals the array, so the generation is
+proved rather than assumed.
+
+It lives in `lib/` because `components/` may not import from `server/` (F0.1) —
+the same reason `lib/streak/heatmap-day.ts` and `lib/session/timer-bar-state.ts`
+do.
+
+### The rule for `extras`
+
+**If anything will ever filter, group or sort by it, it is a column.** Nothing
+else may go in the JSONB.
+
+That is why `extras` is empty in practice today: everything F1.6, F2.1 and F3.5
+read — mistake category, stuck category, confidence, source — is a column or a
+child row. `extras` exists so a future question can be captured without a
+migration, not as a place to put a taxonomy.
+
+Two tests hold the line. One runs the criterion's own sentence as SQL
+(`WHERE category = 'off_by_one'`), which is a query that could not be written if
+the values lived in JSON. The other reads `information_schema` and asserts
+`reflections.extras` is the only jsonb column across all four tables, so
+someone moving a category in there later to avoid a migration fails immediately
+rather than in F3.5, when a `GROUP BY` quietly becomes a full scan.
+
+CHECK constraints also cap every free-text field. Prose growing into the place
+structured data should have gone is the exact failure the ticket names, and the
+cap is in the database because a service-side limit is bypassed by every other
+write path.
+
+### A skipped question is not an answer
+
+No reflection row means the user skipped it. `mistakes: ['none']` means they
+said nothing went wrong. **These are different facts and nothing may merge
+them** — F3.5 counts recurrence, so conflating them turns every skipped question
+into evidence of a clean solve.
+
+The form says so in words, next to the field, for the same reason D18's timezone
+copy exists: behaviour that is correct and unexplained is indistinguishable from
+a defect.
+
+### Confidence keeps one home
+
+`solve_sessions.confidence` (F1.4), mirrored to `user_problems` for the catalog.
+The reflection writes both in one transaction rather than adding a
+`reflections.confidence`, because two columns holding one fact disagree the
+first time a write path forgets the other.
+
+### Abandoned sessions cannot be reflected on
+
+Same reason they are not attempts (D20): the sweep abandons sessions on the
+user's behalf, so a reflection attached to one would be a considered account of
+a solve that never concluded. An abandoned sitting still appears in the attempt
+timeline — it happened — but carries no attempt number, so the timeline and
+`user_problems.total_attempts` cannot disagree.
+
+### Postgres cannot remove an enum value
+
+Adding `stuck_marked` to `session_event_type` uses `ADD VALUE IF NOT EXISTS`,
+hand-added to the generated migration. There is no `ALTER TYPE ... DROP VALUE`,
+so a down migration cannot undo it, and without the clause a single-step
+rollback followed by a re-apply fails on "label already exists". The down
+migration records this, including that `db:generate` will not re-emit the clause
+if the file is ever regenerated.

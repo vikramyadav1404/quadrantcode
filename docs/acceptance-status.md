@@ -477,3 +477,66 @@ costs nothing, a gap above it costs exactly the idle interval.
 - **`session_events` is append-only by convention, not by enforcement.** Nothing
   updates or deletes a row, and the duration arithmetic depends on that; F3.2
   adds the database-level rejection its own criterion requires.
+
+---
+
+## F1.5 · `reflection-capture`
+
+| Criterion                                                                                                                     | Status   | Evidence                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Three stuck markers in one session all persist with distinct elapsed times                                                    | **DONE** | `tests/reflection/stuck.test.ts` — three markers at 2, 11 and 26 minutes, asserted as elapsed values and categories. A second test proves the elapsed figure EXCLUDES paused time, like every other duration (D20) |
+| Reflection mistake categories are queryable with a WHERE clause on an enum column — no JSON extraction for any taxonomy field | **DONE** | `tests/reflection/schema.test.ts` runs the criterion's own sentence as SQL, **and** reads `information_schema` to assert `reflections.extras` is the only jsonb column across all four tables                      |
+| Skipping the reflection completes the session cleanly                                                                         | **DONE** | `tests/reflection/reflection.test.ts` asserts no row, session still `solved`, and the day still credited; `e2e/reflection.spec.ts` walks the browser through Skip                                                  |
+| Reopening a solved problem shows the last attempt panel with real data                                                        | **DONE** | `tests/reflection/history.test.ts` asserts duration, outcome, confidence, markers, mistakes and approach; `e2e/reflection.spec.ts` reads them off the rendered page                                                |
+| Attempt timeline ordering is correct across a backfilled past session                                                         | **DONE** | `tests/reflection/history.test.ts` inserts a session dated a week earlier AFTER two recorded today, and asserts it becomes attempt 1 and renumbers the others                                                      |
+
+Tests: **37 across 4 files** in `tests/reflection/` — `schema`, `stuck`,
+`reflection`, `history` — plus `e2e/reflection.spec.ts` (5 browser tests). Full
+suite at closure: **718 passing, 5 skipped, 55 Playwright**.
+
+### Not done — the "hints used" column
+
+IN SCOPE item 1 lists hints in the attempt timeline. **There is no source for
+it.** Hints come from F3.4 `ai-gateway`, which is cut from the target scope, and
+F3.2's `hint_requested` event only records that one was asked for by something
+that does not exist.
+
+Rendering the column would mean an empty cell on every row forever — a promise
+the product cannot keep. It is left out and recorded here, the same way F1.2's
+library criterion was split rather than rounded up.
+
+### Found while building
+
+**A sub-second solve failed the entire completion.** `user_problems_best_time_positive`
+requires `best_time_seconds > 0` and the duration floors to whole seconds, so
+finishing in under a second stored 0, Postgres rejected the upsert, and the user
+got a 500 on the one click meant to record their work — session still live,
+nothing credited.
+
+This is an **F1.4 bug that F1.4's own tests could not see**: every one of them
+set `now` twenty minutes ahead, and the failure is not at a boundary of the
+arithmetic but at a boundary of the schema the arithmetic feeds. A browser test
+that pressed "Solved" immediately found it. Fixed by recording one second, with
+a regression test that completes a session 400ms after starting.
+
+**Two red bars that were my tests, not the code.** An unscoped
+`SELECT ... FROM stuck_points` read a leftover row from the unit suite — which
+shares this database and truncates at the START of each test — and reported a
+category the browser spec never chose. Then the IDOR test read the session id
+from `page.url()` and raced, navigating to the problem page and reporting its
+200 as a missing 404.
+
+The second one mattered more than the first: "my test is wrong" and "there is an
+IDOR" look identical from a failure. The server's 404 was verified independently
+before anything was changed.
+
+### What F3.3 and F3.5 inherit
+
+- `stuck_points.source` already distinguishes `user` from `inferred`, so F3.3's
+  "confirmed and inferred are separable in a single SQL query" needs no
+  migration and no backfill of assumptions.
+- A skipped reflection and `mistakes: ['none']` are distinguishable, which F3.5
+  depends on: conflating them would make every skipped question read as a clean
+  solve.
+- Abandoned sittings appear in the timeline without an attempt number, so the
+  timeline and `user_problems.total_attempts` cannot disagree.
