@@ -24,3 +24,4 @@ export * from './revision';
 export * from './execution';
 export * from './timeline';
 export * from './mistakes';
+export * from './audit';

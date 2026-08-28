@@ -104,7 +104,14 @@ export default tseslint.config(
   },
 
   // The worker, jobs and scripts are plain Node — browser globals are absent
-  // and console output is the log transport until F4.6 replaces it.
+  // and console output is how they report.
+  //
+  // `server/lib/observability/logger.ts` is the exemption that matters: on
+  // Vercel stdout IS the log pipeline, so the sanctioned logger has to call
+  // `console.log` to do its job. Exempting the one file rather than
+  // disabling the line keeps the rule's meaning intact — every OTHER console
+  // call is still ad-hoc logging that bypasses redaction, which is exactly
+  // what F4.6 exists to stop.
   {
     files: [
       'worker/**/*.ts',
@@ -112,6 +119,7 @@ export default tseslint.config(
       'scripts/**/*.ts',
       'server/db/migrate.ts',
       'server/db/rollback.ts',
+      'server/lib/observability/logger.ts',
     ],
     rules: { 'no-console': 'off' },
   },
