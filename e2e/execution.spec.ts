@@ -21,7 +21,7 @@
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { cleanup, db, signInAs } from './helpers/auth';
+import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 let sql: ReturnType<typeof postgres>;
 
@@ -44,7 +44,7 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   // Fixture problems are shared with every other spec — F1.6's finding.
-  await sql`DELETE FROM problems WHERE slug = ${SLUG}`;
+  await deleteProblems(sql, SLUG);
   await cleanup(sql);
   await sql.end();
 });

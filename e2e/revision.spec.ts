@@ -8,7 +8,7 @@
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { cleanup, db, signInAs } from './helpers/auth';
+import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 let sql: ReturnType<typeof postgres>;
 
@@ -20,7 +20,7 @@ test.beforeAll(() => {
 
 test.afterAll(async () => {
   // Fixture problems are shared with every other spec — see F1.6's finding.
-  await sql`DELETE FROM problems WHERE slug LIKE 'rev-%'`;
+  await deleteProblems(sql, 'rev-%');
   await cleanup(sql);
   await sql.end();
 });
@@ -49,7 +49,7 @@ async function currentUserId(): Promise<string> {
 }
 
 test.beforeEach(async ({ context, baseURL }) => {
-  await sql`DELETE FROM problems WHERE slug LIKE 'rev-%'`;
+  await deleteProblems(sql, 'rev-%');
   await signInAs(context, sql, { email: EMAIL, baseUrl: baseURL! });
 });
 
