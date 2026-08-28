@@ -12,7 +12,13 @@
  */
 import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 import type { Database, Transaction } from '@/server/db';
-import { dailyGoals, dailySessions, solveSessions, userProblems } from '@/server/db/schema';
+import {
+  dailyGoals,
+  dailySessions,
+  problems,
+  solveSessions,
+  userProblems,
+} from '@/server/db/schema';
 import {
   DEFAULT_TARGET_PROBLEMS,
   type LocalDate,
@@ -20,6 +26,7 @@ import {
   localDateFor,
   recomputeStreak,
 } from '@/server/services/streak';
+import { scheduleAfterSolveTx } from '@/server/services/revision';
 import { activeDurationSeconds, isPausedAt } from './duration';
 import { ActiveSessionExistsError, SessionNotFoundError } from './errors';
 import { loadEvents, recordEvent } from './events';
@@ -313,6 +320,28 @@ export async function completeSession(
 
     if (outcome === 'solved') {
       await creditSolvedDay(tx, { userId, localDate: endedLocalDate, now });
+
+      /*
+       * Schedule the revision inside the same transaction (F2.1).
+       *
+       * Not afterwards, and not in the action: a completed solve whose revision
+       * was never scheduled is a problem that silently never comes back, and
+       * unlike the streak recompute below there is nothing that would notice
+       * and repair it later.
+       */
+      await scheduleAfterSolveTx(tx, {
+        userId,
+        problemId: row.problemId,
+        today: endedLocalDate,
+        signals: {
+          confidence: confidence ?? null,
+          // F3.4 is cut, so nothing produces a hint; the signal is inert.
+          hintsUsed: 0,
+          failedAttempts: await countStuckAttempts(tx, userId, row.problemId),
+          activeSeconds: seconds,
+          estimatedSeconds: await estimatedSecondsFor(tx, row.problemId),
+        },
+      });
     }
   });
 
@@ -480,6 +509,37 @@ async function recordAttempt(
         updatedAt: now,
       },
     });
+}
+
+/** How many sittings on this problem ended `stuck` — the ladder's own signal. */
+async function countStuckAttempts(
+  tx: Transaction,
+  userId: string,
+  problemId: string,
+): Promise<number> {
+  const [row] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(solveSessions)
+    .where(
+      and(
+        eq(solveSessions.userId, userId),
+        eq(solveSessions.problemId, problemId),
+        eq(solveSessions.status, 'stuck'),
+      ),
+    );
+
+  return row?.total ?? 0;
+}
+
+/** The problem's own estimate, which the "slow solve" signal compares against. */
+async function estimatedSecondsFor(tx: Transaction, problemId: string): Promise<number> {
+  const [row] = await tx
+    .select({ estimatedMinutes: problems.estimatedMinutes })
+    .from(problems)
+    .where(eq(problems.id, problemId))
+    .limit(1);
+
+  return (row?.estimatedMinutes ?? 0) * 60;
 }
 
 /**

@@ -40,6 +40,7 @@ const EXPECTED_TABLES = [
   'reflection_mistakes', // F1.5
   'reflection_stuck_areas', // F1.5
   'reflections', // F1.5
+  'revision_schedule', // F2.1
   'session_events', // F1.4
   'solve_sessions', // F1.4
   'streak_freezes', // F1.3

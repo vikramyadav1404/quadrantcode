@@ -169,3 +169,24 @@ export const importRowOutcomeEnum = pgEnum('import_row_outcome', [
   'duplicate',
   'invalid',
 ]);
+
+/**
+ * F2.1 · which ladder a problem is climbing.
+ *
+ * Chosen once, when the revision is first scheduled, from the confidence the
+ * user reported. Stored rather than re-derived so that changing their mind
+ * later does not silently move every interval they have already been given —
+ * the same immutability instinct D18 applies to recorded days.
+ */
+export const ladderKindEnum = pgEnum('ladder_kind', ['standard', 'compressed']);
+
+/**
+ * F2.1 · how a revision went.
+ *
+ * Three outcomes, because the schedule responds differently to each: `clean`
+ * advances the ladder, `struggled` repeats the current interval, `failed`
+ * resets to day one. Two outcomes would force "struggled" to round to one of
+ * the others, and rounding it up is how a user who is barely holding on gets
+ * pushed to a 30-day gap.
+ */
+export const revisionOutcomeEnum = pgEnum('revision_outcome', ['clean', 'struggled', 'failed']);
