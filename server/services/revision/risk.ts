@@ -121,6 +121,19 @@ export type RiskInput = {
   mistakes: readonly MistakeCategory[];
   /** F1.6's weak-topic score for this problem's topics, 0–100. Null when untagged. */
   topicWeakness: number | null;
+
+  /**
+   * F3.5 · how much this mistake RECURS across every session, 0–1.
+   *
+   * Distinct from `mistakes` above, which is what went wrong on THIS problem.
+   * A category you have made once is a fact about one attempt; one you have
+   * made seven times and are still making is a prediction about the next.
+   *
+   * Optional so F2.1's own tests keep passing unchanged — absent means "no
+   * recurrence data", which is what was true before this ticket, not "zero
+   * recurrence".
+   */
+  recurringSeverity?: number | undefined;
 };
 
 export type RiskFactor = {
@@ -163,10 +176,20 @@ export function scoreRisk(input: RiskInput): RiskScore {
    * typo's severity would rank it above a second problem with the same
    * structural error and no typo, which says nothing useful about either.
    */
-  const mistakeSeverity = input.mistakes.reduce(
+  const worstThisProblem = input.mistakes.reduce(
     (worst, mistake) => Math.max(worst, MISTAKE_SEVERITY[mistake]),
     0,
   );
+
+  /*
+   * F3.5 · recurrence raises the floor, it does not replace the ceiling.
+   *
+   * `max` rather than a sum or an average: a severe one-off and a mild habit
+   * are both reasons to revise sooner, and neither should be able to cancel the
+   * other out. Adding them would let two moderate signals outrank one serious
+   * one, which is the same mistake the "worst, not the sum" rule above avoids.
+   */
+  const mistakeSeverity = Math.max(worstThisProblem, clamp01(input.recurringSeverity ?? 0));
 
   const topicWeakness = clamp01((input.topicWeakness ?? 0) / 100);
 
@@ -201,7 +224,7 @@ export function scoreRisk(input: RiskInput): RiskScore {
       key: 'mistakes',
       weight: RISK_WEIGHTS.MISTAKE_SEVERITY,
       value: mistakeSeverity,
-      label: describeMistakes(input.mistakes),
+      label: describeMistakes(input.mistakes, input.recurringSeverity ?? 0, worstThisProblem),
     },
     {
       key: 'topic',
@@ -233,8 +256,20 @@ export function scoreRisk(input: RiskInput): RiskScore {
   return { score, factors };
 }
 
-/** The worst mistake, named. Empty when nothing was recorded. */
-function describeMistakes(mistakes: readonly MistakeCategory[]): string {
+/**
+ * The worst mistake, named — and which of the two signals is actually driving
+ * the factor.
+ *
+ * The reason has to match the number. If recurrence is what raised this score,
+ * saying "you last recorded an off-by-one" points the user at the wrong thing:
+ * the problem is not this attempt, it is the habit.
+ */
+function describeMistakes(
+  mistakes: readonly MistakeCategory[],
+  recurring: number,
+  worstThisProblem: number,
+): string {
+  if (recurring > worstThisProblem) return 'a mistake you keep repeating';
   if (mistakes.length === 0) return 'no mistakes recorded';
 
   const worst = [...mistakes].sort(
