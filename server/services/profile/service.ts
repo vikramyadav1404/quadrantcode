@@ -30,6 +30,8 @@ export type Profile = {
   targetRole: string | null;
   timezone: string;
   publicProfileEnabled: boolean;
+  /** F3.2 · whether solve sessions capture code snapshots. */
+  snapshotCaptureEnabled: boolean;
   avatarUrl: string | null;
   /** Fallback rendering data; always present, used when avatarUrl is null. */
   appearance: AvatarAppearance;
@@ -45,6 +47,7 @@ export async function getProfile(db: Database, userId: string): Promise<Profile>
       bio: userProfiles.bio,
       targetRole: userProfiles.targetRole,
       publicProfileEnabled: userProfiles.publicProfileEnabled,
+      snapshotCaptureEnabled: userProfiles.snapshotCaptureEnabled,
       avatarUrl: userProfiles.avatarUrl,
     })
     .from(users)
@@ -62,6 +65,13 @@ export async function getProfile(db: Database, userId: string): Promise<Profile>
     targetRole: row.targetRole,
     timezone: row.timezone,
     publicProfileEnabled: row.publicProfileEnabled ?? false,
+    /*
+     * `?? true` matches the column default, and the null it covers is a user
+     * with no `user_profiles` row yet — someone who has never opened settings.
+     * Defaulting them to false here would silently disable capture for every
+     * user created before the column existed.
+     */
+    snapshotCaptureEnabled: row.snapshotCaptureEnabled ?? true,
     avatarUrl: row.avatarUrl,
     appearance: avatarAppearance(row.userId, row.displayName, row.email),
   };
@@ -123,4 +133,50 @@ export function isProfileComplete(profile: Pick<Profile, 'displayName'>): boolea
 /** Async form for callers holding only a user id. Defined in terms of the above. */
 export async function hasCompletedProfile(db: Database, userId: string): Promise<boolean> {
   return isProfileComplete(await getProfile(db, userId));
+}
+
+/**
+ * F3.2 · read just the snapshot-capture flag.
+ *
+ * A one-column read rather than `getProfile`, because this runs on the submit
+ * path of every code execution and that function joins two tables and builds an
+ * avatar appearance nobody there will look at.
+ *
+ * Returns the column default when the user has no `user_profiles` row — see the
+ * note in `getProfile`.
+ */
+export async function snapshotCaptureEnabled(db: Database, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ enabled: userProfiles.snapshotCaptureEnabled })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+
+  return row?.enabled ?? true;
+}
+
+/**
+ * F3.2 · flip the snapshot-capture flag, and nothing else.
+ *
+ * Deliberately not routed through `updateProfile`. That function requires a
+ * display name and a timezone, because it exists to save the profile FORM —
+ * making a privacy toggle depend on a complete profile would mean a user who
+ * has not filled in their name cannot turn capture off, which is precisely
+ * backwards.
+ *
+ * Upserts, because a user who has never opened settings has no row yet and
+ * their first act here must not fail.
+ */
+export async function setSnapshotCapture(
+  db: Database,
+  userId: string,
+  enabled: boolean,
+): Promise<void> {
+  await db
+    .insert(userProfiles)
+    .values({ userId, snapshotCaptureEnabled: enabled })
+    .onConflictDoUpdate({
+      target: userProfiles.userId,
+      set: { snapshotCaptureEnabled: enabled, updatedAt: new Date() },
+    });
 }
