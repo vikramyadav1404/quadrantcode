@@ -8,6 +8,7 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 import { EXECUTION_LANGUAGES, EXECUTION_VERDICTS } from '@/lib/execution/languages';
 import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/reflection/taxonomy';
+import { SESSION_EVENT_TYPES, SNAPSHOT_TRIGGERS } from '@/lib/timeline/events';
 
 /** RBAC roles. `requireRole()` in F0.3 reads this. */
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
@@ -113,29 +114,22 @@ export const solveSessionStatusEnum = pgEnum('solve_session_status', [
 ]);
 
 /**
- * F1.4's minimal event taxonomy — **designed to be extended, not replaced**.
+ * The session event taxonomy.
  *
- * F3.2 turns `session_events` into the full append-only log and adds
- * `statement_viewed`, `first_keystroke`, `code_snapshot`, `run_attempted`,
- * `run_failed`, `run_passed`, `hint_requested`, `stuck_marked`, `idle_started`
- * and `idle_ended`. The names below are deliberately the ones that appear in
- * that later list, so extending this enum is adding values rather than renaming
- * rows that already exist.
+ * **Built from `lib/timeline/events.ts`, not typed here.** F1.4 wrote these
+ * values inline and said the enum was "designed to be extended, not replaced";
+ * F3.2 extends it, and doing that in two places — the array the timeline
+ * renders from and the array Postgres validates against — is how the two come
+ * to disagree. Same arrangement as the reflection taxonomy (**D21**).
  *
- * `idle_autopause` is F1.4's own: it records that the SERVER paused a session
- * the user had walked away from, which is a different fact from the user
- * pressing pause and must stay distinguishable forever.
+ * `idle_autopause` remains F1.4's own: the SERVER paused a session the user had
+ * walked away from, which is a different fact from the user pressing pause and
+ * must stay distinguishable forever.
  */
-export const sessionEventTypeEnum = pgEnum('session_event_type', [
-  'session_started',
-  'paused',
-  'resumed',
-  'idle_autopause',
-  'session_completed',
-  'session_abandoned',
-  /** F1.5 — the user pressed "I'm stuck". F3.2's taxonomy already names it. */
-  'stuck_marked',
-]);
+export const sessionEventTypeEnum = pgEnum('session_event_type', SESSION_EVENT_TYPES);
+
+/** F3.2 · why a code snapshot was taken. See `lib/timeline/events.ts`. */
+export const snapshotTriggerEnum = pgEnum('snapshot_trigger', SNAPSHOT_TRIGGERS);
 
 /**
  * F1.5 · the reflection taxonomy, as database enums.

@@ -792,3 +792,75 @@ Unlike the session sweep, **something depends on this one running**: a stuck
 `running` row counts against its owner's concurrency cap forever, and five of
 them lock that user out of the feature entirely. A deploy mid-run is enough to
 leave one behind, because the runner is in-process.
+
+---
+
+## F3.2a · `solve-timeline` — the engine
+
+**Branch:** `feat/F3.2-solve-timeline` · **Merged to `main`** ·
+`FEATURE_TIMELINE=false`
+
+F3.2 is being delivered in two halves, because the whole ticket is comfortably
+over the ~600-line limit CLAUDE.md sets for one reviewable diff. **This is the
+first half**: the append-only log, code snapshots, reconstruction and retention.
+The timeline UI, the privacy page, the capture toggle and the diff summariser
+are F3.2b.
+
+| #   | Criterion                                                                         | State                         | Evidence                                                                                                                                                                                  |
+| --- | --------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | An UPDATE against `session_events` is rejected at the database level              | **DONE**                      | `tests/timeline/timeline.test.ts` — raw SQL, not through the service; DELETE too; a positive control proving INSERT still works; the SQLSTATE asserted as `23001`                         |
+| 2   | `reconstruct()` rebuilds source byte-identical at 3 checkpoints in a long session | **DONE, beyond the ask**      | All **31** checkpoints of a 31-version session are asserted, plus a 34-step and 5-seed property test in `tests/timeline/diff.test.ts`                                                     |
+| 3   | Snapshot capture toggle off produces zero snapshot rows                           | **DONE (service)**            | `captureSnapshot` returns `{captured:false, reason:'disabled'}` and writes nothing. **The settings UI that flips it is F3.2b** — today the caller passes the default the toggle will have |
+| 4   | "Delete my solve history" leaves no snapshot or event rows                        | **DONE (service)**            | `deleteSolveHistory` — asserted to zero, plus that the log is **still append-only afterwards**, plus that another user's history is untouched. The button is F3.2b                        |
+| 5   | Diff summariser output is stable and contains zero AI calls                       | **F3.2b**                     | The diff underneath it is proved deterministic here (identical ops over 5 runs; the one tie fixed)                                                                                        |
+| 6   | Storage projection with arithmetic in the README                                  | **F3.2b**                     | `source_bytes` is recorded per snapshot so the projection has real numbers to use                                                                                                         |
+| —   | 90-day retention                                                                  | **DONE, unscheduled**         | `npm run snapshots:purge`. Nothing schedules it (D17) — see the honesty note below                                                                                                        |
+| —   | `jobs/snapshot-cleanup.processor.ts`                                              | **CUT**                       | No queue to host a processor (D17)                                                                                                                                                        |
+| —   | `hint_requested` event type                                                       | **NOT ADDED**                 | It belongs to F3.4, which is cut. An enum value nothing can write reads as "hints are captured and unused" when hints do not exist                                                        |
+| —   | `elapsed_ms` as a column                                                          | **DELIBERATELY NOT A COLUMN** | Derived on read. **D25**                                                                                                                                                                  |
+
+### Retention is a promise only as often as someone runs the script
+
+The privacy copy will say snapshots are kept for ninety days. Nothing schedules
+`snapshots:purge`, so until something does, that sentence is true only when the
+command is run. Stated here rather than left for a user to find out — the same
+shape as `executions:sweep`, except that the cost of skipping this one lands on
+a promise about privacy rather than on a rate limit.
+
+### The append-only trigger has a price, and ten browser tests found it
+
+Adding the trigger broke 10 Playwright tests, and they were right to break.
+Deleting a user cascades into their sessions and then into `session_events`, so
+a plain `DELETE FROM users` is refused.
+
+**That is not a test-only cost.** The same cascade runs when a user deletes
+their account — a path F4.8 owns and one that has to work. The failures were the
+design reporting its true price a day before production would have: every path
+that legitimately erases history must now declare itself, in a transaction, by
+setting `traceloop.purging`.
+
+The fix was not to relax the trigger to UPDATE-only. The criterion names UPDATE,
+but the spec sentence beside it says "No UPDATE, no DELETE on this table", and a
+narrow criterion is not a reason to stop honouring the requirement next to it.
+
+### Found while building
+
+**The migration test caught a rollback that could not be re-applied.** Postgres
+has no `ALTER TYPE … DROP VALUE`, so the down migration cannot remove the eight
+new event types — which meant the second `up` in an up→down→up cycle failed on a
+value that was still there. Fixed with `ADD VALUE IF NOT EXISTS`, and the down
+migration now says plainly that it is not symmetric and why.
+
+**Two fixture faults, both mine, both instructive.** A two-line test file makes
+the JSON diff longer than the source it describes, so `captureSnapshot` re-based
+to a full snapshot every time — correct behaviour on a tiny file and a fixture
+that proved nothing about diffing. And a second _live_ session for one user
+violates `solve_sessions_one_live_per_user` (F1.4): the index was right, the
+fixture was testing a state the product cannot reach.
+
+### Not claimed
+
+`npm run snapshots:purge` was run and reported `deleted: 0` — the table was
+empty after the test run. The deletion itself is proved by test, including a
+positive control that a young snapshot survives; the script's own run is
+evidence that it executes, not that it deletes.

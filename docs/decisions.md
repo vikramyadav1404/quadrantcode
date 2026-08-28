@@ -1234,3 +1234,94 @@ to F3.2, which owns code snapshots.
 Building a `code_drafts` table here would create a second home for the user's
 code alongside the one F3.2 is specified to build — two stores of the same thing
 is a drift with a date on it. Recorded as DEFERRED rather than done twice.
+
+---
+
+## D25 · The log is append-only with one declared exception, and elapsed is derived
+
+**Context:** F3.2 turns `session_events` into the full solve log. Its spec asks
+for an `elapsed_ms` column and for the table to reject UPDATE and DELETE, and it
+also asks for "delete my solve history" to leave no rows behind.
+
+### `elapsed_ms` is not a column
+
+**D20 already made this decision one level up.** F1.4 removed
+`solve_sessions.active_duration_seconds` on the grounds that events are the
+record. Storing elapsed on every event is that same column again — one row down,
+multiplied by the number of events.
+
+The argument that decides it, though, is specific to this table: **it cannot be
+corrected.** A derived value written into an append-only log is wrong forever
+the day the derivation is wrong, because the trigger refuses the fix. Derived on
+read, repairing `pausedIntervals` repairs every session that ever ran.
+
+A test writes a duplicate `paused` event and asserts the answer does not move.
+That idempotence is the property `duration.ts` was built for and the one a
+stored counter cannot have.
+
+**The cost, stated rather than buried:** no `WHERE elapsed_ms > …` in SQL. F3.3's
+signals read gaps between events, which is `occurred_at` arithmetic, so nothing
+planned needs it. The column goes in when something does.
+
+**Rejected:** computing it at write time. It would make the value depend on what
+had been written, while `duration.ts` is explicitly built to depend on when
+things happened — it sorts defensively because an idle autopause is stamped at
+the last heartbeat, deliberately earlier than its write time. I looked for a case
+where that produces a wrong number today and did not find one, so this is a
+divergence the code itself documents, not a bug being claimed.
+
+### DELETE is refused too, unless a transaction says otherwise
+
+The spec says "No UPDATE, no DELETE on this table". Criterion #4 says deletion
+must work. Account deletion cascades through `solve_sessions` into this table.
+All three are real.
+
+So the trigger refuses unless `traceloop.purging` is set, and one module sets it
+— `server/services/timeline/retention.ts`. This is not enforcement by
+convention: without the flag, no code path, no psql session and no cascade
+removes a row. Setting it is a deliberate statement inside a transaction whose
+purpose is erasure.
+
+`set_config(_, true)` is transaction-scoped, so the flag cannot leak onto a
+pooled connection. A test asserts the log is **still append-only after** a
+deletion, because that leak is the failure that would otherwise rot silently.
+
+**This cost is real and it was measured:** ten browser tests failed when the
+trigger landed, all of them cascading deletes in fixture teardown. The same
+cascade is what account deletion runs, so the failures were the price arriving a
+day early rather than in production.
+
+**Rejected:** a trigger on UPDATE only. It satisfies the written criterion and
+abandons the sentence beside it, and it leaves a log where a stray `DELETE` in a
+migration silently drops a user's history with nothing objecting.
+
+### The diff engine is written, not installed
+
+`diff`'s `applyPatch` is deliberately fuzzy — it searches nearby lines when
+context no longer matches, because it exists to apply human patches to files
+that have drifted. For a criterion that says **byte-identical**, that tolerance
+is the whole problem: a near miss returns code the user never wrote, with
+nothing to indicate it.
+
+These operations carry no context, so there is nothing to match fuzzily.
+`applyDiff` walks them exactly or throws — including on a diff that leaves the
+source half-consumed, which is the dangerous case, since dropping a tail yields
+plausible code.
+
+Newlines are content: `"a\nb"` and `"a\nb\n"` are different files and round-trip
+differently. Nothing trims, normalises CRLF, or adds a final newline, because a
+diff engine that tidies its input cannot rebuild its input.
+
+**Rejected:** storing every version whole. Simpler and correct, and it is what
+the code falls back to when a diff would be larger than the file it describes —
+which happens on genuinely small sources and is why a later snapshot is allowed
+to be full. Storing every version that way is what the ticket's storage
+projection exists to rule out.
+
+### Drafts and snapshots are different things, not two copies of one
+
+D24 deferred F3.1's "server snapshot every 60s" to this ticket rather than
+building a second home for the user's code. That resolves here: localStorage
+holds the **draft** — latest text, per browser, so a reload loses nothing —
+while `code_snapshots` holds the **history**, server-side and immutable. One is
+overwritten constantly and belongs to a device; the other belongs to a sitting.

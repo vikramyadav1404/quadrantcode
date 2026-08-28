@@ -34,6 +34,7 @@
     "avatars:cleanup": "tsx scripts/cleanup-avatars.ts",
     "sessions:sweep": "tsx scripts/sweep-sessions.ts",
     "executions:sweep": "tsx scripts/sweep-executions.ts",
+    "snapshots:purge": "tsx scripts/purge-snapshots.ts",
     "analytics:rollup": "tsx scripts/rollup-analytics.ts",
     "library:verify": "tsx scripts/verify-library-urls.ts"
   },
