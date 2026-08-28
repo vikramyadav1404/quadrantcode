@@ -87,7 +87,18 @@ export async function signInAs(
 ): Promise<string> {
   const { email, role = 'user', baseUrl, onboarded = true } = options;
 
-  await sql`DELETE FROM users WHERE email = ${email.toLowerCase()}`;
+  /*
+   * Recreating the user cascades into their sessions and then into the
+   * append-only `session_events` (F3.2a), so this delete needs the same
+   * declared-erasure transaction that `cleanup` does. Without it, any spec whose
+   * earlier tests recorded events fails on its NEXT `beforeEach` rather than on
+   * the assertion, which is a confusing way to learn about a cascade.
+   */
+  await sql.begin(async (tx) => {
+    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`DELETE FROM users WHERE email = ${email.toLowerCase()}`;
+  });
+
   const [user] = await sql`
     INSERT INTO users (email, role, email_verified_at)
     VALUES (${email.toLowerCase()}, ${role}, now())
