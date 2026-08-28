@@ -1,17 +1,17 @@
 # Where the project stands
 
-_Last updated: 2026-08-28, after F3.1._
+_Last updated: 2026-08-28, after F3.2a._
 
 One place to look. Per-criterion detail lives in `docs/acceptance-status.md`;
 this is the summary and, more usefully, the list of things only you can unblock.
 
-**Tests:** 899 passing, 5 skipped (904 total, 55 files) + 68 Playwright.
+**Tests:** 966 passing, 5 skipped (971 total, 57 files) + 68 Playwright.
 The 5 skips are all the live-bucket suite below — nothing else is silently
 skipping. If a run reports far fewer, they skipped silently: check the count,
 not the colour.
 
 **CI:** last green run [`31829583656`](https://github.com/vikramyadav1404/traceloop/actions/runs/31829583656)
-on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F3.1 are merged into
+on `feat/F0.3-auth-ui` — both jobs success. F1.2 through F3.2a are merged into
 local `main` but **nothing since F1.1 has been pushed**, so none of them carries
 a CI result. Both suites were run locally in full against the embedded Postgres.
 
@@ -21,7 +21,8 @@ a CI result. Both suites were run locally in full against the embedded Postgres.
 
 Set by Vikram on 2026-08-15. **13 done + 5 remaining**, in this order:
 
-> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1~~ · F3.2 · F3.3 · F3.5 · F4.6 · F4.8
+> ~~F1.3 · F1.4 · F1.5 · F1.6 · F2.1 · F3.1~~ · **F3.2 (a done, b next)** · F3.3 ·
+> F3.5 · F4.6 · F4.8
 
 **Cut:** F2.2, F2.3, F2.4, F2.5, F4.1, F4.2, F4.3, F4.4, F4.5, F4.7, and F1.2's
 curated 100-problem library. The README carries the full built/planned/cut
@@ -69,6 +70,7 @@ itself when you solve something.
 | F1.6   | Rollup-Backed Analytics Dashboard    | **DONE** — no scheduler (D22)     |
 | F2.1   | Spaced Repetition & Risk Scoring     | **DONE** — plus a due page (D23)  |
 | F3.1   | Monaco Editor & Queued Execution     | **DONE** — real execution BLOCKED |
+| F3.2a  | Append-Only Log & Code Snapshots     | **DONE** — UI is F3.2b (D25)      |
 
 Every `FEATURE_*` flag is still `false`, as intended.
 
