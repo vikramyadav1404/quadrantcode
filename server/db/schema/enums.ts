@@ -10,6 +10,7 @@ import { EXECUTION_LANGUAGES, EXECUTION_VERDICTS } from '@/lib/execution/languag
 import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/reflection/taxonomy';
 import { SESSION_EVENT_TYPES, SNAPSHOT_TRIGGERS } from '@/lib/timeline/events';
 import { STUCK_CONFIDENCE, STUCK_STATUS } from '@/lib/inference/confidence';
+import { MISTAKE_TRENDS } from '@/server/services/mistakes/trend';
 
 /** RBAC roles. `requireRole()` in F0.3 reads this. */
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
@@ -142,6 +143,9 @@ export const snapshotTriggerEnum = pgEnum('snapshot_trigger', SNAPSHOT_TRIGGERS)
 export const stuckConfidenceEnum = pgEnum('stuck_confidence', STUCK_CONFIDENCE);
 
 export const stuckStatusEnum = pgEnum('stuck_status', STUCK_STATUS);
+
+/** F3.5 · which way a recurring mistake is going. Built from `trend.ts`. */
+export const mistakeTrendEnum = pgEnum('mistake_trend', MISTAKE_TRENDS);
 
 /**
  * F1.5 · the reflection taxonomy, as database enums.
