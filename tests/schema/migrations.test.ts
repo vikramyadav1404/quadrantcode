@@ -33,6 +33,7 @@ const EXPECTED_TABLES = [
   'auth_verification_tokens',
   'daily_goals',
   'daily_sessions',
+  'execution_jobs', // F3.1
   'import_job_rows', // F1.2
   'import_jobs', // F1.2
   'problem_tags',
@@ -41,6 +42,7 @@ const EXPECTED_TABLES = [
   'reflection_stuck_areas', // F1.5
   'reflections', // F1.5
   'revision_schedule', // F2.1
+  'run_attempts', // F3.1
   'session_events', // F1.4
   'solve_sessions', // F1.4
   'streak_freezes', // F1.3
