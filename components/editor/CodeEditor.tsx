@@ -18,7 +18,7 @@ import { MONACO_LANGUAGE_IDS, type ExecutionLanguage } from '@/lib/execution/lan
 const Monaco = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[420px] items-center justify-center rounded-[var(--radius)] border border-[var(--border)] text-sm text-[var(--text-muted)]">
+    <div className="flex h-full min-h-[12rem] items-center justify-center text-sm text-[var(--text-muted)]">
       Loading the editor…
     </div>
   ),
@@ -33,10 +33,16 @@ export function CodeEditor({
   value: string;
   onChange: (next: string) => void;
 }) {
+  /*
+   * `height="100%"` and a filling wrapper, not a fixed 420px.
+   *
+   * The editor now lives in a resizable pane; a fixed height means dragging the
+   * divider gives the extra room to empty space instead of to the code.
+   */
   return (
-    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)]">
+    <div className="h-full overflow-hidden">
       <Monaco
-        height="420px"
+        height="100%"
         language={MONACO_LANGUAGE_IDS[language]}
         onChange={(next) => onChange(next ?? '')}
         options={{
