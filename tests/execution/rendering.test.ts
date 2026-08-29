@@ -18,7 +18,18 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const ROOT = join(process.cwd(), 'components', 'editor');
+/**
+ * Both directories that render untrusted bytes.
+ *
+ * `components/solve/` was added by the LeetCode-style layout and renders the
+ * same things — program output moved into `ConsoleTabs`, and a problem
+ * statement (F4.1) will land in `ProblemPanel`. A guard scoped to the old
+ * directory would have gone quietly out of date the moment the code moved.
+ */
+const ROOTS = [
+  join(process.cwd(), 'components', 'editor'),
+  join(process.cwd(), 'components', 'solve'),
+];
 
 /** Anything that hands a string to the HTML parser. */
 const MARKUP_SINKS = [
@@ -30,9 +41,11 @@ const MARKUP_SINKS = [
 ];
 
 function sources(): { file: string; text: string }[] {
-  return readdirSync(ROOT)
-    .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
-    .map((name) => ({ file: name, text: readFileSync(join(ROOT, name), 'utf8') }));
+  return ROOTS.flatMap((root) =>
+    readdirSync(root)
+      .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
+      .map((name) => ({ file: name, text: readFileSync(join(root, name), 'utf8') })),
+  );
 }
 
 /**
@@ -67,8 +80,11 @@ describe('F3.1 · the editor route renders text, not markup', () => {
   it('reads some files, so an empty directory cannot pass this suite', () => {
     // Without this the whole file passes when `components/editor/` is renamed.
     const files = sources();
-    expect(files.length).toBeGreaterThanOrEqual(3);
+    expect(files.length).toBeGreaterThanOrEqual(6);
     expect(files.map((entry) => entry.file)).toContain('RunOutput.tsx');
+    // The layout moved output rendering here; the guard has to follow it.
+    expect(files.map((entry) => entry.file)).toContain('ConsoleTabs.tsx');
+    expect(files.map((entry) => entry.file)).toContain('ProblemPanel.tsx');
   });
 
   for (const { file, text } of sources()) {

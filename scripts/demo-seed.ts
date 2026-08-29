@@ -15,6 +15,18 @@
  * render. It writes through the same tables the app writes through — no
  * shortcuts, no fixture-only columns.
  *
+ * ## It shares a database with the e2e suite, so it cleans up after itself
+ *
+ * There is only one Postgres here — the embedded test instance. Problems left
+ * behind by this script therefore sit in the catalog the browser tests walk,
+ * and `e2e/keyboard.spec.ts` counts tab stops: seven extra rows pushed its own
+ * fixtures out of the traversal budget and failed a test that had nothing to do
+ * with what changed.
+ *
+ * Every slug here is prefixed `demo-`, and the script deletes that whole prefix
+ * before seeding. `npm run demo:seed -- --clean` removes them without
+ * re-seeding, which is what to run before a full e2e pass.
+ *
  * **It prints a session token.** That is the same mechanism `e2e/helpers/auth.ts`
  * uses: insert an `auth_sessions` row and carry its token in the session
  * cookie. It is a development convenience and nothing else — it does not
@@ -27,13 +39,13 @@ import postgres from 'postgres';
 const DEMO_EMAIL = 'demo@traceloop.local';
 
 const PROBLEMS = [
-  ['two-sum-style', 'Two Sum', 'easy', 'arrays'],
-  ['binary-search-style', 'Binary Search', 'easy', 'binary-search'],
-  ['search-rotated-style', 'Search in Rotated Sorted Array', 'medium', 'binary-search'],
-  ['coin-change-style', 'Coin Change', 'medium', 'dynamic-programming'],
-  ['course-schedule-style', 'Course Schedule', 'medium', 'graphs'],
-  ['lru-cache-style', 'LRU Cache', 'medium', 'design'],
-  ['median-two-sorted-style', 'Median of Two Sorted Arrays', 'hard', 'binary-search'],
+  ['demo-two-sum-style', 'Two Sum', 'easy', 'arrays'],
+  ['demo-binary-search-style', 'Binary Search', 'easy', 'binary-search'],
+  ['demo-search-rotated-style', 'Search in Rotated Sorted Array', 'medium', 'binary-search'],
+  ['demo-coin-change-style', 'Coin Change', 'medium', 'dynamic-programming'],
+  ['demo-course-schedule-style', 'Course Schedule', 'medium', 'graphs'],
+  ['demo-lru-cache-style', 'LRU Cache', 'medium', 'design'],
+  ['demo-median-two-sorted-style', 'Median of Two Sorted Arrays', 'hard', 'binary-search'],
 ] as const;
 
 /** A solution that gets its binary-search bounds wrong, then right. */
@@ -91,11 +103,24 @@ async function main(): Promise<void> {
 
   const sql = postgres(url, { max: 1, onnotice: () => {} });
 
-  // Start clean, so re-running gives the same result rather than doubling it.
+  /*
+   * Start clean — the user AND the problems.
+   *
+   * The problems matter more than they look: they live in the catalog the e2e
+   * suite walks, and leaving them behind breaks tests that have nothing to do
+   * with this script.
+   */
   await sql.begin(async (tx) => {
     await tx`SELECT set_config('traceloop.purging', 'on', true)`;
     await tx`DELETE FROM users WHERE email = ${DEMO_EMAIL}`;
+    await tx`DELETE FROM problems WHERE slug LIKE 'demo-%'`;
   });
+
+  if (process.argv.includes('--clean')) {
+    console.log(JSON.stringify({ event: 'demo.cleaned' }));
+    await sql.end();
+    return;
+  }
 
   const [user] = await sql`
     INSERT INTO users (email, role, timezone, email_verified_at)
