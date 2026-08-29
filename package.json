@@ -39,6 +39,8 @@
     "mistakes:rollup": "tsx scripts/rollup-mistakes.ts",
     "slo:measure": "tsx scripts/measure-slo.ts",
     "loadtest": "tsx scripts/load-test.ts",
+    "demo:seed": "tsx scripts/demo-seed.ts",
+    "demo:walk": "tsx scripts/demo-walkthrough.ts",
     "analytics:rollup": "tsx scripts/rollup-analytics.ts",
     "library:verify": "tsx scripts/verify-library-urls.ts"
   },

@@ -29,7 +29,7 @@ import {
 } from '@/lib/execution/languages';
 import { draftKey, isPending, type ExecutionResultView } from '@/lib/execution/view';
 import { CodeEditor } from './CodeEditor';
-import { RunOutput } from './RunOutput';
+import { ConsoleTabs } from '@/components/solve/ConsoleTabs';
 
 const POLL_INTERVAL_MS = 700;
 
@@ -207,10 +207,21 @@ export function RunPanel({
     poll(submitted.jobId, 0);
   }
 
+  /*
+   * Three stacked bands: a toolbar, the editor, and the console.
+   *
+   * The editor takes the space that is left (`flex-1 min-h-0`) rather than a
+   * fixed height, so the pane a user drags wider actually gives the editor the
+   * room. `min-h-0` is doing real work — without it a flex child refuses to
+   * shrink below its content and the console gets pushed off the bottom.
+   *
+   * Every label and test id below is unchanged from the vertical layout. The
+   * arrangement moved; what the tests reach for did not.
+   */
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm" htmlFor="run-language">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] px-3 py-2">
+        <label className="sr-only" htmlFor="run-language">
           Language
         </label>
         <select
@@ -230,7 +241,7 @@ export function RunPanel({
         </select>
 
         <button
-          className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
+          className="ml-auto rounded-[var(--radius)] bg-[var(--accent)] px-4 py-1.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
           disabled={busy || source.trim().length === 0}
           onClick={run}
           type="button"
@@ -240,24 +251,25 @@ export function RunPanel({
         </button>
       </div>
 
-      <CodeEditor language={language} onChange={setSource} value={source} />
+      {/*
+        `min-h-[45vh]` below the breakpoint, released at `md`.
 
-      <div>
-        <label className="mb-1 block text-sm" htmlFor="run-stdin">
-          Input (stdin)
-        </label>
-        <textarea
-          className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
-          id="run-stdin"
-          onChange={(event) => setStdin(event.target.value)}
-          rows={3}
-          value={stdin}
-        />
+        Without it the editor is FOUR PIXELS TALL on a phone. Above `md` the
+        split pane has a definite height (`h-[calc(100vh-8rem)]`) and `flex-1`
+        divides it; below `md` the panes stack in a column with no definite
+        height, so `flex-1` has nothing to be a fraction OF and Monaco's
+        `height="100%"` resolves against zero.
+
+        The viewport spec asserted stacking ORDER and caught none of this — a
+        collapsed editor stacks perfectly well. It now measures the editor.
+      */}
+      <div className="min-h-[45vh] flex-1 md:min-h-0">
+        <CodeEditor language={language} onChange={setSource} value={source} />
       </div>
 
       {refusal ? (
         <p
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm"
+          className="border-t border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm"
           data-testid="run-refusal"
           role="status"
         >
@@ -265,7 +277,7 @@ export function RunPanel({
         </p>
       ) : null}
 
-      <RunOutput result={result} />
+      <ConsoleTabs onStdinChange={setStdin} result={result} stdin={stdin} />
     </div>
   );
 }

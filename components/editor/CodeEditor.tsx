@@ -18,7 +18,7 @@ import { MONACO_LANGUAGE_IDS, type ExecutionLanguage } from '@/lib/execution/lan
 const Monaco = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[420px] items-center justify-center rounded-[var(--radius)] border border-[var(--border)] text-sm text-[var(--text-muted)]">
+    <div className="flex h-full min-h-[12rem] items-center justify-center text-sm text-[var(--text-muted)]">
       Loading the editor…
     </div>
   ),
@@ -33,10 +33,25 @@ export function CodeEditor({
   value: string;
   onChange: (next: string) => void;
 }) {
+  /*
+   * `height="100%"`, over a wrapper whose height is DEFINITE at every width.
+   *
+   * Above `md` that is `h-full`: the split pane is `h-[calc(100vh-8rem)]`, so
+   * the chain down to here has a real number and dragging the divider gives the
+   * extra room to the code rather than to empty space.
+   *
+   * Below `md` the panes stack in a column with no definite height, and `h-full`
+   * — `height: 100%` — resolves against `auto`. Monaco then measures its
+   * container as five pixels and renders a sliver you cannot type in. A
+   * `min-height` on the parent does NOT fix this: a percentage height resolves
+   * against the parent's HEIGHT, and min-height is not it.
+   *
+   * So below `md` the wrapper carries the number itself.
+   */
   return (
-    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)]">
+    <div className="h-[45vh] overflow-hidden md:h-full">
       <Monaco
-        height="420px"
+        height="100%"
         language={MONACO_LANGUAGE_IDS[language]}
         onChange={(next) => onChange(next ?? '')}
         options={{

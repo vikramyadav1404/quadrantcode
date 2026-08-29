@@ -8,14 +8,23 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DifficultyPill } from '@/components/solve/DifficultyPill';
+import { TopicChips } from '@/components/solve/TopicChips';
 import { getDb } from '@/server/db';
 import { listProblems, parseFilters } from '@/server/services/problems';
 import { getCurrentUser } from '@/server/services/auth/session';
 
-const DIFFICULTY_TONE: Record<string, string> = {
-  easy: 'text-[var(--success)]',
-  medium: 'text-[var(--warning)]',
-  hard: 'text-[var(--danger)]',
+/**
+ * The status mark, and its word.
+ *
+ * The glyph is `aria-hidden` and the word is what a screen reader gets — the
+ * project's rule that colour and shape are never the only signal. A tick alone
+ * is meaningless to anyone who cannot see it.
+ */
+const STATUS_MARK: Record<string, { glyph: string; token: string; label: string }> = {
+  solved: { glyph: '✓', token: 'var(--success)', label: 'Solved' },
+  attempted: { glyph: '◐', token: 'var(--warning)', label: 'Attempted' },
+  stuck: { glyph: '!', token: 'var(--danger)', label: 'Got stuck' },
 };
 
 export default async function ProblemsPage({
@@ -94,6 +103,9 @@ export default async function ProblemsPage({
             <caption className="sr-only">Problem catalog</caption>
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">
+                <th className="w-10 px-3 py-2 font-medium" scope="col">
+                  <span className="sr-only">Status</span>
+                </th>
                 <th className="px-3 py-2 font-medium" scope="col">
                   Title
                 </th>
@@ -106,34 +118,51 @@ export default async function ProblemsPage({
                 <th className="px-3 py-2 font-medium" scope="col">
                   Est.
                 </th>
-                <th className="px-3 py-2 font-medium" scope="col">
-                  Your status
-                </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((problem) => (
-                <tr className="border-b border-[var(--border)] last:border-0" key={problem.id}>
+                <tr
+                  className="border-b border-[var(--border)] transition-colors last:border-0 hover:bg-[var(--surface)]"
+                  key={problem.id}
+                >
+                  <td className="px-3 py-2">
+                    {(() => {
+                      const mark = STATUS_MARK[problem.userStatus ?? ''];
+                      if (!mark) return <span className="sr-only">Not started</span>;
+
+                      return (
+                        <>
+                          <span aria-hidden="true" style={{ color: mark.token }}>
+                            {mark.glyph}
+                          </span>
+                          <span className="sr-only">{mark.label}</span>
+                        </>
+                      );
+                    })()}
+                  </td>
                   <td className="px-3 py-2">
                     <Link
-                      className="text-[var(--accent)] underline-offset-2 hover:underline"
+                      className="font-medium text-[var(--text-primary)] hover:text-[var(--accent)]"
                       href={`/problems/${problem.slug}`}
                     >
                       {problem.title}
                     </Link>
                   </td>
-                  <td className={`px-3 py-2 ${DIFFICULTY_TONE[problem.difficulty] ?? ''}`}>
-                    {problem.difficulty}
+                  <td className="px-3 py-2">
+                    <DifficultyPill difficulty={problem.difficulty} />
                   </td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">
-                    {problem.tags
-                      .filter((tag) => tag.tagType === 'topic')
-                      .map((tag) => tag.tagValue)
-                      .join(', ') || '—'}
+                  <td className="px-3 py-2">
+                    <span className="flex flex-wrap gap-1">
+                      <TopicChips
+                        topics={problem.tags
+                          .filter((tag) => tag.tagType === 'topic')
+                          .map((tag) => tag.tagValue)}
+                      />
+                    </span>
                   </td>
-                  <td className="px-3 py-2 tabular-nums">{problem.estimatedMinutes}m</td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">
-                    {problem.userStatus ?? 'not started'}
+                  <td className="px-3 py-2 tabular-nums text-[var(--text-muted)]">
+                    {problem.estimatedMinutes}m
                   </td>
                 </tr>
               ))}
