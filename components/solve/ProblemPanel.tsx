@@ -113,9 +113,15 @@ export function ProblemPanel({
                   </p>
                 ) : null}
 
+                {/*
+                  No "on the right". Below `md` the panes stack and the editor
+                  is underneath this paragraph, so a direction is simply wrong
+                  on a phone — and directional copy is the kind of thing that
+                  survives a layout change unnoticed because nothing asserts it.
+                */}
                 <p className="text-xs">
-                  The editor on the right is a scratchpad — nothing you run here is checked
-                  against that platform&rsquo;s tests.
+                  The editor is a scratchpad — nothing you run here is checked against that
+                  platform&rsquo;s tests.
                 </p>
               </div>
             )}
