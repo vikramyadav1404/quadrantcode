@@ -34,13 +34,22 @@ export function CodeEditor({
   onChange: (next: string) => void;
 }) {
   /*
-   * `height="100%"` and a filling wrapper, not a fixed 420px.
+   * `height="100%"`, over a wrapper whose height is DEFINITE at every width.
    *
-   * The editor now lives in a resizable pane; a fixed height means dragging the
-   * divider gives the extra room to empty space instead of to the code.
+   * Above `md` that is `h-full`: the split pane is `h-[calc(100vh-8rem)]`, so
+   * the chain down to here has a real number and dragging the divider gives the
+   * extra room to the code rather than to empty space.
+   *
+   * Below `md` the panes stack in a column with no definite height, and `h-full`
+   * — `height: 100%` — resolves against `auto`. Monaco then measures its
+   * container as five pixels and renders a sliver you cannot type in. A
+   * `min-height` on the parent does NOT fix this: a percentage height resolves
+   * against the parent's HEIGHT, and min-height is not it.
+   *
+   * So below `md` the wrapper carries the number itself.
    */
   return (
-    <div className="h-full overflow-hidden">
+    <div className="h-[45vh] overflow-hidden md:h-full">
       <Monaco
         height="100%"
         language={MONACO_LANGUAGE_IDS[language]}

@@ -251,7 +251,19 @@ export function RunPanel({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1">
+      {/*
+        `min-h-[45vh]` below the breakpoint, released at `md`.
+
+        Without it the editor is FOUR PIXELS TALL on a phone. Above `md` the
+        split pane has a definite height (`h-[calc(100vh-8rem)]`) and `flex-1`
+        divides it; below `md` the panes stack in a column with no definite
+        height, so `flex-1` has nothing to be a fraction OF and Monaco's
+        `height="100%"` resolves against zero.
+
+        The viewport spec asserted stacking ORDER and caught none of this — a
+        collapsed editor stacks perfectly well. It now measures the editor.
+      */}
+      <div className="min-h-[45vh] flex-1 md:min-h-0">
         <CodeEditor language={language} onChange={setSource} value={source} />
       </div>
 
