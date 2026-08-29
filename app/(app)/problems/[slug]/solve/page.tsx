@@ -1,22 +1,32 @@
 /**
- * The editor.
+ * The solve screen: problem on the left, editor on the right.
  *
- * For an external-link problem this page holds no statement — C1 again. The
- * problem lives on the other platform, the link is right there, and what this
- * page adds is a place to work and a record that you did.
+ * ## What the left pane can show, and what it cannot
  *
- * The limits are printed rather than left to be discovered by hitting them. A
- * user whose infinite loop is killed at two seconds should be able to see that
- * two seconds was the rule.
+ * For an external-link problem there is no statement here, ever — C1, enforced
+ * by `problems_external_link_no_statement` at the database. The pane shows what
+ * exists (difficulty, topics, your own history) and sends the reader to the
+ * platform that holds the text.
+ *
+ * `problem.statement` is passed through regardless. For external problems it is
+ * always null and the panel says so; for original problems (C2, the text is
+ * ours) F4.1 fills it and this page needs no change.
+ *
+ * ## The limits are printed, not discovered by hitting them
+ *
+ * Still true, just moved: a user whose infinite loop is killed at two seconds
+ * should be able to see that two seconds was the rule.
  */
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { AttemptHistory } from '@/components/session/AttemptHistory';
+import { ProblemPanel } from '@/components/solve/ProblemPanel';
+import { SplitPane } from '@/components/solve/SplitPane';
 import { RunPanel } from '@/components/editor/RunPanel';
 import { getDb } from '@/server/db';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { ProblemNotFoundError, getProblemBySlug } from '@/server/services/problems';
 import { EXECUTION_LIMITS } from '@/server/services/execution';
+import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { submitRunAction } from './actions';
 
@@ -32,17 +42,12 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
     throw error;
   }
 
-  const external = problem.sourceType === 'external_link';
-
   /*
    * F3.2 · which sitting this run belongs to, if any.
    *
    * Resolved here rather than sent by the client, for the same reason the
    * timer's elapsed time is: a session id the browser supplies is a claim about
    * whose history a snapshot lands in.
-   *
-   * Null is normal. The editor works without a timed session, and a run outside
-   * one is a scratch run that leaves no snapshot — see the action.
    */
   const session = user
     ? await getActiveSession(getDb(), {
@@ -54,52 +59,63 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
 
   const sessionId = session?.problemId === problem.id ? session.id : null;
 
+  const history = user
+    ? await getAttemptHistory(getDb(), {
+        userId: user.id,
+        problemId: problem.id,
+        now: new Date(),
+      })
+    : [];
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        description={
-          external
-            ? 'A scratchpad. This problem is hosted elsewhere, so nothing you run here is checked against its tests.'
-            : 'Write and run your solution.'
-        }
-        title={problem.title}
-      />
+    <SplitPane
+      leftLabel="the problem"
+      rightLabel="the editor"
+      left={
+        <ProblemPanel
+          problem={{
+            title: problem.title,
+            difficulty: problem.difficulty,
+            /*
+             * `tags` carries every kind — topic, pattern, company. The chips
+             * show topics only: a company-style tag beside a difficulty pill
+             * reads as a claim about where the question came from, which C3 is
+             * careful about.
+             */
+            topics: problem.tags
+              .filter((tag) => tag.tagType === 'topic')
+              .map((tag) => tag.tagValue),
+            // Null for every external problem — see the header.
+            statement: problem.statement ?? null,
+            externalUrl: problem.externalUrl,
+            platform: problem.platform,
+          }}
+          submissions={<AttemptHistory attempts={history} />}
+        />
+      }
+      right={
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1">
+            <RunPanel
+              defaultLanguage="cpp17"
+              onSubmit={submitRunAction}
+              problemId={problem.id}
+              sessionId={sessionId}
+            />
+          </div>
 
-      {external && problem.externalUrl ? (
-        <p className="text-sm">
-          <Link
-            className="underline"
-            href={problem.externalUrl}
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            Open the problem on {problem.platform ?? 'the original site'}
-          </Link>
-        </p>
-      ) : null}
-
-      <RunPanel
-        defaultLanguage="cpp17"
-        onSubmit={submitRunAction}
-        problemId={problem.id}
-        sessionId={sessionId}
-      />
-
-      {/*
-        Named honestly. This is Judge0 with these limits configured, not a
-        sandbox this project built — and whether they are honoured is a property
-        of the instance, which is why the wording stays factual about what is
-        sent rather than about what is guaranteed.
-      */}
-      <section className="text-sm text-[var(--text-muted)]">
-        <h2 className="mb-1 font-medium text-[var(--text-primary)]">Run limits</h2>
-        <p>
-          Every run is submitted with a {EXECUTION_LIMITS.cpuSeconds}-second CPU limit, a{' '}
-          {EXECUTION_LIMITS.wallSeconds}-second wall-clock limit,{' '}
-          {EXECUTION_LIMITS.memoryKb / 1024} MB of memory, no network access, and at most{' '}
-          {EXECUTION_LIMITS.maxOutputBytes / 1024} KB of captured output.
-        </p>
-      </section>
-    </div>
+          {/*
+            Named honestly. This is Judge0 with these limits configured, not a
+            sandbox this project built — the wording stays factual about what is
+            SENT rather than about what is guaranteed.
+          */}
+          <p className="border-t border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
+            {EXECUTION_LIMITS.cpuSeconds}s CPU · {EXECUTION_LIMITS.wallSeconds}s wall ·{' '}
+            {EXECUTION_LIMITS.memoryKb / 1024} MB · no network ·{' '}
+            {EXECUTION_LIMITS.maxOutputBytes / 1024} KB output
+          </p>
+        </div>
+      }
+    />
   );
 }
