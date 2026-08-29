@@ -18,7 +18,7 @@
  */
 import { type Page, expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { cleanup, db, signInAs } from './helpers/auth';
+import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 let sql: ReturnType<typeof postgres>;
 
@@ -27,6 +27,19 @@ test.beforeAll(() => {
 });
 
 test.afterAll(async () => {
+  /*
+   * The `kb-` problems too, not just the users.
+   *
+   * This spec inserted two problems and never removed them, so they accumulated
+   * in the catalog every other spec walks — and showed up as phantom rows in a
+   * screenshot of the problems page, which is how they were noticed at all.
+   *
+   * It is the same leak `demo-seed.ts` had, and the irony is that THIS spec is
+   * the one that caught the demo-seed version: extra catalog rows push its own
+   * fixtures past the tab budget below. It was one seed away from failing
+   * itself. `execution.spec.ts` already did this correctly — F1.6's finding.
+   */
+  await deleteProblems(sql, 'kb-%');
   await cleanup(sql);
   await sql.end();
 });
