@@ -55,6 +55,13 @@ const optionalServerSchema = z.object({
   EMAIL_FROM: z.string().optional(),
   MSG91_AUTH_KEY: z.string().optional(),
   MSG91_TEMPLATE_ID: z.string().optional(),
+  /**
+   * GitHub OAuth. Optional, and the provider is only offered when BOTH are set
+   * — a half-configured provider renders a button that fails on click, which is
+   * worse than no button.
+   */
+  GITHUB_ID: z.string().optional(),
+  GITHUB_SECRET: z.string().optional(),
   JUDGE0_URL: z.string().optional(),
   JUDGE0_API_KEY: z.string().optional(),
   RAZORPAY_KEY_ID: z.string().optional(),
