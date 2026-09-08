@@ -30,7 +30,7 @@ import { eq } from 'drizzle-orm';
 import { saveReflectionAction } from '../actions';
 import { ReflectRedirect } from './ReflectRedirect';
 
-export const metadata: Metadata = { title: 'Reflect · TraceLoop' };
+export const metadata: Metadata = { title: 'Reflect · Quadrantcode' };
 
 export default async function ReflectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

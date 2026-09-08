@@ -29,6 +29,7 @@ import { EXECUTION_LIMITS } from '@/server/services/execution';
 import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { submitRunAction } from './actions';
+import { getPublicNativeProblem } from '@/server/services/native-content';
 
 export default async function SolvePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -58,6 +59,13 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
     : null;
 
   const sessionId = session?.problemId === problem.id ? session.id : null;
+  const native =
+    problem.sourceType === 'original'
+      ? await getPublicNativeProblem(getDb(), {
+          problemId: problem.id,
+          version: problem.currentVersion,
+        })
+      : null;
 
   const history = user
     ? await getAttemptHistory(getDb(), {
@@ -89,6 +97,7 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
             statement: problem.statement ?? null,
             externalUrl: problem.externalUrl,
             platform: problem.platform,
+            native,
           }}
           submissions={<AttemptHistory attempts={history} />}
         />
@@ -98,6 +107,17 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
           <div className="min-h-0 flex-1">
             <RunPanel
               defaultLanguage="cpp17"
+              allowSubmit={problem.sourceType === 'original'}
+              starters={
+                native
+                  ? Object.fromEntries(
+                      Object.entries(native.templates).map(([language, template]) => [
+                        language,
+                        template?.starterCode,
+                      ]),
+                    )
+                  : undefined
+              }
               onSubmit={submitRunAction}
               problemId={problem.id}
               sessionId={sessionId}

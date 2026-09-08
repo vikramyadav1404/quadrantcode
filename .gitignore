@@ -15,9 +15,10 @@ coverage/
 
 # env — never commit real secrets; .env.example is the documented template
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
-!.env.example
 
 # misc
 .DS_Store
@@ -50,3 +51,6 @@ docs/scratch/
 .playwright/
 playwright-report/
 test-results/
+
+# Local UI comparison screenshots; keep them on the developer machine only.
+.artifacts/

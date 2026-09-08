@@ -52,6 +52,11 @@ export type ExecutionRequest = {
    * verdict to derive. That is enforced by the caller, and asserted.
    */
   expectedOutput: string | null;
+  limits?: {
+    cpuSeconds: number;
+    wallSeconds: number;
+    memoryKb: number;
+  };
 };
 
 export type ExecutionResult = {
@@ -61,6 +66,7 @@ export type ExecutionResult = {
   stdout: string | null;
   stderr: string | null;
   compileOutput: string | null;
+  compilerRuntimeVersion: string | null;
 };
 
 export interface ExecutionProvider {
@@ -127,9 +133,20 @@ export class FakeExecutionProvider implements ExecutionProvider {
         : '(not executed)',
       stderr: null,
       compileOutput: null,
+      compilerRuntimeVersion: null,
     };
 
     return { ...base, ...this.scripted };
+  }
+}
+
+/** Production-safe disabled state: it never invents a verdict. */
+export class UnavailableExecutionProvider implements ExecutionProvider {
+  readonly name = 'unavailable';
+  readonly executes = false;
+
+  async execute(): Promise<ExecutionResult> {
+    throw new ProviderUnavailableError('Code execution');
   }
 }
 
@@ -142,8 +159,13 @@ export class FakeExecutionProvider implements ExecutionProvider {
 export function resolveProvider(env: {
   JUDGE0_URL?: string | undefined;
   JUDGE0_API_KEY?: string | undefined;
+  NODE_ENV?: string | undefined;
 }): ExecutionProvider {
-  if (!env.JUDGE0_URL) return new FakeExecutionProvider();
+  if (!env.JUDGE0_URL) {
+    return env.NODE_ENV === 'production'
+      ? new UnavailableExecutionProvider()
+      : new FakeExecutionProvider();
+  }
 
   return new Judge0Provider({
     baseUrl: env.JUDGE0_URL,

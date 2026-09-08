@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { getDb } from '@/server/db';
 import { getProfile } from '@/server/services/profile';
 import { requireCurrentUser } from '@/server/services/auth/session';
+import { getServerEnv } from '@/server/env';
+import { isStorageConfigured } from '@/server/services/storage';
 import { ProfileForm } from './ProfileForm';
 
 export default async function ProfileSettingsPage() {
@@ -12,9 +14,10 @@ export default async function ProfileSettingsPage() {
     <>
       <PageHeader
         title="Profile"
-        description="How you appear in TraceLoop. Only what you choose is ever public."
+        description="How you appear in Quadrantcode. Only what you choose is ever public."
       />
       <ProfileForm
+        avatarEnabled={isStorageConfigured(getServerEnv())}
         appearance={profile.appearance}
         initial={{
           displayName: profile.displayName ?? '',

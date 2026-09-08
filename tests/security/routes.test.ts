@@ -77,12 +77,35 @@ const PUBLIC_ROUTES: Record<string, string> = {
   '/login': 'you cannot require a session to create a session',
   '/login/verify': 'the magic-link landing page, reached before any session exists',
   '/sign-in': 'legacy path kept as a redirect to /login',
+  '/privacy': 'public policy explaining how account and practice data is handled',
+  '/terms': 'public terms must be readable before a visitor creates an account',
+  '/security': 'public security and responsible disclosure information',
+  '/contact': 'public support instructions for visitors who cannot sign in',
   '/api/auth/[...nextauth]': 'Auth.js callbacks; rejecting them would break sign-in itself',
   '/api/health':
     'an uptime probe cannot hold a session, and a health check behind auth answers "is auth working"',
+  '/api/health/live':
+    'process liveness must remain callable by the hosting platform without a session',
+  '/api/health/ready':
+    'deployment readiness must remain callable by the hosting platform without a session',
   '/api/otp/request':
     'phone verification starts before the phone is trusted; rate-limited instead',
   '/api/otp/verify': 'same — the code IS the credential here',
+  /*
+   * F0.3b. These two are the SIGN-IN, so requiring a session is circular in the
+   * same way /login is — but unlike the two above, they are not merely
+   * unauthenticated, they hand out a session. What stands in for auth:
+   *
+   *   · the response is identical for a registered and an unregistered number,
+   *     so the endpoint is not a phone-number oracle
+   *   · both limiters key on the SUBMITTED number and never look it up, so even
+   *     the 429 carries no information about who has an account
+   *   · verify is capped tighter than the signed-in equivalent, because a wrong
+   *     code here is an attempt on somebody's account
+   */
+  '/api/auth/phone/request':
+    'you cannot require a session to create a session; enumeration-safe and rate-limited',
+  '/api/auth/phone/verify': 'the code IS the credential; issues the session itself',
 };
 
 /**
@@ -94,11 +117,14 @@ const PUBLIC_ROUTES: Record<string, string> = {
 const PROTECTED_PREFIXES = [
   '/admin',
   '/analytics',
+  '/assessments',
+  '/api/admin',
   '/api/avatar',
   '/api/execution',
   '/api/ingest',
   '/api/session',
   '/dashboard',
+  '/companies',
   '/mistakes',
   '/onboarding',
   '/problems',

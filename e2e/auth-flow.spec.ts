@@ -35,7 +35,7 @@ test('the sign-in form submits without leaking whether the address exists', asyn
 }) => {
   await page.goto('/login');
 
-  await page.getByLabel(/email/i).fill('newuser@e2e.test');
+  await page.getByRole('textbox', { name: /email address/i }).fill('newuser@e2e.test');
   await page.getByRole('button', { name: /send sign-in link/i }).click();
   await page.waitForLoadState('networkidle');
 

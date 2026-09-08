@@ -1,6 +1,6 @@
 # Scoring
 
-How TraceLoop turns what you have done into a number, in prose. The code is
+How Quadrantcode turns what you have done into a number, in prose. The code is
 `server/services/analytics/scoring.ts`; this file exists so the reasoning is
 legible without reading it.
 
@@ -87,7 +87,7 @@ noise however good the numbers are.
 It does not model the future, and nothing in the codebase says it does — there
 is a test (`tests/analytics/wording.test.ts`) that reads the analytics source,
 components, page and this file, and fails if the words creep in. The rule comes
-from the F1.6 ticket and from **C4**: TraceLoop does not claim certainty it does
+from the F1.6 ticket and from **C4**: Quadrantcode does not claim certainty it does
 not have.
 
 The honest description is the one at the top: it adds up four things you already

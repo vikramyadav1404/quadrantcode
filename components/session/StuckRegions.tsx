@@ -175,7 +175,7 @@ function Region({
             />
           </label>
           <label className="text-sm">
-            to
+            To line
             <input
               className="ml-1 w-16 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-1 py-0.5"
               inputMode="numeric"

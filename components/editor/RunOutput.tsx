@@ -85,6 +85,7 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
         {result.verdict ? (
           <span
             className="font-medium"
+            data-testid="run-verdict"
             style={{ color: VERDICT_TOKEN[result.verdict] ?? 'var(--text-primary)' }}
           >
             {VERDICT_LABELS[result.verdict]}
@@ -107,11 +108,50 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
         ) : null}
       </div>
 
+      {result.compilerRuntimeVersion ? (
+        <p className="text-xs text-[var(--text-muted)]">
+          Runtime: {result.compilerRuntimeVersion}
+        </p>
+      ) : null}
+
       {result.scratchpad ? (
         <p className="text-sm text-[var(--text-muted)]">
           This problem lives on another site, so nothing here is checked against its tests — the
           editor is a scratchpad. Submit on the original platform.
         </p>
+      ) : null}
+
+      {result.testResults?.length ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {result.testResults.map((test) => (
+            <div
+              className="rounded-[var(--radius)] border border-[var(--border)] p-2 text-xs"
+              key={`${test.visibility}-${test.ordinal}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">
+                  {test.visibility === 'hidden'
+                    ? `Hidden case ${test.ordinal}`
+                    : test.visibility === 'custom'
+                      ? 'Custom case'
+                      : `Case ${test.ordinal}`}
+                </span>
+                <span>{VERDICT_LABELS[test.verdict]}</span>
+              </div>
+              {test.visibility !== 'hidden' && test.input !== undefined ? (
+                <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded bg-[var(--surface-raised)] p-2">
+                  Input: {test.input}
+                  {test.expectedOutput !== undefined
+                    ? `\nExpected: ${test.expectedOutput}`
+                    : ''}
+                  {test.actualOutput !== undefined
+                    ? `\nActual: ${test.actualOutput ?? '—'}`
+                    : ''}
+                </pre>
+              ) : null}
+            </div>
+          ))}
+        </div>
       ) : null}
 
       <OutputBlock label="Output" value={result.stdout} />

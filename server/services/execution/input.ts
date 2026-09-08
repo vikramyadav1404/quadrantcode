@@ -27,6 +27,8 @@ export const submitExecutionSchema = z.object({
   sessionId: z.string().uuid().nullish(),
 
   language: z.enum(EXECUTION_LANGUAGES),
+  // Assessment jobs are created by the server-side paper service, never by this browser boundary.
+  mode: z.enum(['run', 'submit']).default('run'),
 
   source: z
     .string()

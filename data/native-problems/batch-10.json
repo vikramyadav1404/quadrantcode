@@ -1,0 +1,2167 @@
+{
+  "schemaVersion": 1,
+  "batch": 10,
+  "reviewStatus": "needs_review",
+  "problems": [
+    {
+      "slug": "server-maintenance-reward",
+      "title": "Server Maintenance Reward",
+      "difficulty": "easy",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Server Maintenance Reward is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Server Maintenance Reward. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "orchard-harvest-without-neighbors",
+      "title": "Orchard Harvest Without Neighbors",
+      "difficulty": "medium",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Orchard Harvest Without Neighbors is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Orchard Harvest Without Neighbors. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "gallery-security-collection",
+      "title": "Gallery Security Collection",
+      "difficulty": "easy",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Gallery Security Collection is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Gallery Security Collection. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "workshop-shift-reward",
+      "title": "Workshop Shift Reward",
+      "difficulty": "hard",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Workshop Shift Reward is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Workshop Shift Reward. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "solar-field-selection",
+      "title": "Solar Field Selection",
+      "difficulty": "medium",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Solar Field Selection is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Solar Field Selection. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "courier-stop-value-plan",
+      "title": "Courier Stop Value Plan",
+      "difficulty": "easy",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Courier Stop Value Plan is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Courier Stop Value Plan. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "festival-stall-profit",
+      "title": "Festival Stall Profit",
+      "difficulty": "medium",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Festival Stall Profit is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Festival Stall Profit. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "archive-shelf-reward",
+      "title": "Archive Shelf Reward",
+      "difficulty": "easy",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Archive Shelf Reward is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Archive Shelf Reward. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "research-grant-selection",
+      "title": "Research Grant Selection",
+      "difficulty": "hard",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Research Grant Selection is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Research Grant Selection. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "transit-station-value-plan",
+      "title": "Transit Station Value Plan",
+      "difficulty": "medium",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "house-robber"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Transit Station Value Plan is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum nonadjacent total result before the next decision can be made.",
+      "statement": "Implement the required function for Transit Station Value Plan. Interpret the supplied sequence exactly as described in the input contract, compute the maximum nonadjacent total, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values contains nonnegative rewards in their fixed left-to-right order.",
+      "outputFormat": "Return the maximum total reward obtainable without selecting adjacent positions.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in signed 64-bit range."
+      ],
+      "examples": [
+        {
+          "input": "2 7 9 3 1",
+          "output": "12",
+          "explanation": "Example 1 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 12."
+        },
+        {
+          "input": "1 2 3 1",
+          "output": "4",
+          "explanation": "Example 2 follows the stated maximum nonadjacent total process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 7 9 3 1",
+          "expectedOutput": "12",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 2 3 1",
+          "expectedOutput": "4",
+          "explanation": "Applying the maximum nonadjacent total rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 5 5 5",
+          "expectedOutput": "10",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 1 2 3 4 5 6 7",
+          "expectedOutput": "736",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 100 0 100 0",
+          "expectedOutput": "200",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "At each position, compare skipping it with taking it after the best result two positions back.",
+        "Only the previous two dynamic-programming states are needed."
+      ],
+      "editorial": {
+        "overview": "Use the recurrence best[i] = max(best[i-1], best[i-2] + values[i]) with two rolling variables.",
+        "bruteForceApproach": "Recursively choose or skip every position, rejecting branches that choose adjacent positions.",
+        "optimalApproach": "Maintain the best total through the previous position and through the position before it, updating once per reward.",
+        "correctnessProof": "Every valid optimal selection either omits the current position, giving the previous best, or includes it, forcing omission of the previous position and giving the two-back best plus current reward. Taking the maximum covers both exhaustive cases.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long a=0,b=0;for(int i=0;i<n;i++){long long z=b>a+v[i]?b:a+v[i];a=b;b=z;}return b;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){long long a=0,b=0;for(auto x:v){auto n=max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){long a=0,b=0;for(long x:v){long n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    a=b=0\n    for x in v:a,b=b,max(b,a+x)\n    return b"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){let a=0,b=0;for(const x of v){const n=Math.max(b,a+x);a=b;b=n;}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    }
+  ]
+}

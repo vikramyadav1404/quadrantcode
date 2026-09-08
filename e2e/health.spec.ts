@@ -34,12 +34,13 @@ test('the health endpoint answers without a session', async ({ request }) => {
 test('IT REPORTS ABSENT DEPENDENCIES AS not_configured, NOT AS UP', async ({ request }) => {
   /*
    * The failure this endpoint exists to avoid: a dashboard that is green
-   * because it never looked. Judge0, Redis and Sentry are all missing in this
-   * environment, and each must say so.
+   * because it never looked. The E2E harness configures its local Judge0
+   * contract server, while Redis and Sentry are intentionally absent; the
+   * absent dependencies must say so.
    */
   const body = await (await request.get('/api/health')).json();
 
-  expect(body.dependencies.judge0).toBe('not_configured');
+  expect(body.dependencies.redis).toBe('not_configured');
   expect(body.dependencies.sentry).toBe('not_configured');
   expect(body.status).toBe('degraded');
 });

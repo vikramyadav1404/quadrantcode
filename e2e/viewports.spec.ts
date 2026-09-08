@@ -190,7 +190,7 @@ test('the sign-in page is usable at 375px', async ({ page }) => {
   await page.goto('/sign-in');
 
   await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
-  await expect(page.getByLabel(/email/i)).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /email address/i })).toBeVisible();
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

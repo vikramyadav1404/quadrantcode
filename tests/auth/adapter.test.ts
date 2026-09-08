@@ -17,18 +17,18 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { authSessions, userProfiles, users } from '@/server/db/schema';
-import { createTraceLoopAdapter } from '@/server/services/auth/adapter';
+import { createQuadrantcodeAdapter } from '@/server/services/auth/adapter';
 import { type TestContext, hasTestDatabase, setupTestDb, truncateAll } from '../helpers/db';
 
 const suite = hasTestDatabase ? describe : describe.skip;
 
 suite('F0.3 · Auth.js adapter (stock + three app rules)', () => {
   let ctx: TestContext;
-  let adapter: ReturnType<typeof createTraceLoopAdapter>;
+  let adapter: ReturnType<typeof createQuadrantcodeAdapter>;
 
   beforeAll(async () => {
     ctx = await setupTestDb();
-    adapter = createTraceLoopAdapter(ctx.db);
+    adapter = createQuadrantcodeAdapter(ctx.db);
   }, 60_000);
 
   afterAll(async () => {

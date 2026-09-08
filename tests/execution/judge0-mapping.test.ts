@@ -8,7 +8,7 @@
  * "accepted".
  */
 import { describe, expect, it } from 'vitest';
-import { JUDGE0_LANGUAGE_IDS, verdictForStatus } from '@/server/services/execution';
+import { selectJudge0Language, verdictForStatus } from '@/server/services/execution';
 import { EXECUTION_LANGUAGES } from '@/lib/execution/languages';
 
 describe('F3.1 · Judge0 status → our verdict', () => {
@@ -46,11 +46,17 @@ describe('F3.1 · Judge0 status → our verdict', () => {
     expect(verdictForStatus(0)).toBe('internal_error');
   });
 
-  it('has a language id for every language the editor offers', () => {
-    // The editor and the provider must agree, or a language the UI shows fails
-    // at submission with an undefined id.
+  it('discovers every editor language without assuming numeric ids', () => {
+    const exposed = [
+      { id: 110, name: 'C (GCC 12.2.0)' },
+      { id: 111, name: 'C++ (GCC 12.2.0)' },
+      { id: 112, name: 'Java (OpenJDK 21.0.2)' },
+      { id: 113, name: 'Python (3.12.1)' },
+      { id: 114, name: 'JavaScript (Node.js 22.1.0)' },
+    ];
+
     for (const language of EXECUTION_LANGUAGES) {
-      expect(JUDGE0_LANGUAGE_IDS[language], language).toBeTypeOf('number');
+      expect(selectJudge0Language(exposed, language), language).not.toBeNull();
     }
   });
 });

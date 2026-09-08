@@ -43,6 +43,7 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
     problemId: parsed.data.problemId,
     sessionId: parsed.data.sessionId ?? null,
     language: parsed.data.language,
+    mode: parsed.data.mode,
     source: parsed.data.source,
     stdin: parsed.data.stdin ?? null,
     now: new Date(),
@@ -83,21 +84,6 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
     try {
       const occurredAt = new Date();
       const sessionId = parsed.data.sessionId;
-
-      /*
-       * The run itself is an event, whether or not a snapshot is taken.
-       *
-       * These are separate facts and the timeline needs both: "you ran your
-       * code" happened even for a user who has turned capture off, and a
-       * timeline that showed nothing for them would misreport their session as
-       * one where nothing occurred.
-       */
-      await recordEvent(getDb(), {
-        sessionId,
-        type: 'run_attempted',
-        occurredAt,
-        payload: { language: parsed.data.language },
-      });
 
       const captured = await captureSnapshot(getDb(), {
         sessionId,

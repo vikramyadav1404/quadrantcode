@@ -37,6 +37,11 @@ export function ProblemAdminRow({
         >
           {title}
         </a>
+        {sourceType === 'original' ? (
+          <a className="ml-2 text-xs underline" href={`/admin/problems/${id}`}>
+            Edit native
+          </a>
+        ) : null}
       </td>
       <td className="px-3 py-2 text-[var(--text-muted)]">
         {sourceType === 'external_link' ? 'external' : 'original'}

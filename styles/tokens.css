@@ -1,5 +1,5 @@
 /*
- * TraceLoop design tokens (F0.4).
+ * Quadrantcode design tokens (F0.4).
  *
  * Dark is the default (`:root`). Light is opt-in via `[data-theme='light']`,
  * set on <html> before paint by the inline script in app/layout.tsx, so there

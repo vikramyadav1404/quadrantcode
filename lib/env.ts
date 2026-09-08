@@ -22,6 +22,16 @@ export const publicEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** Absolute origin used for magic links, OG images and webhook callbacks. */
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  /** Public Sentry ingestion endpoint. A DSN identifies a project; it is not an auth secret. */
+  NEXT_PUBLIC_SENTRY_DSN: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().url().optional(),
+  ),
+  /** Public support mailbox shown on legal and contact pages. */
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().email().optional(),
+  ),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;

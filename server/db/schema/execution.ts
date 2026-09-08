@@ -22,9 +22,11 @@
  */
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   smallint,
   text,
@@ -32,7 +34,12 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { executionLanguageEnum, executionStatusEnum, executionVerdictEnum } from './enums';
+import {
+  executionLanguageEnum,
+  executionModeEnum,
+  executionStatusEnum,
+  executionVerdictEnum,
+} from './enums';
 import { problems } from './problems';
 import { solveSessions } from './session';
 import { users } from './users';
@@ -42,6 +49,27 @@ export const MAX_SOURCE_BYTES = 65_536;
 
 /** Nothing longer than this is accepted as stdin. */
 export const MAX_STDIN_BYTES = 8_192;
+
+/** Deliberately excludes hidden inputs and expected values. */
+export type SafeTestResult = {
+  ordinal: number;
+  visibility: 'sample' | 'visible' | 'hidden' | 'custom';
+  verdict:
+    | 'accepted'
+    | 'wrong_answer'
+    | 'runtime_error'
+    | 'compile_error'
+    | 'internal_error'
+    | 'tle'
+    | 'mle';
+  runtimeMs: number | null;
+  memoryKb: number | null;
+} & {
+  /** Never populated for hidden tests. */
+  input?: string;
+  expectedOutput?: string;
+  actualOutput?: string | null;
+};
 
 export const executionJobs = pgTable(
   'execution_jobs',
@@ -65,6 +93,8 @@ export const executionJobs = pgTable(
     sessionId: uuid().references(() => solveSessions.id, { onDelete: 'set null' }),
 
     language: executionLanguageEnum().notNull(),
+    mode: executionModeEnum().notNull().default('run'),
+    problemVersion: integer().notNull().default(1),
     status: executionStatusEnum().notNull().default('queued'),
 
     /**
@@ -177,6 +207,14 @@ export const runAttempts = pgTable(
     language: executionLanguageEnum().notNull(),
     verdict: executionVerdictEnum().notNull(),
 
+    /** Set only by the server after a configured provider returns a terminal result. */
+    serverVerified: boolean().notNull().default(false),
+    serverVerifiedAt: timestamp({ withTimezone: true }),
+    providerName: text(),
+    compilerRuntimeVersion: text(),
+    /** Per-case summaries only; hidden inputs and expected outputs never enter this object. */
+    testResults: jsonb().$type<SafeTestResult[]>(),
+
     runtimeMs: integer(),
     memoryKb: integer(),
 
@@ -232,6 +270,11 @@ export const runAttempts = pgTable(
       (${table.testsPassed} is not null and ${table.testsTotal} is not null
         and ${table.testsPassed} >= 0 and ${table.testsPassed} <= ${table.testsTotal})
     `,
+    ),
+    check(
+      'run_attempts_server_verification_coherent',
+      sql`(${table.serverVerified} and ${table.serverVerifiedAt} is not null and ${table.providerName} is not null)
+          or (not ${table.serverVerified} and ${table.serverVerifiedAt} is null)`,
     ),
   ],
 );

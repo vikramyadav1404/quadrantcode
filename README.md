@@ -1,12 +1,19 @@
-# TraceLoop
+# Quadrantcode
 
 **Don't just solve problems. Learn from where you got stuck.**
 
-TraceLoop is a DSA accountability and _solve intelligence_ platform. It is **not** a
-LeetCode clone. You solve problems on external platforms (free tier) or on TraceLoop's
-own original problems (premium tier); TraceLoop records **how** the solve went — timed
+Quadrantcode is a DSA accountability and _solve intelligence_ platform. It is **not** a
+LeetCode clone. You solve problems on external platforms (free tier) or on Quadrantcode's
+own original problems (premium tier); Quadrantcode records **how** the solve went — timed
 sessions, run attempts, stuck points, mistake patterns, spaced revision, contest
 upsolving and reminders — and turns that into a revision plan.
+
+> **Deployment state:** the repository is production-hardened and code-ready,
+> but no live environment is claimed. A managed database, final domain and
+> provider credentials are still required. Start with
+> [`docs/deployment.md`](docs/deployment.md) and
+> [`docs/launch-checklist.md`](docs/launch-checklist.md). Real secrets belong in
+> Vercel/provider dashboards, never Git or chat.
 
 ---
 
@@ -21,33 +28,37 @@ return only if the project continued past that.
 
 ### Built
 
-| ID    | Feature                                     | Where                         |
-| ----- | ------------------------------------------- | ----------------------------- |
-| F0.1  | Repository scaffold & CI                    | root, `.github/`              |
-| F0.2  | Identity & problem catalog schema           | `server/db/schema/`           |
-| F0.3  | Auth, phone OTP & verification tiers        | `server/services/auth/`       |
-| F0.3+ | Auth UI — login, verify, onboarding         | `app/(auth)/`                 |
-| F0.4  | Design system & application shell           | `components/`                 |
-| F0.5  | User profile & avatar upload                | `server/services/profile/`    |
-| F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/`   |
-| F1.2  | CSV ingestion, export & library             | `server/services/ingest/`     |
-| F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`     |
-| F1.4  | Server-authoritative solve session timer    | `server/services/session/`    |
-| F1.5  | Attempt history, stuck markers & reflection | `server/services/reflection/` |
-| F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`  |
-| F2.1  | Spaced repetition & forgetting-risk scoring | `server/services/revision/`   |
-| F3.1  | Monaco editor & queued code execution       | `server/services/execution/`  |
-| F3.2  | Solve timeline, code snapshots & privacy    | `server/services/timeline/`   |
+| ID    | Feature                                     | Where                          |
+| ----- | ------------------------------------------- | ------------------------------ |
+| F0.1  | Repository scaffold & CI                    | root, `.github/`               |
+| F0.2  | Identity & problem catalog schema           | `server/db/schema/`            |
+| F0.3  | Auth, phone OTP & verification tiers        | `server/services/auth/`        |
+| F0.3+ | Auth UI — login, verify, onboarding         | `app/(auth)/`                  |
+| F0.4  | Design system & application shell           | `components/`                  |
+| F0.5  | User profile & avatar upload                | `server/services/profile/`     |
+| F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/`    |
+| F1.2  | CSV ingestion, export & library             | `server/services/ingest/`      |
+| F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`      |
+| F1.4  | Server-authoritative solve session timer    | `server/services/session/`     |
+| F1.5  | Attempt history, stuck markers & reflection | `server/services/reflection/`  |
+| F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`   |
+| F2.1  | Spaced repetition & forgetting-risk scoring | `server/services/revision/`    |
+| F3.1  | Monaco editor & queued code execution       | `server/services/execution/`   |
+| F3.2  | Solve timeline, code snapshots & privacy    | `server/services/timeline/`    |
+| F3.3  | Heuristic stuck-point inference             | `server/services/inference/`   |
+| F3.5  | Mistake memory & weekly focus               | `server/services/mistakes/`    |
+| F4.6  | Tracing, health dashboard & audit logs      | `server/lib/observability/`    |
+| F4.8  | Security hardening & launch readiness       | config, CI and `docs/`         |
+| N1    | 100 original native DSA problems            | `data/native-problems/`        |
+| N2    | Native authoring, review and Judge0 gate    | `server/services/admin/`       |
+| N3    | Company evidence and report moderation      | `server/services/companies/`   |
+| N4    | 20 original timed pattern-mock papers       | `server/services/assessments/` |
 
 ### Planned — in the target build
 
-| ID   | Feature                                | Notes                                                           |
-| ---- | -------------------------------------- | --------------------------------------------------------------- |
-| F3.2 | Event log & diff-based code snapshots  | Also owns the server-side code snapshot F3.1 deferred (**D24**) |
-| F3.3 | Heuristic stuck-point inference        |                                                                 |
-| F3.5 | Mistake memory & weak-topic engine     |                                                                 |
-| F4.6 | Tracing, health dashboard & audit logs |                                                                 |
-| F4.8 | Security hardening & launch readiness  |                                                                 |
+No remaining code ticket in the trimmed target is described as planned. Live
+provider verification and deployment are external launch work, not an unbuilt
+feature; the exact blockers are in `docs/status.md`.
 
 ### Cut from the target build
 
@@ -55,17 +66,14 @@ Not built, not being built. Listed so their absence is a decision on the record.
 
 | ID    | Feature                               | What its absence means today                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1.2* | Curated 100-problem library           | A small verified subset ships; the full list is **BLOCKED** on real data. The importer and `npm run library:verify` are built                                                                                                                                                                                                                                                                                                     |
 | F2.2  | Four-mode revision experience         | F2.1 ships `/revision` — the due list, in risk order, with three outcomes. The four distinct revision **modes** are cut, and nothing pretends otherwise (**D23**)                                                                                                                                                                                                                                                                 |
 | F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. F3.1 shipped under this: `execution_jobs` **is** the queue. See **D17**, **D24**                                                                                                                                                                                                                    |
 | F2.4  | Multi-channel notification engine     | No reminders of any kind — it was queue-dependent                                                                                                                                                                                                                                                                                                                                                                                 |
 | F2.5  | Contest sync & upsolve tracker        | No contest ingestion                                                                                                                                                                                                                                                                                                                                                                                                              |
-| F4.1  | Original problem CMS & quality gate   | The schema supports original problems; there is no authoring UI, so the catalog is external links only                                                                                                                                                                                                                                                                                                                            |
 | F4.2  | Structured preparation tracks         | `target_role` is captured at onboarding and unused                                                                                                                                                                                                                                                                                                                                                                                |
 | F4.3  | Coin ledger, trust score & anti-abuse | **C8** has no path to guard — nothing in scope grants rewards; the constraint stands for anything added later. **If this returns: `streak_freezes` is NOT append-only.** It is a projection of current coverage, rewritten by every recompute — a backfill releases a spent freeze by design (D18). Every other ledger in this project is append-only, so auditing freeze history needs a new table, not a query against that one |
 | F4.4  | Razorpay subscriptions & entitlements | No billing. **C6** (server-side entitlement checks) is unexercised                                                                                                                                                                                                                                                                                                                                                                |
-| F4.5  | Timed mock assessment engine          |                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| F4.7  | Landing, public profile & share cards | No public surface; the disclaimer below still applies to anything published                                                                                                                                                                                                                                                                                                                                                       |
+| F4.7* | Public profiles                       | The landing page, metadata, OG card and legal/support surfaces now ship; user public profiles remain cut                                                                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -80,7 +88,7 @@ Not built, not being built. Listed so their absence is a decision on the record.
                           │               │
                  ┌────────▼──────┐  ┌─────▼────────────┐
                  │  PostgreSQL   │  │  Redis (Upstash) │
-                 │  (Supabase)   │  │  queues + limits │
+                 │ (managed PG)  │  │ rate limits only│
                  └────────▲──────┘  └─────▲────────────┘
                           │               │
                     ┌─────┴───────────────┴─────┐
@@ -91,8 +99,8 @@ Not built, not being built. Listed so their absence is a decision on the record.
 
 > Architecture diagram placeholder — replaced with a rendered diagram in F4.8.
 
-**Stack (locked):** Next.js 15 App Router · TypeScript strict · Tailwind CSS +
-shadcn/ui · PostgreSQL (Supabase) + Drizzle ORM with versioned SQL migrations ·
+**Stack:** Next.js 15 App Router · TypeScript strict · Tailwind CSS · managed
+PostgreSQL + Drizzle ORM with versioned SQL migrations ·
 Auth.js email magic link + MSG91 phone OTP · in-process jobs with Postgres state ·
 Monaco Editor · Razorpay · Resend · Telegram Bot API · Sentry + structured JSON logs.
 
@@ -155,9 +163,11 @@ npm run dev                     # http://localhost:3000
 npm run worker                  # separate terminal — background jobs
 ```
 
-Every variable in `.env.example` carries a one-line comment. Only `NODE_ENV`,
-`DATABASE_URL` and `NEXT_PUBLIC_APP_URL` are required to boot; everything else is
-phase-gated and fails loudly at the point of use via `requireEnv()`.
+Every variable in `.env.example` carries a one-line comment. Local development
+needs `DATABASE_URL` and `NEXT_PUBLIC_APP_URL`; production additionally needs a
+32+ character `AUTH_SECRET`, a distributed rate limiter, at least one real auth
+provider, monitoring and a support address. `npm run deploy:check` validates the
+deployment contract before Vercel compiles the app.
 
 ### Scripts
 
@@ -627,8 +637,10 @@ that, and F4.8 owns it.
 
 ### What is BLOCKED, and what "alerting" currently means
 
-- **Sentry** — no DSN. Errors go to stdout; nothing is tagged by release and no
-  source maps are uploaded.
+- **Sentry account wiring** — the browser, Node, Edge and React error-boundary
+  SDK integration is in the codebase. A real DSN, org, project and upload token
+  are still needed before errors can leave the deployment or source maps can be
+  uploaded.
 - **Alerts** — the four conditions are implemented and tested, and each fires
   when triggered. **But `deliver()` writes a log line, and a log line is not an
   alert.** Nobody is watching stdout at 3am. The seam exists so that supplying a
@@ -637,19 +649,21 @@ that, and F4.8 owns it.
   AI spend and Razorpay webhooks all belong to cut tickets. `/admin/health`
   lists them as not measured, with the reason, rather than showing zeros.
 
-`/api/health` is public and deliberately terse: dependency names and states, no
-error messages and no configuration values. It returns 503 when Postgres is
-unreachable and 200 otherwise — including when dependencies are absent, because
-that is this deployment's known state rather than a fault.
+`/api/health/live` is a process-only liveness probe and `/api/health/ready`
+checks the required database/configuration contract. The compatibility endpoint
+`/api/health` remains public and deliberately terse: dependency names and
+states, no error messages and no configuration values.
 
 ## Verification
 
-| Command                 | What it proves                                                                                                                      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`              | 984 unit + integration tests, 5 skipped (Postgres-backed suites skip without `TEST_DATABASE_URL` — check the count, not the colour) |
-| `npm run test:e2e`      | 77 browser tests — viewports, theme flash, auth flow, payload capture, the timer, reflection, revision, and the editor's XSS proof  |
-| `npm run contrast`      | Every token pair against its WCAG threshold; exits non-zero on failure                                                              |
-| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                              |
+| Command                 | What it proves                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`              | 1,176 unit + database integration tests pass; 5 live-S3 credential tests skip by design                                                     |
+| `npm run test:e2e`      | 114 production-build browser tests: auth, IDOR, responsive UI, Monaco/CSP, execution, timeline, accessibility and output-injection controls |
+| `npm run build`         | All 45 static/dynamic route entries compile, typecheck and prerender successfully                                                           |
+| `npm run contrast`      | Every token pair passes its WCAG threshold                                                                                                  |
+| `npm audit --omit=dev`  | 0 production runtime vulnerabilities; the full audit retains 4 moderate dev-only advisories in Drizzle Kit's legacy esbuild chain           |
+| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                                      |
 
 CI runs these as **two jobs**: unit/lint/build, and browser. They are separate so
 Chromium flake never blocks a green typecheck.
@@ -711,7 +725,7 @@ profile references. It is tested. With F2.3 cut nothing schedules it — run
 
 ## Disclaimer
 
-TraceLoop stores **metadata and links only** for problems hosted on external platforms —
+Quadrantcode stores **metadata and links only** for problems hosted on external platforms —
 never statements, examples, editorials or test cases. Company-style tracks are based on
 common public interview patterns and original practice problems.
 

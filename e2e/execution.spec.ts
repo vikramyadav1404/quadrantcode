@@ -14,10 +14,11 @@
  * control: the same page is made to run a script deliberately, proving the
  * detector can see one.
  *
- * The provider is the fake (there is no `JUDGE0_URL`), and the fake echoes
- * stdin into stdout — which is exactly the shape a real program printing its
- * input would have. The renderer cannot tell the difference, which is the
- * point: it never knows where the bytes came from.
+ * The production-mode app uses its real Judge0 HTTP provider against the local
+ * contract server configured by Playwright. The server echoes stdin into
+ * stdout — the same shape as a real program printing its input. The renderer
+ * cannot tell the difference, which is the point: it never knows where the
+ * bytes came from.
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
@@ -78,8 +79,11 @@ test('program output containing script tags renders as text and does not run', a
     delete (window as never as Record<string, unknown>).__traceloopPwned;
   });
 
-  await page.getByLabel('Input (stdin)').fill(`${SCRIPT_PAYLOAD}\n${IMG_PAYLOAD}`);
-  await page.getByRole('button', { name: /run|queued|running/i }).click();
+  const stdin = page.getByLabel('Input (stdin)');
+  const payload = `${SCRIPT_PAYLOAD}\n${IMG_PAYLOAD}`;
+  await stdin.fill(payload);
+  await expect(stdin).toHaveValue(payload);
+  await page.getByRole('button', { name: /^run code$/i }).click();
 
   const output = page.getByTestId('run-output-output');
   await expect(output).toContainText(SCRIPT_PAYLOAD, { timeout: 20_000 });
@@ -100,7 +104,7 @@ test('the run moves through states the page can show, and ends in a result', asy
 }) => {
   await page.goto(`/problems/${SLUG}/solve`);
 
-  const button = page.getByRole('button', { name: /^run$/i });
+  const button = page.getByRole('button', { name: /^run code$/i });
   await expect(button).toBeEnabled();
 
   await button.click();
@@ -112,8 +116,8 @@ test('the run moves through states the page can show, and ends in a result', asy
    * flake. What matters here is that the button stops saying "Run" and the page
    * arrives at a result rather than spinning forever.
    */
-  await expect(page.getByRole('button', { name: /queued|running|^run$/i })).toBeVisible();
-  await expect(page.getByTestId('run-output-output')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: /queued|running|^run code$/i })).toBeVisible();
+  await expect(page.getByText('Accepted', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(button).toBeEnabled();
 });
 
@@ -123,10 +127,10 @@ test('an external problem says nothing was checked', async ({ page }) => {
   // C1: no statement on the page, and no claim about correctness after a run.
   await expect(page.getByText(/scratchpad/i).first()).toBeVisible();
 
-  await page.getByRole('button', { name: /^run$/i }).click();
-  await expect(page.getByTestId('run-output-output')).toBeVisible({ timeout: 20_000 });
-
-  await expect(page.getByText(/nothing here is checked against its tests/i)).toBeVisible();
+  await page.getByRole('button', { name: /^run code$/i }).click();
+  await expect(page.getByText(/nothing here is checked against its tests/i)).toBeVisible({
+    timeout: 20_000,
+  });
 
   /*
    * And no test COUNT anywhere — the shape `0 / 0 tests`, which would read as a

@@ -77,6 +77,11 @@ export async function truncateAll(client: ReturnType<typeof postgres>): Promise<
   await client.unsafe(`
     TRUNCATE TABLE
       audit_logs,
+      moderation_decisions, interview_report_questions, interview_reports,
+      assessment_answers, assessment_attempts, assessment_paper_questions, assessment_papers,
+      problem_company_evidence, companies,
+      editorials, problem_language_templates, test_cases, problem_examples,
+      problem_topics, topics, problem_versions, content_licenses,
       auth_verification_tokens, auth_sessions, auth_accounts,
       daily_sessions, daily_goals, user_problems,
       problem_tags, problems,

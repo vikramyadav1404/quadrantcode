@@ -18,7 +18,7 @@ export function resolveOtpProvider(env: ServerEnv): OtpProvider {
       templateId: env.MSG91_TEMPLATE_ID,
     });
   }
-  return createConsoleOtpProvider(env.NODE_ENV);
+  return createConsoleOtpProvider(env.NODE_ENV, env.ALLOW_CONSOLE_OTP === '1');
 }
 
 export type { OtpProvider, OtpDeliveryResult } from './provider';

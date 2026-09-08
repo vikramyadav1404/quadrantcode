@@ -7,7 +7,8 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getServerEnv } from '@/server/env';
+import { getAuthSecret, getServerEnv } from '@/server/env';
+import { clientIp } from '@/server/lib/client-ip';
 import { assertFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { RATE_LIMITS, checkAll, createRateLimiter } from '@/server/lib/ratelimit';
@@ -17,14 +18,6 @@ import { recomputeVerificationLevel } from '@/server/services/auth/verification-
 import { resolveOtpProvider } from '@/server/services/otp';
 
 const VerifySchema = z.object({ code: z.string().regex(/^\d{6}$/) });
-
-function clientIp(request: Request): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
-    'unknown'
-  );
-}
 
 export async function POST(request: Request): Promise<NextResponse> {
   assertFeatureEnabled('FEATURE_PHONE_OTP');
@@ -59,7 +52,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const db = getDb();
   const outcome = await verifyPhoneOtp(
-    { db, provider: resolveOtpProvider(env), secret: env.AUTH_SECRET ?? 'dev-secret' },
+    { db, provider: resolveOtpProvider(env), secret: getAuthSecret(env) },
     user.id,
     parsed.data.code,
   );

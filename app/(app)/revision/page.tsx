@@ -22,7 +22,7 @@ import { dueToday } from '@/server/services/revision';
 import { localDateFor } from '@/server/services/streak';
 import { recordRevisionAction } from './actions';
 
-export const metadata: Metadata = { title: 'Revision · TraceLoop' };
+export const metadata: Metadata = { title: 'Revision · Quadrantcode' };
 
 export default async function RevisionPage() {
   const user = await requireCurrentUser();

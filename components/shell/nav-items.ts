@@ -15,6 +15,7 @@ export type NavItem = { href: string; label: string; short: string; icon: string
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', short: 'Home', icon: '◈' },
   { href: '/problems', label: 'Problems', short: 'Problems', icon: '☰' },
+  { href: '/companies', label: 'Companies', short: 'Companies', icon: '▦' },
   { href: '/sessions', label: 'Sessions', short: 'Sessions', icon: '⏱' },
   { href: '/revision', label: 'Revision', short: 'Revision', icon: '↻' },
   { href: '/mistakes', label: 'Mistakes', short: 'Mistakes', icon: '⌁' },

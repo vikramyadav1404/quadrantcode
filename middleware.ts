@@ -39,6 +39,8 @@ const PROTECTED_PREFIXES = [
   // /onboarding is signed-in-only despite living in the (auth) group.
   '/onboarding',
   '/analytics',
+  '/assessments',
+  '/companies',
   '/dashboard',
   '/mistakes',
   '/problems',

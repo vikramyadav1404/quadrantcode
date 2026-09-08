@@ -50,14 +50,22 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
     [returnTo],
   );
 
-  const field =
-    'w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm';
-
   if (status === 'sent') {
     return (
       <section aria-live="polite">
-        <h2 className="text-lg font-semibold">Check your email</h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
+        <div className="auth-success-mark mb-4">
+          <svg aria-hidden="true" fill="none" height="23" viewBox="0 0 24 24" width="23">
+            <path
+              d="m6 12 4 4 8-9"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold tracking-[-0.02em]">Check your email</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
           If <strong className="text-[var(--text-primary)]">{maskedEmail}</strong> has an
           account, a sign-in link is on its way. It expires in 15 minutes.
         </p>
@@ -73,7 +81,7 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
          */}
         <button
           aria-disabled={cooldown > 0}
-          className="mt-4 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm aria-disabled:opacity-60"
+          className="auth-secondary-button mt-6"
           onClick={() => {
             if (cooldown > 0) return;
             void send(email);
@@ -88,7 +96,7 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
           </p>
         ) : null}
         <button
-          className="mt-4 block text-sm text-[var(--text-muted)] underline"
+          className="mx-auto mt-4 block text-sm font-medium text-[var(--text-muted)] underline decoration-[var(--border)] underline-offset-4 hover:text-[var(--text-primary)]"
           onClick={() => {
             setStatus('idle');
             setError(null);
@@ -103,33 +111,35 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
 
   return (
     <form
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         void send(email);
       }}
     >
-      <label className="text-sm" htmlFor="email">
-        Email address
-      </label>
-      <input
-        aria-describedby={error ? 'email-error' : undefined}
-        aria-invalid={Boolean(error)}
-        autoComplete="email"
-        className={field}
-        id="email"
-        name="email"
-        onChange={(event) => setEmail(event.target.value)}
-        required
-        type="email"
-        value={email}
-      />
-
-      {error ? (
-        <p className="text-sm text-[var(--danger)]" id="email-error" role="status">
-          {error}
-        </p>
-      ) : null}
+      <div>
+        <label className="auth-label" htmlFor="email">
+          Email address
+        </label>
+        <input
+          aria-describedby={error ? 'email-error' : 'email-hint'}
+          aria-invalid={Boolean(error)}
+          autoComplete="email"
+          className="auth-field"
+          id="email"
+          name="email"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@example.com"
+          required
+          type="email"
+          value={email}
+        />
+        {error ? (
+          <p className="mt-2 text-sm text-[var(--danger)]" id="email-error" role="status">
+            {error}
+          </p>
+        ) : null}
+      </div>
 
       {/*
        * `disabled` only for the transient sending state, where removing it from
@@ -140,7 +150,7 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
        */}
       <button
         aria-disabled={cooldown > 0}
-        className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] aria-disabled:opacity-60 disabled:opacity-60"
+        className="auth-primary-button"
         disabled={status === 'sending'}
         type="submit"
       >
@@ -149,7 +159,21 @@ export function LoginForm({ returnTo }: { returnTo?: string }) {
           : cooldown > 0
             ? `Wait ${cooldown}s`
             : 'Send sign-in link'}
+        {status !== 'sending' && cooldown <= 0 ? (
+          <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+            <path
+              d="M3 8h9M9 4.5 12.5 8 9 11.5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.5"
+            />
+          </svg>
+        ) : null}
       </button>
+      <p className="text-center text-xs text-[var(--text-muted)]" id="email-hint">
+        New here? An account is created automatically.
+      </p>
     </form>
   );
 }

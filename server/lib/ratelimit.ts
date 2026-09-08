@@ -38,6 +38,20 @@ export const RATE_LIMITS = {
   otpRequestPerIp: { limit: 10, windowSeconds: 3600, prefix: 'otp:req:ip' },
   otpVerifyPerUser: { limit: 10, windowSeconds: 900, prefix: 'otp:vfy:user' },
   otpVerifyPerIp: { limit: 30, windowSeconds: 900, prefix: 'otp:vfy:ip' },
+  /**
+   * F0.3b: phone SIGN-IN verify, keyed on the submitted number.
+   *
+   * `otpVerifyPerUser` cannot be used here. The caller is signed out, so there
+   * is no user id until the code is right — and looking one up to build the key
+   * would make the rate limit itself depend on whether the account exists,
+   * turning the 429 into the oracle the whole flow is built to avoid.
+   *
+   * Keyed on what the caller typed, so an existing number and a made-up one are
+   * throttled identically. Tighter than the signed-in rule (5 per 15 min rather
+   * than 10) because a wrong code here is an attempt on someone's account, not
+   * a typo by someone already holding their session.
+   */
+  phoneSignInVerifyPerPhone: { limit: 5, windowSeconds: 900, prefix: 'auth:phone:vfy' },
   magicLinkPerEmail: { limit: 5, windowSeconds: 3600, prefix: 'auth:link:email' },
   /**
    * F0.3: the 60-second resend cooldown.

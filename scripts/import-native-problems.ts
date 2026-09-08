@@ -1,0 +1,46 @@
+import { readFile } from 'node:fs/promises';
+import 'dotenv/config';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { z } from 'zod';
+import {
+  importNativeProblemLibrary,
+  loadNativeProblemBatches,
+} from '@/server/services/native-content';
+import {
+  importAssessmentPaperLibrary,
+  loadAssessmentPaperLibrary,
+} from '@/server/services/assessments';
+
+const companySeedSchema = z.array(
+  z.object({
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    name: z.string().min(2),
+    overview: z.string().min(40),
+  }),
+);
+
+const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+if (!url) throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL must be set.');
+
+const batches = await loadNativeProblemBatches();
+const paperLibrary = await loadAssessmentPaperLibrary();
+const companySeeds = companySeedSchema.parse(
+  JSON.parse(await readFile('data/companies.json', 'utf8')),
+);
+const client = postgres(url, { max: 1 });
+
+try {
+  const problems = await importNativeProblemLibrary(
+    drizzle(client, { casing: 'snake_case' }) as never,
+    batches,
+    companySeeds,
+  );
+  const papers = await importAssessmentPaperLibrary(
+    drizzle(client, { casing: 'snake_case' }) as never,
+    paperLibrary,
+  );
+  console.log(JSON.stringify({ problems, papers }, null, 2));
+} finally {
+  await client.end();
+}

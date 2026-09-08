@@ -21,7 +21,7 @@ import { ensureFreshRollup, readDashboard } from '@/server/services/analytics';
 import { requireCurrentUser } from '@/server/services/auth/session';
 import { localDateFor } from '@/server/services/streak';
 
-export const metadata: Metadata = { title: 'Dashboard · TraceLoop' };
+export const metadata: Metadata = { title: 'Dashboard · Quadrantcode' };
 
 export default async function DashboardPage() {
   const user = await requireCurrentUser();

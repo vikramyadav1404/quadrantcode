@@ -35,7 +35,7 @@ test('an INCOMPLETE user typing /dashboard lands on /onboarding', async ({
   await page.goto('/dashboard');
 
   await expect(page).toHaveURL(/\/onboarding/);
-  await expect(page.getByRole('heading', { name: /welcome to traceloop/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /welcome to quadrantcode/i })).toBeVisible();
 });
 
 test('an incomplete user cannot reach any app route by typing it', async ({
@@ -97,7 +97,7 @@ test('a WHITESPACE-ONLY display name counts as incomplete', async ({
   await expect(page).toHaveURL(/\/onboarding/);
 
   // And it is not a loop: /onboarding renders rather than bouncing back.
-  await expect(page.getByRole('heading', { name: /welcome to traceloop/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /welcome to quadrantcode/i })).toBeVisible();
 });
 
 test('completing onboarding writes the profile and stops the redirect', async ({

@@ -16,6 +16,7 @@ import type postgres from 'postgres';
 import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 let sql: ReturnType<typeof postgres>;
+let userId: string;
 
 test.beforeAll(() => {
   sql = db();
@@ -42,7 +43,10 @@ test.beforeEach(async ({ context, baseURL }) => {
             'https://leetcode.com/problems/timer-alpha/', 'easy', 'published')
   `;
 
-  await signInAs(context, sql, { email: 'timer@e2e.test', baseUrl: baseURL! });
+  userId = await signInAs(context, sql, {
+    email: 'timer@e2e.test',
+    baseUrl: baseURL!,
+  });
 });
 
 test('starting a session puts a persistent timer on every screen', async ({ page }) => {
@@ -73,7 +77,7 @@ test('THE ELAPSED TIME SURVIVES A RELOAD, BECAUSE THE SERVER HOLDS IT', async ({
     UPDATE solve_sessions
     SET started_at = now() - interval '20 minutes',
         last_heartbeat_at = now()
-    WHERE status = 'active'
+    WHERE status = 'active' AND user_id = ${userId}
   `;
 
   await page.reload();
@@ -90,7 +94,9 @@ test('A FORGED HEARTBEAT BODY CHANGES NOTHING THE SERVER COMPUTED', async ({ pag
   await expect(page.getByRole('region', { name: /solve session timer/i })).toBeVisible();
 
   const [session] = await sql`
-    SELECT id, last_heartbeat_at FROM solve_sessions WHERE status = 'active'
+    SELECT id, last_heartbeat_at
+    FROM solve_sessions
+    WHERE status = 'active' AND user_id = ${userId}
   `;
   expect(session).toBeDefined();
 
@@ -137,7 +143,11 @@ test('pausing stops the clock, and the bar says so', async ({ page }) => {
   await expect(timer).toContainText(/paused/i);
   await expect(timer.getByRole('button', { name: /^resume$/i })).toBeVisible();
 
-  const [row] = await sql`SELECT status FROM solve_sessions WHERE status = 'paused'`;
+  const [row] = await sql`
+    SELECT status
+    FROM solve_sessions
+    WHERE status = 'paused' AND user_id = ${userId}
+  `;
   expect(row).toBeDefined();
 });
 
@@ -154,6 +164,10 @@ test('a second session is refused, and the message points at the running one', a
   await expect(page.getByText(/already have a session in progress/i)).toBeVisible();
   await expect(page.getByText(/finish or abandon/i)).toBeVisible();
 
-  const rows = await sql`SELECT id FROM solve_sessions WHERE status in ('active','paused')`;
+  const rows = await sql`
+    SELECT id
+    FROM solve_sessions
+    WHERE status in ('active', 'paused') AND user_id = ${userId}
+  `;
   expect(rows).toHaveLength(1);
 });

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "content_licenses_identity_key" ON "content_licenses" USING btree ("provenance","license_name","author");
