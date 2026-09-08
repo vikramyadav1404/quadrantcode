@@ -9,10 +9,11 @@
  * It lives in `lib/` because `components/` may not import from `server/` (F0.1).
  */
 
-export const EXECUTION_LANGUAGES = ['cpp17', 'java', 'python3', 'javascript'] as const;
+export const EXECUTION_LANGUAGES = ['c11', 'cpp17', 'java', 'python3', 'javascript'] as const;
 export type ExecutionLanguage = (typeof EXECUTION_LANGUAGES)[number];
 
 export const EXECUTION_LANGUAGE_LABELS: Record<ExecutionLanguage, string> = {
+  c11: 'C11',
   cpp17: 'C++17',
   java: 'Java',
   python3: 'Python 3',
@@ -21,6 +22,7 @@ export const EXECUTION_LANGUAGE_LABELS: Record<ExecutionLanguage, string> = {
 
 /** Monaco's own identifier for each, which is not always ours. */
 export const MONACO_LANGUAGE_IDS: Record<ExecutionLanguage, string> = {
+  c11: 'c',
   cpp17: 'cpp',
   java: 'java',
   python3: 'python',
@@ -29,6 +31,7 @@ export const MONACO_LANGUAGE_IDS: Record<ExecutionLanguage, string> = {
 
 /** Something to start from, so an empty editor is not a blank page. */
 export const LANGUAGE_STARTERS: Record<ExecutionLanguage, string> = {
+  c11: '#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n',
   cpp17: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n  \n  return 0;\n}\n',
   java: 'public class Main {\n  public static void main(String[] args) {\n    \n  }\n}\n',
   python3: 'def main():\n    pass\n\n\nif __name__ == "__main__":\n    main()\n',

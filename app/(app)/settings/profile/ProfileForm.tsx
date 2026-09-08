@@ -11,7 +11,7 @@
  */
 import { useRef, useState, useTransition } from 'react';
 import { AvatarUploader } from '@/components/avatar/AvatarUploader';
-import type { AvatarAppearanceProps } from '@/components/avatar/Avatar';
+import { Avatar, type AvatarAppearanceProps } from '@/components/avatar/Avatar';
 import { useToast } from '@/components/ui/Toast';
 import {
   PUBLIC_PROFILE_DISCLOSURE,
@@ -36,9 +36,11 @@ const SAVE_TIMEOUT_MS = 10_000;
 export function ProfileForm({
   initial,
   appearance,
+  avatarEnabled,
 }: {
   initial: ProfileFormValues;
   appearance: AvatarAppearanceProps;
+  avatarEnabled: boolean;
 }) {
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -108,14 +110,28 @@ export function ProfileForm({
     <div className="max-w-xl">
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Photo</h2>
-        <AvatarUploader
-          appearance={appearance}
-          initialUrl={values.avatarUrl}
-          onChange={(url) => {
-            set('avatarUrl', url);
-            committed.current = { ...committed.current, avatarUrl: url };
-          }}
-        />
+        {avatarEnabled ? (
+          <AvatarUploader
+            appearance={appearance}
+            initialUrl={values.avatarUrl}
+            onChange={(url) => {
+              set('avatarUrl', url);
+              committed.current = { ...committed.current, avatarUrl: url };
+            }}
+          />
+        ) : (
+          <div className="flex items-center gap-4 rounded-[var(--radius)] border border-[var(--border)] p-3">
+            <Avatar
+              alt="Your avatar"
+              appearance={appearance}
+              size={72}
+              src={values.avatarUrl}
+            />
+            <p className="text-sm text-[var(--text-muted)]" role="status">
+              Photo uploads are temporarily unavailable. Your profile can still be saved.
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">

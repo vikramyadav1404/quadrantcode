@@ -37,10 +37,20 @@ export default async function OnboardingPage({
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome to TraceLoop</h1>
-      <p className="mt-1 mb-6 text-sm text-[var(--text-muted)]">
-        Three things and you&apos;re in. You can change all of them later.
-      </p>
+      <div className="mb-7">
+        <div className="auth-eyebrow mb-4">
+          <span>Step 1 of 1</span>
+          <span aria-hidden="true">·</span>
+          Personalize your workspace
+        </div>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-[2rem]">
+          Welcome to Quadrantcode
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+          A few details help us shape your streaks and practice plan. You can update everything
+          later.
+        </p>
+      </div>
       <OnboardingForm
         defaultTimezone={profile.timezone}
         returnTo={returnTo}

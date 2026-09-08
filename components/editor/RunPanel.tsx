@@ -43,6 +43,8 @@ export function RunPanel({
   sessionId,
   defaultLanguage,
   onSubmit,
+  allowSubmit = true,
+  starters,
 }: {
   problemId: string;
   /**
@@ -54,19 +56,25 @@ export function RunPanel({
    */
   sessionId: string | null;
   defaultLanguage: ExecutionLanguage;
+  allowSubmit?: boolean;
+  starters?: Partial<Record<ExecutionLanguage, string>>;
   onSubmit: (input: {
     problemId: string;
     sessionId: string | null;
     language: ExecutionLanguage;
+    mode: 'run' | 'submit';
     source: string;
     stdin: string;
   }) => Promise<SubmitResult>;
 }) {
   const [language, setLanguage] = useState<ExecutionLanguage>(defaultLanguage);
-  const [source, setSource] = useState<string>(LANGUAGE_STARTERS[defaultLanguage]);
+  const [source, setSource] = useState<string>(
+    starters?.[defaultLanguage] ?? LANGUAGE_STARTERS[defaultLanguage],
+  );
   const [stdin, setStdin] = useState('');
   const [result, setResult] = useState<ExecutionResultView | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingMode, setPendingMode] = useState<'run' | 'submit'>('run');
 
   /**
    * Why a run was refused — the rate-limit message, which names the time.
@@ -96,8 +104,8 @@ export function RunPanel({
     } catch {
       // Private mode, or storage disabled. A missing draft is not an error.
     }
-    setSource(stored ?? LANGUAGE_STARTERS[language]);
-  }, [problemId, language]);
+    setSource(stored ?? starters?.[language] ?? LANGUAGE_STARTERS[language]);
+  }, [problemId, language, starters]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -139,6 +147,9 @@ export function RunPanel({
             stdout: null,
             stderr: null,
             compileOutput: null,
+            compilerRuntimeVersion: null,
+            testResults: null,
+            mode: pendingMode,
             error: 'Lost contact with the run.',
           });
           setBusy(false);
@@ -171,15 +182,16 @@ export function RunPanel({
         poll(jobId, attempt + 1);
       }, POLL_INTERVAL_MS);
     },
-    [language],
+    [language, pendingMode],
   );
 
-  async function run() {
+  async function execute(mode: 'run' | 'submit') {
     setBusy(true);
+    setPendingMode(mode);
     setRefusal(null);
     setResult(null);
 
-    const submitted = await onSubmit({ problemId, sessionId, language, source, stdin });
+    const submitted = await onSubmit({ problemId, sessionId, language, mode, source, stdin });
 
     if (!submitted.ok) {
       // A refused submission wrote no row, so there is nothing to poll.
@@ -192,6 +204,7 @@ export function RunPanel({
       jobId: submitted.jobId,
       status: 'queued',
       language,
+      mode,
       scratchpad: true,
       verdict: null,
       runtimeMs: null,
@@ -201,6 +214,8 @@ export function RunPanel({
       stdout: null,
       stderr: null,
       compileOutput: null,
+      compilerRuntimeVersion: null,
+      testResults: null,
       error: null,
     });
 
@@ -233,7 +248,7 @@ export function RunPanel({
           }}
           value={language}
         >
-          {EXECUTION_LANGUAGES.map((value) => (
+          {EXECUTION_LANGUAGES.filter((value) => !starters || starters[value]).map((value) => (
             <option key={value} value={value}>
               {EXECUTION_LANGUAGE_LABELS[value]}
             </option>
@@ -241,14 +256,40 @@ export function RunPanel({
         </select>
 
         <button
-          className="ml-auto rounded-[var(--radius)] bg-[var(--accent)] px-4 py-1.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
+          className="rounded-[var(--radius)] px-3 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
+          onClick={() => setSource(starters?.[language] ?? LANGUAGE_STARTERS[language])}
+          type="button"
+        >
+          Reset code
+        </button>
+
+        <button
+          className="ml-auto rounded-[var(--radius)] border border-[var(--border)] px-4 py-1.5 text-sm font-medium disabled:opacity-60"
           disabled={busy || source.trim().length === 0}
-          onClick={run}
+          onClick={() => execute('run')}
           type="button"
         >
           {/* The button says which state the run is in — not one word for all four. */}
-          {!busy ? 'Run' : result?.status === 'running' ? 'Running…' : 'Queued…'}
+          {!busy || pendingMode !== 'run'
+            ? 'Run code'
+            : result?.status === 'running'
+              ? 'Running…'
+              : 'Queued…'}
         </button>
+        {allowSubmit ? (
+          <button
+            className="rounded-[var(--radius)] bg-[var(--accent)] px-4 py-1.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
+            disabled={busy || source.trim().length === 0}
+            onClick={() => execute('submit')}
+            type="button"
+          >
+            {!busy || pendingMode !== 'submit'
+              ? 'Submit'
+              : result?.status === 'running'
+                ? 'Submitting…'
+                : 'Queued…'}
+          </button>
+        ) : null}
       </div>
 
       {/*

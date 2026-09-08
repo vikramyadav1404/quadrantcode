@@ -29,6 +29,11 @@ const SECTIONS: { href: string; title: string; description: string }[] = [
     description: 'What is recorded while you solve, and how to erase it.',
   },
   {
+    href: '/settings/account',
+    title: 'Account',
+    description: 'How you sign in — email, GitHub and phone.',
+  },
+  {
     href: '/settings/phone',
     title: 'Phone',
     description: 'Verify a phone number for a higher trust tier.',

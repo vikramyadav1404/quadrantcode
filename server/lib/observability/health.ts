@@ -106,7 +106,7 @@ export async function checkHealth(
     checkConfigured(
       'judge0',
       env['JUDGE0_URL'],
-      'no JUDGE0_URL — code execution runs against a fake that executes nothing (F3.1)',
+      'no JUDGE0_URL — code execution is unavailable; production never invents a verdict',
     ),
     checkConfigured(
       'redis',

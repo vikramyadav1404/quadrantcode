@@ -28,19 +28,34 @@ const EXPECTED_TABLES = [
   'analytics_daily', // F1.6
   'analytics_stuck_daily', // F1.6
   'analytics_topic_daily', // F1.6
+  'assessment_answers',
+  'assessment_attempts',
+  'assessment_paper_questions',
+  'assessment_papers',
   'audit_logs', // F4.6
   'auth_accounts',
   'auth_sessions',
   'auth_verification_tokens',
   'code_snapshots', // F3.2
+  'companies',
+  'content_licenses',
   'daily_goals',
   'daily_sessions',
+  'editorials',
   'execution_jobs', // F3.1
   'import_job_rows', // F1.2
   'import_jobs', // F1.2
+  'interview_report_questions',
+  'interview_reports',
   'mistake_patterns', // F3.5
   'mistake_warnings_shown', // F3.5
+  'moderation_decisions',
+  'problem_company_evidence',
+  'problem_examples',
+  'problem_language_templates',
   'problem_tags',
+  'problem_topics',
+  'problem_versions',
   'problems',
   'reflection_mistakes', // F1.5
   'reflection_stuck_areas', // F1.5
@@ -51,6 +66,8 @@ const EXPECTED_TABLES = [
   'solve_sessions', // F1.4
   'streak_freezes', // F1.3
   'stuck_points', // F1.5
+  'test_cases',
+  'topics',
   'user_problems',
   'user_profiles',
   'user_streaks', // F1.3

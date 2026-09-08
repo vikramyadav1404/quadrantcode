@@ -1,0 +1,29 @@
+name: Production database migration
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-database-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Refuse a missing direct connection
+        run: test -n "$DIRECT_DATABASE_URL"
+      - name: Apply reviewed forward-only migrations
+        run: npm run db:migrate

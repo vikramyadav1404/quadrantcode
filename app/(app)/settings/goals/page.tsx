@@ -13,7 +13,7 @@ import { requireCurrentUser } from '@/server/services/auth/session';
 import { buildHeatmap, localDateFor, recomputeStreak } from '@/server/services/streak';
 import { GoalsForm } from './GoalsForm';
 
-export const metadata: Metadata = { title: 'Daily goals · TraceLoop' };
+export const metadata: Metadata = { title: 'Daily goals · Quadrantcode' };
 
 export default async function GoalsPage() {
   const user = await requireCurrentUser();

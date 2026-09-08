@@ -5,6 +5,18 @@
  * every view contract before it.
  */
 import type { ExecutionLanguage, ExecutionVerdict } from './languages';
+import type { ExecutionMode } from '@/lib/native/constants';
+
+export type SafeTestResultView = {
+  ordinal: number;
+  visibility: 'sample' | 'visible' | 'hidden' | 'custom';
+  verdict: ExecutionVerdict;
+  runtimeMs: number | null;
+  memoryKb: number | null;
+  input?: string;
+  expectedOutput?: string;
+  actualOutput?: string | null;
+};
 
 export type ExecutionStatusView = 'queued' | 'running' | 'completed' | 'failed';
 
@@ -12,6 +24,7 @@ export type ExecutionResultView = {
   jobId: string;
   status: ExecutionStatusView;
   language: ExecutionLanguage;
+  mode: ExecutionMode;
   /**
    * True when the problem is hosted elsewhere, so nothing shown is a claim
    * about correctness (C1). The panel reads this rather than re-deriving it.
@@ -25,6 +38,8 @@ export type ExecutionResultView = {
   stdout: string | null;
   stderr: string | null;
   compileOutput: string | null;
+  compilerRuntimeVersion: string | null;
+  testResults: SafeTestResultView[] | null;
   /** Why the JOB failed. Never a statement about the user's code. */
   error: string | null;
 };

@@ -1,6 +1,6 @@
 # Privacy
 
-_What TraceLoop records, how long it keeps it, and how to get rid of it._
+_What Quadrantcode records, how long it keeps it, and how to get rid of it._
 
 This document describes **what the code actually does**, not an intended policy.
 Where the two differ — and in one place they do — the difference is stated.

@@ -16,14 +16,24 @@ import { createS3Storage } from './s3';
 
 let devFallback: StorageProvider | undefined;
 
+export function isStorageConfigured(env: ServerEnv): boolean {
+  return Boolean(
+    env.S3_ENDPOINT &&
+    env.S3_ACCESS_KEY_ID &&
+    env.S3_SECRET_ACCESS_KEY &&
+    env.S3_BUCKET &&
+    env.S3_PUBLIC_BASE_URL,
+  );
+}
+
 export function resolveStorage(env: ServerEnv): StorageProvider {
-  if (env.S3_ENDPOINT && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY && env.S3_BUCKET) {
+  if (isStorageConfigured(env)) {
     return createS3Storage({
-      endpoint: env.S3_ENDPOINT,
-      accessKeyId: env.S3_ACCESS_KEY_ID,
-      secretAccessKey: env.S3_SECRET_ACCESS_KEY,
-      bucket: env.S3_BUCKET,
-      publicBaseUrl: env.S3_PUBLIC_BASE_URL ?? env.S3_ENDPOINT,
+      endpoint: env.S3_ENDPOINT!,
+      accessKeyId: env.S3_ACCESS_KEY_ID!,
+      secretAccessKey: env.S3_SECRET_ACCESS_KEY!,
+      bucket: env.S3_BUCKET!,
+      publicBaseUrl: env.S3_PUBLIC_BASE_URL!,
     });
   }
 

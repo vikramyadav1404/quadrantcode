@@ -18,6 +18,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -65,6 +66,13 @@ export const problems = pgTable(
     estimatedMinutes: integer().notNull().default(30),
     isPremium: boolean().notNull().default(false),
     status: problemStatusEnum().notNull().default('draft'),
+
+    /** Admin-only adjustment (-2..2) used when observed performance disagrees with the label. */
+    difficultyCalibration: smallint().notNull().default(0),
+    /** The immutable content version currently selected for readers and new submissions. */
+    currentVersion: integer().notNull().default(1),
+    acceptedSubmissions: integer().notNull().default(0),
+    totalSubmissions: integer().notNull().default(0),
 
     // ── Statement-bearing columns ─────────────────────────────────────────
     // MUST be NULL when source_type = 'external_link'. F4.1 adds the rest of
@@ -208,6 +216,15 @@ export const problems = pgTable(
     ),
 
     check('problems_estimated_minutes_positive', sql`${table.estimatedMinutes} > 0`),
+    check(
+      'problems_difficulty_calibration_range',
+      sql`${table.difficultyCalibration} between -2 and 2`,
+    ),
+    check('problems_current_version_positive', sql`${table.currentVersion} > 0`),
+    check(
+      'problems_submission_counts_coherent',
+      sql`${table.acceptedSubmissions} >= 0 and ${table.totalSubmissions} >= ${table.acceptedSubmissions}`,
+    ),
   ],
 );
 

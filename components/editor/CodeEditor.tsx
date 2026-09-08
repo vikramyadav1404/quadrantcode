@@ -15,7 +15,7 @@
 import dynamic from 'next/dynamic';
 import { MONACO_LANGUAGE_IDS, type ExecutionLanguage } from '@/lib/execution/languages';
 
-const Monaco = dynamic(() => import('@monaco-editor/react'), {
+const Monaco = dynamic(() => import('./MonacoEditor'), {
   ssr: false,
   loading: () => (
     <div className="flex h-full min-h-[12rem] items-center justify-center text-sm text-[var(--text-muted)]">

@@ -6,8 +6,15 @@
  * nothing. `pipeline.ts` is the only part that reads or writes.
  */
 export * from './limits';
+export * from './native';
 export * from './pipeline';
 export * from './provider';
 export * from './statemachine';
+export * from './submission-effects';
 export * from './types';
-export { JUDGE0_LANGUAGE_IDS, Judge0Provider, verdictForStatus } from './judge0';
+export {
+  JUDGE0_LANGUAGE_MATCHERS,
+  Judge0Provider,
+  selectJudge0Language,
+  verdictForStatus,
+} from './judge0';

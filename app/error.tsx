@@ -8,6 +8,7 @@
  * can quote it in a bug report instead of "it broke".
  */
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 export default function GlobalError({
   error,
@@ -17,15 +18,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // F4.6 replaces this with Sentry.captureException(error).
-    console.error(
-      JSON.stringify({
-        event: 'ui.error_boundary',
-        name: error.name,
-        message: error.message,
-        digest: error.digest ?? null,
-      }),
-    );
+    Sentry.captureException(error, { tags: { boundary: 'app' } });
   }, [error]);
 
   return (

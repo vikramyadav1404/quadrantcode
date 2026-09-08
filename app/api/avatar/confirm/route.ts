@@ -11,7 +11,7 @@ import { getDb } from '@/server/db';
 import { getServerEnv } from '@/server/env';
 import { AvatarError, confirmAvatarUpload, removeAvatar } from '@/server/services/profile';
 import { getCurrentUser } from '@/server/services/auth/session';
-import { resolveStorage } from '@/server/services/storage';
+import { isStorageConfigured, resolveStorage } from '@/server/services/storage';
 
 export async function POST(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser();
@@ -28,6 +28,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const env = getServerEnv();
+  if (!isStorageConfigured(env)) {
+    return NextResponse.json(
+      { ok: false, code: 'STORAGE_UNAVAILABLE', message: 'Photo uploads are unavailable.' },
+      { status: 503 },
+    );
+  }
 
   try {
     const { avatarUrl } = await confirmAvatarUpload(
@@ -63,6 +69,12 @@ export async function DELETE(): Promise<NextResponse> {
   }
 
   const env = getServerEnv();
+  if (!isStorageConfigured(env)) {
+    return NextResponse.json(
+      { ok: false, code: 'STORAGE_UNAVAILABLE', message: 'Photo uploads are unavailable.' },
+      { status: 503 },
+    );
+  }
   await removeAvatar({ db: getDb(), storage: resolveStorage(env) }, user.id);
 
   return NextResponse.json({ ok: true });

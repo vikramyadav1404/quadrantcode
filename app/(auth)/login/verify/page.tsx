@@ -8,7 +8,7 @@
 import { redirect } from 'next/navigation';
 import { validateReturnTo } from '@/lib/auth/return-to';
 import { getDb } from '@/server/db';
-import { getServerEnv } from '@/server/env';
+import { getAuthSecret, getServerEnv } from '@/server/env';
 import { inspectMagicLink } from '@/server/services/auth/verify-link';
 import { ResendPanel } from './ResendPanel';
 
@@ -37,7 +37,7 @@ export default async function VerifyPage({
   const { state } = await inspectMagicLink(getDb(), {
     token,
     identifier: email,
-    secret: env.AUTH_SECRET ?? 'dev-secret',
+    secret: getAuthSecret(env),
   });
 
   if (state === 'valid') {
@@ -83,8 +83,24 @@ export default async function VerifyPage({
 function VerifyState({ title, body, email }: { title: string; body: string; email: string }) {
   return (
     <section>
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 mb-6 text-sm text-[var(--text-muted)]">{body}</p>
+      <div className="mb-5 grid h-12 w-12 place-items-center rounded-xl bg-[var(--surface)] text-[var(--warning)]">
+        <svg aria-hidden="true" fill="none" height="23" viewBox="0 0 24 24" width="23">
+          <path
+            d="M12 8v5M12 16.5v.1"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="2"
+          />
+          <path
+            d="M10.3 4.3 3.2 17a2 2 0 0 0 1.75 3h14.1a2 2 0 0 0 1.75-3L13.7 4.3a1.95 1.95 0 0 0-3.4 0Z"
+            stroke="currentColor"
+            strokeLinejoin="round"
+            strokeWidth="1.7"
+          />
+        </svg>
+      </div>
+      <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">{title}</h1>
+      <p className="mt-2 mb-7 text-sm leading-6 text-[var(--text-muted)]">{body}</p>
       <ResendPanel email={email} />
     </section>
   );

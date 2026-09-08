@@ -60,8 +60,8 @@ export default async function ProblemDetailPage({
         title={problem.title}
         description={
           problem.sourceType === 'external_link'
-            ? `Hosted on ${problem.platform ?? 'an external platform'} — TraceLoop tracks how you solve it.`
-            : 'An original TraceLoop problem.'
+            ? `Hosted on ${problem.platform ?? 'an external platform'} — Quadrantcode tracks how you solve it.`
+            : 'An original Quadrantcode problem.'
         }
         actions={
           problem.externalUrl ? (

@@ -72,23 +72,27 @@ export function OnboardingForm({
     });
   }
 
-  const field =
-    'w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm';
-
   return (
-    <div className="flex flex-col gap-4">
+    <form
+      className="flex flex-col gap-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+    >
       <div>
-        <label className="mb-1 block text-sm" htmlFor="displayName">
+        <label className="auth-label" htmlFor="displayName">
           What should we call you?
         </label>
         <input
           aria-describedby={errors.displayName ? 'displayName-error' : undefined}
           aria-invalid={Boolean(errors.displayName)}
-          autoFocus
-          className={field}
+          className="auth-field"
           id="displayName"
           maxLength={40}
           onChange={(event) => setDisplayName(event.target.value)}
+          placeholder="Your name"
+          required
           value={displayName}
         />
         {errors.displayName ? (
@@ -99,12 +103,13 @@ export function OnboardingForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm" htmlFor="timezone">
+        <label className="auth-label" htmlFor="timezone">
           Timezone
         </label>
         <input
-          aria-describedby="timezone-help"
-          className={field}
+          aria-describedby={errors.timezone ? 'timezone-help timezone-error' : 'timezone-help'}
+          aria-invalid={Boolean(errors.timezone)}
+          className="auth-field"
           id="timezone"
           onChange={(event) => setTimezone(event.target.value)}
           value={timezone}
@@ -113,16 +118,18 @@ export function OnboardingForm({
           Your streak day starts and ends here, so this one matters.
         </p>
         {errors.timezone ? (
-          <p className="mt-1 text-sm text-[var(--danger)]">{errors.timezone}</p>
+          <p className="mt-1 text-sm text-[var(--danger)]" id="timezone-error">
+            {errors.timezone}
+          </p>
         ) : null}
       </div>
 
       <div>
-        <label className="mb-1 block text-sm" htmlFor="targetRole">
+        <label className="auth-label" htmlFor="targetRole">
           Preparing for
         </label>
         <select
-          className={field}
+          className="auth-field"
           id="targetRole"
           onChange={(event) => setTargetRole(event.target.value)}
           value={targetRole}
@@ -142,14 +149,20 @@ export function OnboardingForm({
         </p>
       ) : null}
 
-      <button
-        className="self-start rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
-        disabled={pending}
-        onClick={submit}
-        type="button"
-      >
+      <button className="auth-primary-button mt-1" disabled={pending} type="submit">
         {pending ? 'Setting up…' : 'Start tracking'}
+        {!pending ? (
+          <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+            <path
+              d="M3 8h9M9 4.5 12.5 8 9 11.5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.5"
+            />
+          </svg>
+        ) : null}
       </button>
-    </div>
+    </form>
   );
 }

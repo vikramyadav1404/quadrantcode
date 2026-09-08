@@ -29,19 +29,32 @@ import {
 } from './provider';
 import type { ExecutionLanguage, ExecutionVerdict } from './types';
 
-/**
- * Judge0's language ids.
- *
- * Numbers, and version-specific — a Judge0 upgrade can move them, which is
- * exactly the kind of drift an interface exists to contain. Verify these against
- * `GET /languages` on the instance before trusting a first run.
- */
-export const JUDGE0_LANGUAGE_IDS: Record<ExecutionLanguage, number> = {
-  cpp17: 54, // C++ (GCC 9.2.0)
-  java: 62, // Java (OpenJDK 13.0.1)
-  python3: 71, // Python (3.8.1)
-  javascript: 63, // JavaScript (Node.js 12.14.0)
+export type Judge0Language = {
+  id: number;
+  name: string;
+  is_archived?: boolean;
 };
+
+/** Match runtime families by name; numeric ids are discovered from this instance. */
+export const JUDGE0_LANGUAGE_MATCHERS: Record<ExecutionLanguage, RegExp> = {
+  c11: /^C \((?:GCC|Clang) /i,
+  cpp17: /^C\+\+ \((?:GCC|Clang) /i,
+  java: /^Java \(/i,
+  python3: /^Python \(/i,
+  javascript: /^JavaScript \(Node\.js /i,
+};
+
+export function selectJudge0Language(
+  languages: readonly Judge0Language[],
+  requested: ExecutionLanguage,
+): Judge0Language | null {
+  const matcher = JUDGE0_LANGUAGE_MATCHERS[requested];
+  return (
+    languages
+      .filter((language) => !language.is_archived && matcher.test(language.name))
+      .sort((left, right) => right.id - left.id)[0] ?? null
+  );
+}
 
 /**
  * Judge0 status id → our verdict.
@@ -94,8 +107,12 @@ export class Judge0Provider implements ExecutionProvider {
       /** How long to keep polling before giving up. */
       pollTimeoutMs?: number;
       pollIntervalMs?: number;
+      /** Deployment override for instances whose runtime names are non-standard. */
+      languageIds?: Partial<Record<ExecutionLanguage, number>>;
     },
   ) {}
+
+  private languageCatalogPromise: Promise<Judge0Language[]> | null = null;
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     const token = await this.submit(request);
@@ -111,7 +128,7 @@ export class Judge0Provider implements ExecutionProvider {
      * a runtime error — which sends the user looking for the wrong bug.
      */
     const verdict: ExecutionVerdict =
-      memoryKb !== null && memoryKb >= EXECUTION_LIMITS.memoryKb
+      memoryKb !== null && memoryKb >= (request.limits?.memoryKb ?? EXECUTION_LIMITS.memoryKb)
         ? 'mle'
         : verdictForStatus(statusId);
 
@@ -122,20 +139,23 @@ export class Judge0Provider implements ExecutionProvider {
       stdout: truncate(submission.stdout),
       stderr: truncate(submission.stderr),
       compileOutput: truncate(submission.compile_output),
+      compilerRuntimeVersion: (await this.languageFor(request.language)).name,
     };
   }
 
   private async submit(request: ExecutionRequest): Promise<string> {
+    const language = await this.languageFor(request.language);
+    const limits = request.limits ?? EXECUTION_LIMITS;
     const response = await this.fetchJson('/submissions?base64_encoded=false&wait=false', {
       method: 'POST',
       body: JSON.stringify({
-        language_id: JUDGE0_LANGUAGE_IDS[request.language],
+        language_id: language.id,
         source_code: request.source,
         stdin: request.stdin ?? '',
         expected_output: request.expectedOutput ?? null,
-        cpu_time_limit: EXECUTION_LIMITS.cpuSeconds,
-        wall_time_limit: EXECUTION_LIMITS.wallSeconds,
-        memory_limit: EXECUTION_LIMITS.memoryKb,
+        cpu_time_limit: limits.cpuSeconds,
+        wall_time_limit: limits.wallSeconds,
+        memory_limit: limits.memoryKb,
         enable_network: EXECUTION_LIMITS.network,
       }),
     });
@@ -144,6 +164,36 @@ export class Judge0Provider implements ExecutionProvider {
     if (!token) throw new ProviderUnavailableError(this.name, 'submission returned no token');
 
     return token;
+  }
+
+  private async languageFor(requested: ExecutionLanguage): Promise<Judge0Language> {
+    const configured = this.config.languageIds?.[requested];
+    if (configured !== undefined) {
+      return { id: configured, name: `${requested} (configured id ${configured})` };
+    }
+
+    this.languageCatalogPromise ??= this.fetchJson('/languages').then((payload) => {
+      if (!Array.isArray(payload)) {
+        throw new ProviderUnavailableError(this.name, 'languages endpoint returned no array');
+      }
+
+      return payload.filter(
+        (item): item is Judge0Language =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as Judge0Language).id === 'number' &&
+          typeof (item as Judge0Language).name === 'string',
+      );
+    });
+
+    const selected = selectJudge0Language(await this.languageCatalogPromise, requested);
+    if (!selected) {
+      throw new ProviderUnavailableError(
+        this.name,
+        `configured instance does not expose ${requested}`,
+      );
+    }
+    return selected;
   }
 
   private async pollUntilFinished(token: string): Promise<Judge0Submission> {

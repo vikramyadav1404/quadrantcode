@@ -13,8 +13,8 @@ import NextAuth from 'next-auth';
 import GitHub from 'next-auth/providers/github';
 import Resend from 'next-auth/providers/resend';
 import { getDb } from '@/server/db';
-import { getServerEnv } from '@/server/env';
-import { createTraceLoopAdapter } from './adapter';
+import { getAuthSecret, getServerEnv } from '@/server/env';
+import { createQuadrantcodeAdapter } from './adapter';
 
 /**
  * The session cookie's name and options, declared ONCE.
@@ -58,8 +58,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
   const config = env();
 
   return {
-    adapter: createTraceLoopAdapter(getDb()),
-    secret: config.AUTH_SECRET,
+    adapter: createQuadrantcodeAdapter(getDb()),
+    secret: getAuthSecret(config),
 
     session: {
       strategy: 'database',
@@ -95,30 +95,74 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
             GitHub({
               clientId: config.GITHUB_ID,
               clientSecret: config.GITHUB_SECRET,
+              userinfo: {
+                url: 'https://api.github.com/user',
+                async request({ tokens }: { tokens: { access_token?: string } }) {
+                  if (!tokens.access_token) throw new Error('GitHub returned no access token.');
+                  const headers = {
+                    Authorization: `Bearer ${tokens.access_token}`,
+                    Accept: 'application/vnd.github+json',
+                    'User-Agent': 'quadrantcode',
+                    'X-GitHub-Api-Version': '2022-11-28',
+                  };
+                  const [profileResponse, emailResponse] = await Promise.all([
+                    fetch('https://api.github.com/user', { headers }),
+                    fetch('https://api.github.com/user/emails', { headers }),
+                  ]);
+                  if (!profileResponse.ok || !emailResponse.ok) {
+                    throw new Error('GitHub identity could not be verified.');
+                  }
+
+                  const profile = (await profileResponse.json()) as Record<string, unknown>;
+                  const emails = (await emailResponse.json()) as Array<{
+                    email: string;
+                    primary: boolean;
+                    verified: boolean;
+                  }>;
+                  const verified =
+                    emails.find((entry) => entry.primary && entry.verified) ??
+                    emails.find((entry) => entry.verified);
+                  if (!verified)
+                    throw new Error('GitHub has no verified email for this account.');
+
+                  return { ...profile, email: verified.email };
+                },
+              },
               allowDangerousEmailAccountLinking: true,
             }),
           ]
         : []),
 
-      Resend({
-        apiKey: config.RESEND_API_KEY ?? '',
-        from: config.EMAIL_FROM ?? 'TraceLoop <onboarding@resend.dev>',
-        /*
-         * 15 minutes — a DELIBERATE OVERRIDE of Auth.js's 24-hour default
-         * (verified in @auth/core/providers/resend.js: `maxAge: 24 * 60 * 60`).
-         *
-         * A magic link is a bearer credential sitting in an inbox: whoever
-         * holds it is the account. 24h is a long exposure for something that
-         * gets forwarded, synced to a shared device, or left in a mailbox
-         * compromised later the same day. 15 minutes is ample for a link you
-         * just requested.
-         *
-         * Consequence accepted: expiry will genuinely occur, so /login/verify
-         * distinguishes expired from used and offers a resend. See decisions
-         * D13.
-         */
-        maxAge: MAGIC_LINK_TTL_SECONDS,
-      }),
+      ...(config.RESEND_API_KEY && config.EMAIL_FROM
+        ? [
+            Resend({
+              apiKey: config.RESEND_API_KEY,
+              from: config.EMAIL_FROM,
+              ...(process.env.E2E_EMAIL_CAPTURE === '1'
+                ? {
+                    // Browser tests exercise the full token/database flow
+                    // without contacting or spending against a real provider.
+                    async sendVerificationRequest() {},
+                  }
+                : {}),
+              /*
+               * 15 minutes — a DELIBERATE OVERRIDE of Auth.js's 24-hour default
+               * (verified in @auth/core/providers/resend.js: `maxAge: 24 * 60 * 60`).
+               *
+               * A magic link is a bearer credential sitting in an inbox: whoever
+               * holds it is the account. 24h is a long exposure for something that
+               * gets forwarded, synced to a shared device, or left in a mailbox
+               * compromised later the same day. 15 minutes is ample for a link you
+               * just requested.
+               *
+               * Consequence accepted: expiry will genuinely occur, so /login/verify
+               * distinguishes expired from used and offers a resend. See decisions
+               * D13.
+               */
+              maxAge: MAGIC_LINK_TTL_SECONDS,
+            }),
+          ]
+        : []),
     ],
 
     pages: {
@@ -150,14 +194,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
       async signIn({ user }) {
         if (!user.id) return;
         const { authSessions } = await import('@/server/db/schema');
-        const { eq, ne, and } = await import('drizzle-orm');
+        const { eq, ne, and, desc } = await import('drizzle-orm');
         const db = getDb();
         // Keep only the session just created.
         const [newest] = await db
           .select({ token: authSessions.sessionToken })
           .from(authSessions)
           .where(eq(authSessions.userId, user.id))
-          .orderBy(authSessions.createdAt);
+          .orderBy(desc(authSessions.createdAt));
 
         if (newest) {
           await db
@@ -172,6 +216,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
       },
     },
 
-    trustHost: true,
+    trustHost:
+      config.NODE_ENV !== 'production' ||
+      process.env.VERCEL === '1' ||
+      config.AUTH_TRUST_HOST === 'true' ||
+      /^(localhost|127\.0\.0\.1)$/i.test(new URL(config.NEXT_PUBLIC_APP_URL).hostname),
   };
 });

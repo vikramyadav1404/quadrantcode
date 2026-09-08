@@ -34,7 +34,7 @@ export async function GET(): Promise<Response> {
   return new Response(csv, {
     headers: {
       'content-type': 'text/csv; charset=utf-8',
-      'content-disposition': `attachment; filename="traceloop-problems-${stamp}.csv"`,
+      'content-disposition': `attachment; filename="quadrantcode-problems-${stamp}.csv"`,
       // Surfaced as headers so the UI can tell the user what was left out
       // rather than the omission being silent. See export.ts.
       'x-traceloop-rows': String(rowCount),

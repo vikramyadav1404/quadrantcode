@@ -1,11 +1,29 @@
 # Security audit — F4.8
 
-_Run 2026-08-29 against `main` at 79 commits. Every claim below was executed,
+_Original audit run 2026-08-29 against `main` at 79 commits; dependency and
+production-readiness checks re-run 2026-08-31. Every claim below was executed,
 not reasoned about; where something could not be executed it says so._
 
 This is an audit, not a feature. It has three sections: **findings** (fixed),
 **accepted risks** (not fixed, with the reason), and **could not be verified**
 (blocked, with what would unblock it).
+
+## Native-platform addendum · 1 September 2026
+
+The new native content surface was included in the route/security regression:
+`/companies`, `/assessments` and every `/admin`/admin API route are explicitly
+classified; admin mutations re-check role server-side; public problem/preview
+and export shapes omit hidden tests, wrappers and trusted references; and
+sensitive export requires both admin authorization and an explicit confirmation
+contract. Company evidence validators prevent unverified pattern associations
+from being promoted to official/PYQ claims. These controls are covered by the
+native admin, route enumeration, importer/export and Playwright suites.
+
+The remaining execution risk is deployment-owned: the app sends resource and
+network restrictions to Judge0, but only the operator of the real Judge0
+instance can prove its isolation. No real provider credential was available in
+this workspace, so generated content remains `needs_review` and cannot pass the
+publish gate on local-contract-server evidence.
 
 ---
 
@@ -61,13 +79,15 @@ most likely to grow one.
 
 ---
 
-## Accepted risks
+## Dependency follow-up and accepted risks
 
-### A · `drizzle-orm` SQL injection advisory (HIGH) — not exploitable here
+### A · `drizzle-orm` SQL injection advisory (HIGH) — RESOLVED
 
 [GHSA-gpj5-g38j-94v9](https://github.com/advisories/GHSA-gpj5-g38j-94v9) —
 "SQL injection via improperly escaped SQL identifiers", fixed in 0.45.2. This
-project is on 0.44.2 and the upgrade is semver-major.
+The original audit was on 0.44.2. The production-readiness pass upgraded to
+0.45.2, and the database-backed suite plus migration rollback/re-apply test
+passes on that version.
 
 **Assessed rather than assumed.** The advisory is about IDENTIFIERS — table and
 column names — being improperly escaped, which is exploitable when an identifier
@@ -80,15 +100,14 @@ comes from user input. In this codebase:
   column parameter, no dynamic `table[key]`, no user-supplied ordering.
 - Every user value reaches the database through drizzle's parameterisation.
 
-**Accepted because** a major version bump of the ORM at the end of the build is
-a larger risk than the one it removes, and the exposure is nil. **Revisit the
-moment any user-controlled value becomes an identifier** — a sortable table
-column being the likely first one.
+The original exploitability assessment below remains useful as defense in depth,
+but this advisory is no longer accepted or present.
 
-### B · `dompurify` advisories under Monaco (4 × MODERATE) — bounded
+### B · `dompurify` advisories under Monaco — RESOLVED
 
-Four advisories, no non-breaking fix. Carried since F3.1, which recorded them
-and handed them here.
+The lockfile now forces DOMPurify 3.4.14, which resolves the advisories. Monaco
+is also bundled locally instead of loading its default CDN under the production
+CSP.
 
 **Exposure:** `dompurify` is reached only through Monaco's own rendering. **No
 execution output and no user code passes through it** — `RunOutput.tsx` and
@@ -96,8 +115,8 @@ execution output and no user code passes through it** — `RunOutput.tsx` and
 `tests/execution/rendering.test.ts` enforces by grep and `e2e/execution.spec.ts`
 proves in Chromium with a positive control.
 
-**Accepted because** Monaco is in the locked stack and the alternative is
-removing the editor. Revisit when a non-breaking fix ships.
+The rendering controls remain covered because a dependency update does not
+replace an output-injection test.
 
 ### C · `esbuild` dev-server advisory (MODERATE) — dev only
 
@@ -125,12 +144,13 @@ infrastructure change when this project is deployed.
 
 ### E · Rate limiting is per-process without Redis
 
-`server/services/auth/ratelimit.ts` is in-memory. On serverless, two invocations
+`server/lib/ratelimit.ts` has an in-memory development fallback. On serverless, two invocations
 each count their own requests and neither limits anything.
 
-**Accepted because** production **refuses to start** without Redis rather than
-degrading silently — the check is in `server/env.ts`. The risk is bounded to
-development.
+**Accepted because** the deployment contract rejects a release without Upstash,
+and production request handling refuses the in-memory fallback unless the
+explicit E2E-only override is present. The risk is bounded to development and
+the single-process browser harness.
 
 ---
 

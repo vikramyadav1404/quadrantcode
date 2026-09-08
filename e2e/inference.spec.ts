@@ -184,7 +184,7 @@ test('adjusting the range persists the new lines', async ({ page }) => {
 
   await page.getByRole('button', { name: /adjust the lines/i }).click();
   await page.getByLabel('From line').fill('30');
-  await page.getByLabel('to').fill('34');
+  await page.getByLabel('To line').fill('34');
   await page.getByRole('button', { name: /save the range/i }).click();
 
   await expect(page.getByText(/you confirmed this/i)).toBeVisible();

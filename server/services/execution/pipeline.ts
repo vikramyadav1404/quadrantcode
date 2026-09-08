@@ -18,12 +18,19 @@
  */
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Database } from '@/server/db';
-import { executionJobs, problems, runAttempts } from '@/server/db/schema';
+import { executionJobs, problems, runAttempts, solveSessions } from '@/server/db/schema';
 import { checkExecutionLimits, type LimitVerdict } from './limits';
 import { type ExecutionProvider, ProviderUnavailableError } from './provider';
 import { LIVE_STATUSES, assertTransition } from './statemachine';
 import type { ExecutionResultView } from '@/lib/execution/view';
 import type { ExecutionLanguage } from './types';
+import type { ExecutionMode } from '@/lib/native/constants';
+import { executeNativeProblem, type NativeExecutionResult } from './native';
+import type { ExecutionResult } from './provider';
+import { applyVerifiedSubmissionEffectsTx } from './submission-effects';
+import { recomputeStreak, type LocalDate } from '@/server/services/streak';
+import { syncAssessmentAnswerForExecutionTx } from '@/server/services/assessments/scoring';
+import { recordEvent } from '@/server/services/session';
 
 /** A job whose heartbeat is older than this is treated as dead. */
 export const EXECUTION_STALE_SECONDS = 120;
@@ -34,7 +41,13 @@ export interface ExecutionRunner {
 }
 
 export type SubmitResult =
-  { ok: true; jobId: string } | { ok: false; limit: Extract<LimitVerdict, { allowed: false }> };
+  | { ok: true; jobId: string }
+  | {
+      ok: false;
+      limit:
+        | Extract<LimitVerdict, { allowed: false }>
+        | { allowed: false; reason: 'invalid'; message: string; retryAt: null };
+    };
 
 /**
  * What `getExecution` returns, and what the poll route sends over the wire.
@@ -78,6 +91,7 @@ export async function submitExecution(
     problemId: string;
     sessionId?: string | null;
     language: ExecutionLanguage;
+    mode?: ExecutionMode;
     source: string;
     stdin?: string | null;
     now: Date;
@@ -90,6 +104,42 @@ export async function submitExecution(
     const limit = await checkExecutionLimits(tx, { userId: input.userId, now: input.now });
     if (!limit.allowed) return { ok: false, limit };
 
+    const [problem] = await tx
+      .select({
+        sourceType: problems.sourceType,
+        currentVersion: problems.currentVersion,
+        status: problems.status,
+      })
+      .from(problems)
+      .where(eq(problems.id, input.problemId))
+      .limit(1);
+
+    if (!problem) {
+      return invalidSubmission('No such problem.');
+    }
+    const mode = input.mode ?? 'run';
+    if (mode !== 'run' && problem.sourceType === 'external_link') {
+      return invalidSubmission('External problems can only use scratchpad Run.');
+    }
+    if (problem.sourceType === 'original' && problem.status !== 'published') {
+      return invalidSubmission('This native problem is not published yet.');
+    }
+
+    if (input.sessionId) {
+      const [ownedSession] = await tx
+        .select({ id: solveSessions.id })
+        .from(solveSessions)
+        .where(
+          and(
+            eq(solveSessions.id, input.sessionId),
+            eq(solveSessions.userId, input.userId),
+            eq(solveSessions.problemId, input.problemId),
+          ),
+        )
+        .limit(1);
+      if (!ownedSession) return invalidSubmission('That solve session does not belong here.');
+    }
+
     const [job] = await tx
       .insert(executionJobs)
       .values({
@@ -97,6 +147,8 @@ export async function submitExecution(
         problemId: input.problemId,
         sessionId: input.sessionId ?? null,
         language: input.language,
+        mode,
+        problemVersion: problem.currentVersion,
         source: input.source,
         stdin: input.stdin ?? null,
         queuedAt: input.now,
@@ -134,10 +186,14 @@ export async function runExecutionJob(
       sessionId: executionJobs.sessionId,
       status: executionJobs.status,
       language: executionJobs.language,
+      mode: executionJobs.mode,
+      problemVersion: executionJobs.problemVersion,
       source: executionJobs.source,
       stdin: executionJobs.stdin,
+      sourceType: problems.sourceType,
     })
     .from(executionJobs)
+    .innerJoin(problems, eq(problems.id, executionJobs.problemId))
     .where(eq(executionJobs.id, jobId))
     .limit(1);
 
@@ -151,27 +207,27 @@ export async function runExecutionJob(
     .where(and(eq(executionJobs.id, jobId), eq(executionJobs.status, 'queued')));
 
   try {
-    const result = await provider.execute({
-      language: job.language,
-      source: job.source,
-      stdin: job.stdin,
-      /*
-       * ALWAYS null, and today unconditionally so.
-       *
-       * C1 forbids holding another platform's test cases, so an external-link
-       * problem can never have an expected output. And original problems —
-       * which could — arrive with F4.1, which is cut, so the catalog contains
-       * none. This is where their expected output would be read from if that
-       * changes; until then a conditional here would be a branch nothing can
-       * take, hiding the fact that comparison is impossible rather than
-       * declaring it.
-       */
-      expectedOutput: null,
-    });
+    const result =
+      job.sourceType === 'original'
+        ? await executeNativeProblem(db, provider, {
+            problemId: job.problemId,
+            problemVersion: job.problemVersion,
+            language: job.language,
+            mode: job.mode,
+            source: job.source,
+            stdin: job.stdin,
+          })
+        : await provider.execute({
+            language: job.language,
+            source: job.source,
+            stdin: job.stdin,
+            // External-link problems are scratchpads; C1 forbids stored tests.
+            expectedOutput: null,
+          });
 
     const finishedAt = new Date();
 
-    await db.transaction(async (tx) => {
+    const streakDate = await db.transaction(async (tx): Promise<LocalDate | null> => {
       await tx
         .update(executionJobs)
         .set({
@@ -182,13 +238,18 @@ export async function runExecutionJob(
         })
         .where(eq(executionJobs.id, jobId));
 
-      await tx.insert(runAttempts).values({
+      const nativeResult = isNativeExecutionResult(result) ? result : null;
+      const attempt: typeof runAttempts.$inferInsert = {
         jobId,
         userId: job.userId,
         problemId: job.problemId,
         sessionId: job.sessionId,
         language: job.language,
         verdict: result.verdict,
+        serverVerified: provider.executes,
+        serverVerifiedAt: provider.executes ? finishedAt : null,
+        providerName: provider.executes ? provider.name : null,
+        compilerRuntimeVersion: result.compilerRuntimeVersion,
         runtimeMs: result.runtimeMs,
         memoryKb: result.memoryKb,
         /*
@@ -196,13 +257,69 @@ export async function runExecutionJob(
          * than as "there was nothing to check", and there never will be
          * anything to check for a problem hosted elsewhere.
          */
-        testsPassed: null,
-        testsTotal: null,
+        testsPassed: nativeResult?.testsPassed ?? null,
+        testsTotal: nativeResult?.testsTotal ?? null,
+        testResults: nativeResult?.testResults ?? null,
         stdout: result.stdout,
         stderr: result.stderr,
         compileOutput: result.compileOutput,
-      });
+      };
+      await tx.insert(runAttempts).values(attempt);
+
+      /*
+       * A timeline run event belongs beside the attempt that proves the run
+       * completed. Recording it at queue time would claim an abandoned or
+       * provider-failed job actually ran; recording it only for native Submit
+       * made ordinary scratchpad Run disappear from session history.
+       */
+      if (job.sessionId) {
+        await recordEvent(tx, {
+          sessionId: job.sessionId,
+          type: 'run_attempted',
+          occurredAt: finishedAt,
+          payload: {
+            mode: job.mode,
+            verdict: result.verdict,
+            serverVerified: provider.executes,
+          },
+        });
+      }
+
+      if (provider.executes && job.mode === 'assessment') {
+        await syncAssessmentAnswerForExecutionTx(tx, {
+          executionJobId: jobId,
+          verdict: result.verdict,
+          now: finishedAt,
+        });
+      }
+
+      if (provider.executes && job.mode === 'submit') {
+        const effect = await applyVerifiedSubmissionEffectsTx(tx, {
+          userId: job.userId,
+          problemId: job.problemId,
+          sessionId: job.sessionId,
+          verdict: result.verdict,
+          runtimeMs: result.runtimeMs,
+          now: finishedAt,
+        });
+        return effect.streakDate;
+      }
+      return null;
     });
+
+    if (streakDate) {
+      try {
+        await recomputeStreak(db, job.userId, streakDate);
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: 'execution.streak_recompute_failed',
+            jobId,
+            reason: error instanceof Error ? error.message : 'unknown',
+          }),
+        );
+      }
+    }
   } catch (error) {
     /*
      * The job failed; the code did not. No `run_attempts` row is written,
@@ -230,6 +347,21 @@ export async function runExecutionJob(
   }
 }
 
+function invalidSubmission(message: string): Extract<SubmitResult, { ok: false }> {
+  return { ok: false, limit: { allowed: false, reason: 'invalid', message, retryAt: null } };
+}
+
+function isNativeExecutionResult(result: ExecutionResult): result is NativeExecutionResult {
+  return (
+    'testsPassed' in result &&
+    typeof result.testsPassed === 'number' &&
+    'testsTotal' in result &&
+    typeof result.testsTotal === 'number' &&
+    'testResults' in result &&
+    Array.isArray(result.testResults)
+  );
+}
+
 /**
  * What the polling endpoint returns.
  *
@@ -245,6 +377,7 @@ export async function getExecution(
       jobId: executionJobs.id,
       status: executionJobs.status,
       language: executionJobs.language,
+      mode: executionJobs.mode,
       error: executionJobs.error,
       sourceType: problems.sourceType,
       verdict: runAttempts.verdict,
@@ -255,6 +388,8 @@ export async function getExecution(
       stdout: runAttempts.stdout,
       stderr: runAttempts.stderr,
       compileOutput: runAttempts.compileOutput,
+      compilerRuntimeVersion: runAttempts.compilerRuntimeVersion,
+      testResults: runAttempts.testResults,
     })
     .from(executionJobs)
     .innerJoin(problems, eq(problems.id, executionJobs.problemId))
@@ -268,6 +403,7 @@ export async function getExecution(
     jobId: row.jobId,
     status: row.status,
     language: row.language,
+    mode: row.mode,
     scratchpad: row.sourceType === 'external_link',
     verdict: row.verdict,
     runtimeMs: row.runtimeMs,
@@ -277,8 +413,28 @@ export async function getExecution(
     stdout: row.stdout,
     stderr: row.stderr,
     compileOutput: row.compileOutput,
+    compilerRuntimeVersion: row.compilerRuntimeVersion,
+    testResults: sanitizeTestResults(row.testResults),
     error: row.error,
   };
+}
+
+/** Defense in depth: even a malformed stored hidden result cannot expose values. */
+function sanitizeTestResults(
+  results: typeof runAttempts.$inferSelect.testResults,
+): NonNullable<ExecutionView['testResults']> | null {
+  if (!results) return null;
+  return results.map((result) =>
+    result.visibility === 'hidden'
+      ? {
+          ordinal: result.ordinal,
+          visibility: 'hidden',
+          verdict: result.verdict,
+          runtimeMs: result.runtimeMs,
+          memoryKb: result.memoryKb,
+        }
+      : result,
+  );
 }
 
 /**

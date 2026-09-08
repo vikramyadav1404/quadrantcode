@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { requireCurrentUser } from '@/server/services/auth/session';
 import { ImportPanel } from './ImportPanel';
 
-export const metadata: Metadata = { title: 'Import & export · TraceLoop' };
+export const metadata: Metadata = { title: 'Import & export · Quadrantcode' };
 
 export default async function ImportPage() {
   // Inside the (app) group, so the layout has already answered "signed in?" and

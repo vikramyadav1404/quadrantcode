@@ -30,7 +30,7 @@ import {
   users,
 } from '@/server/db/schema';
 
-export function createTraceLoopAdapter(db: Database): Adapter {
+export function createQuadrantcodeAdapter(db: Database): Adapter {
   const base = DrizzleAdapter(db, {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see header: adapter type demands name/image columns its runtime never reads
     usersTable: users as any,

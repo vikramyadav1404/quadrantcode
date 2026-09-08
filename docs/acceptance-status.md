@@ -11,6 +11,25 @@ deliberately not rounded up.
 
 ---
 
+## Native platform extension · 1 September 2026
+
+| Criterion                                                                       | Status                 | Evidence                                                                                             |
+| ------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| Exactly 100 original problems with the requested difficulty/topic split         | **DONE**               | `npm run native:validate`; `tests/native-content/actual-library.test.ts`                             |
+| Five language contracts, references and at least six coverage cases per problem | **DONE locally**       | `npm run native:validate-references`: 3,000/3,000 local executions matched                           |
+| Real Judge0 verification before publish                                         | **BLOCKED externally** | Publish gate exists; a production Judge0 URL/key was not available, so imports remain `needs_review` |
+| Run/Submit with hidden-test privacy and persisted attempts                      | **DONE**               | execution integration tests and `e2e/native-platform.spec.ts`                                        |
+| Honest company evidence and moderated reports                                   | **DONE**               | company/report services, admin moderation and browser assertions                                     |
+| Exactly 20 original pattern-based mocks, two per company                        | **DONE**               | `npm run papers:validate`; assessment content tests                                                  |
+| Admin author/review/preview/publish/import/export/audit                         | **DONE**               | protected admin routes, services and security tests                                                  |
+| Responsive production UI                                                        | **DONE**               | Playwright at 375, 768 and 1440 px; full suite 118/118                                               |
+
+The implementation and operating instructions are in
+`docs/native-platform.md`; human/provider checks are in
+`docs/native-manual-qa.md`.
+
+---
+
 ## F0.1 · `scaffold-ci`
 
 | Criterion                                                            | Status   | Evidence                                                                          |

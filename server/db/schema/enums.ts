@@ -11,6 +11,19 @@ import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/refle
 import { SESSION_EVENT_TYPES, SNAPSHOT_TRIGGERS } from '@/lib/timeline/events';
 import { STUCK_CONFIDENCE, STUCK_STATUS } from '@/lib/inference/confidence';
 import { MISTAKE_TRENDS } from '@/server/services/mistakes/trend';
+import {
+  ASSESSMENT_ATTEMPT_STATUSES,
+  ASSESSMENT_PAPER_TYPES,
+  CANDIDATE_LEVELS,
+  EVIDENCE_TYPES,
+  EVIDENCE_VERIFICATION_STATUSES,
+  EXECUTION_MODES,
+  MODERATION_ACTIONS,
+  MODERATION_STATUSES,
+  PROBLEM_TYPES,
+  TEST_CASE_COVERAGE,
+  TEST_CASE_VISIBILITIES,
+} from '@/lib/native/constants';
 
 /** RBAC roles. `requireRole()` in F0.3 reads this. */
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
@@ -35,6 +48,7 @@ export const difficultyEnum = pgEnum('difficulty', ['easy', 'medium', 'hard']);
  */
 export const problemStatusEnum = pgEnum('problem_status', [
   'draft',
+  'needs_review',
   'review',
   'tested',
   'published',
@@ -238,3 +252,22 @@ export const executionStatusEnum = pgEnum('execution_status', [
  * records, which is the point of putting an interface in front of it.
  */
 export const executionVerdictEnum = pgEnum('execution_verdict', EXECUTION_VERDICTS);
+
+/** Native-content and evidence taxonomies. Client-facing labels live in lib/native. */
+export const problemTypeEnum = pgEnum('problem_type', PROBLEM_TYPES);
+export const testCaseVisibilityEnum = pgEnum('test_case_visibility', TEST_CASE_VISIBILITIES);
+export const testCaseCoverageEnum = pgEnum('test_case_coverage', TEST_CASE_COVERAGE);
+export const evidenceTypeEnum = pgEnum('evidence_type', EVIDENCE_TYPES);
+export const evidenceVerificationStatusEnum = pgEnum(
+  'evidence_verification_status',
+  EVIDENCE_VERIFICATION_STATUSES,
+);
+export const candidateLevelEnum = pgEnum('candidate_level', CANDIDATE_LEVELS);
+export const moderationStatusEnum = pgEnum('moderation_status', MODERATION_STATUSES);
+export const moderationActionEnum = pgEnum('moderation_action', MODERATION_ACTIONS);
+export const assessmentPaperTypeEnum = pgEnum('assessment_paper_type', ASSESSMENT_PAPER_TYPES);
+export const assessmentAttemptStatusEnum = pgEnum(
+  'assessment_attempt_status',
+  ASSESSMENT_ATTEMPT_STATUSES,
+);
+export const executionModeEnum = pgEnum('execution_mode', EXECUTION_MODES);

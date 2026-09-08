@@ -69,15 +69,14 @@ async function eventCount(): Promise<number> {
 async function solveAndRun(page: Page, source: string) {
   await page.goto(`/problems/${SLUG}`);
   await page.getByRole('button', { name: /start solving/i }).click();
-  await expect(page.getByRole('button', { name: /pause/i })).toBeVisible();
-
-  await page.goto(`/problems/${SLUG}/solve`);
+  await expect(page.getByText(/session started/i)).toBeVisible();
+  await page.getByRole('link', { name: /open the editor/i }).click();
 
   // Monaco is a canvas-backed editor; typing into it from Playwright is
   // brittle. The stdin field is a plain textarea and the run is what matters —
   // the source that gets submitted is the language starter plus this.
   await page.getByLabel('Input (stdin)').fill(source);
-  await page.getByRole('button', { name: /^run$/i }).click();
+  await page.getByRole('button', { name: /^run code$/i }).click();
   await expect(page.getByTestId('run-output-output')).toBeVisible({ timeout: 20_000 });
 }
 

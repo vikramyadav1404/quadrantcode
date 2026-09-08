@@ -27,7 +27,7 @@ export function TopBar({
 }) {
   return (
     <header className="flex items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2">
-      <span className="font-semibold tracking-tight">TraceLoop</span>
+      <span className="font-semibold tracking-tight">Quadrantcode</span>
 
       <div className="flex items-center gap-3">
         <StreakBadge days={streakDays} atRisk={streakAtRisk} />

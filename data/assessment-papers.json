@@ -1,0 +1,826 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "needs_review",
+  "papers": [
+    {
+      "slug": "amazon-original-pattern-mock-a",
+      "title": "Amazon Original Pattern Mock A",
+      "companySlug": "amazon",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Amazon preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "signal-frequency-ledger",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "budget-match-counter",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "archive-shelf-position",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "museum-wing-hierarchy",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "amazon-original-pattern-mock-b",
+      "title": "Amazon Original Pattern Mock B",
+      "companySlug": "amazon",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Amazon preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "server-load-plateau",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "stream-segment-merge-cost",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "server-fleet-clusters",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "telemetry-majority-meter",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "google-original-pattern-mock-a",
+      "title": "Google Original Pattern Mock A",
+      "companySlug": "google",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Google preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "beacon-crowd-measure",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "courier-load-complements",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "signal-strength-boundary",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "skyline-banner-area",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "google-original-pattern-mock-b",
+      "title": "Google Original Pattern Mock B",
+      "companySlug": "google",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Google preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "network-relay-tree-height",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "courier-chain-tail-lookup",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "cargo-grouping-budget",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "research-sample-selections",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "microsoft-original-pattern-mock-a",
+      "title": "Microsoft Original Pattern Mock A",
+      "companySlug": "microsoft",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Microsoft preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "transit-tap-popularity",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "solar-panel-pair-balance",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "library-call-number-slot",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "terrain-profile-rectangle",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "microsoft-original-pattern-mock-b",
+      "title": "Microsoft Original Pattern Mock B",
+      "companySlug": "microsoft",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Microsoft preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "relay-node-from-finish",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "game-map-tree-levels",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "research-team-components",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "rope-workshop-minimum-cost",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "meta-original-pattern-mock-a",
+      "title": "Meta Original Pattern Mock A",
+      "companySlug": "meta",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Meta preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "twin-gate-target-pairs",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "workshop-frequency-peak",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "warehouse-stack-footprint",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "carriage-tail-offset",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "meta-original-pattern-mock-b",
+      "title": "Meta Original Pattern Mock B",
+      "companySlug": "meta",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Meta preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "production-limit-position",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "signal-tower-tree-height",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "device-mesh-components",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "workshop-shift-reward",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "adobe-original-pattern-mock-a",
+      "title": "Adobe Original Pattern Mock A",
+      "companySlug": "adobe",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Adobe preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "museum-ticket-pair-count",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "survey-answer-concentration",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "festival-stall-rectangle",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "orchard-canopy-depth",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "adobe-original-pattern-mock-b",
+      "title": "Adobe Original Pattern Mock B",
+      "companySlug": "adobe",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Adobe preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "checkpoint-reverse-rank",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "parcel-consolidation-cost",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "pipeline-network-regions",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "research-grant-selection",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "flipkart-original-pattern-mock-a",
+      "title": "Flipkart Original Pattern Mock A",
+      "companySlug": "flipkart",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Flipkart preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "signal-frequency-ledger",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "budget-match-counter",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "archive-shelf-position",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "museum-wing-hierarchy",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "flipkart-original-pattern-mock-b",
+      "title": "Flipkart Original Pattern Mock B",
+      "companySlug": "flipkart",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Flipkart preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "server-load-plateau",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "stream-segment-merge-cost",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "server-fleet-clusters",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "telemetry-majority-meter",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "atlassian-original-pattern-mock-a",
+      "title": "Atlassian Original Pattern Mock A",
+      "companySlug": "atlassian",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Atlassian preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "beacon-crowd-measure",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "courier-load-complements",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "signal-strength-boundary",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "skyline-banner-area",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "atlassian-original-pattern-mock-b",
+      "title": "Atlassian Original Pattern Mock B",
+      "companySlug": "atlassian",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Atlassian preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "network-relay-tree-height",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "courier-chain-tail-lookup",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "cargo-grouping-budget",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "research-sample-selections",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "uber-original-pattern-mock-a",
+      "title": "Uber Original Pattern Mock A",
+      "companySlug": "uber",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Uber preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "transit-tap-popularity",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "solar-panel-pair-balance",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "library-call-number-slot",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "terrain-profile-rectangle",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "uber-original-pattern-mock-b",
+      "title": "Uber Original Pattern Mock B",
+      "companySlug": "uber",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Uber preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "relay-node-from-finish",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "game-map-tree-levels",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "research-team-components",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "rope-workshop-minimum-cost",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "goldman-sachs-original-pattern-mock-a",
+      "title": "Goldman Sachs Original Pattern Mock A",
+      "companySlug": "goldman-sachs",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Goldman Sachs preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "twin-gate-target-pairs",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "workshop-frequency-peak",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "warehouse-stack-footprint",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "carriage-tail-offset",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "goldman-sachs-original-pattern-mock-b",
+      "title": "Goldman Sachs Original Pattern Mock B",
+      "companySlug": "goldman-sachs",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Goldman Sachs preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "production-limit-position",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "signal-tower-tree-height",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "device-mesh-components",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "workshop-shift-reward",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "walmart-original-pattern-mock-a",
+      "title": "Walmart Original Pattern Mock A",
+      "companySlug": "walmart",
+      "role": "Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition A",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Walmart preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "museum-ticket-pair-count",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "survey-answer-concentration",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "festival-stall-rectangle",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "orchard-canopy-depth",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    },
+    {
+      "slug": "walmart-original-pattern-mock-b",
+      "title": "Walmart Original Pattern Mock B",
+      "companySlug": "walmart",
+      "role": "Entry-Level Software Engineer",
+      "patternPeriod": "Evergreen original practice set — Edition B",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "This is an independently authored Quadrantcode pattern-based mock for descriptive Walmart preparation. It is not an official paper, verified past paper, hiring leak, or endorsement. Solve all four questions within the server-timed window. Run Code uses visible or custom cases; Submit Question uses the complete protected test set. The final score is based only on server-verified submissions.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Independently assembled from Quadrantcode-original problems and labelled only as a pattern-based mock."
+      },
+      "questions": [
+        {
+          "problemSlug": "checkpoint-reverse-rank",
+          "ordinal": 1,
+          "marks": 25
+        },
+        {
+          "problemSlug": "parcel-consolidation-cost",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "pipeline-network-regions",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "research-grant-selection",
+          "ordinal": 4,
+          "marks": 25
+        }
+      ]
+    }
+  ]
+}

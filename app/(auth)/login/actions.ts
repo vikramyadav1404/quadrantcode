@@ -39,6 +39,9 @@ export async function sendMagicLinkAction(formData: unknown): Promise<SendLinkRe
 
   const { email, returnTo } = parsed.data;
   const env = getServerEnv();
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+    return { ok: false, message: 'Email sign-in is temporarily unavailable.' };
+  }
 
   // 1. The 60-second cooldown, keyed by address.
   const cooldown = await createRateLimiter(RATE_LIMITS.magicLinkResendCooldown, env).limit(
@@ -90,4 +93,26 @@ export async function sendMagicLinkAction(formData: unknown): Promise<SendLinkRe
     maskedEmail: maskEmail(email),
     cooldownSeconds: RATE_LIMITS.magicLinkResendCooldown.windowSeconds,
   };
+}
+
+/**
+ * F0.3b · hand off to GitHub.
+ *
+ * A server action rather than a link to `/api/auth/signin/github`, for the same
+ * reason `sendMagicLinkAction` exists: `returnTo` is attacker-supplied, and
+ * `validateReturnTo` is the allowlist that keeps it from becoming an open
+ * redirect. A hand-built URL would skip it.
+ *
+ * This one DOES redirect — `signIn` throws a Next.js redirect, which is how
+ * server actions navigate. It must not be caught: swallowing it here would
+ * leave the user on /login with nothing having happened. That is why the
+ * magic-link action's try/catch is not copied down.
+ */
+export async function signInWithGitHubAction(returnTo?: string): Promise<void> {
+  const env = getServerEnv();
+  if (!env.GITHUB_ID || !env.GITHUB_SECRET) return;
+
+  const safeReturnTo = validateReturnTo(returnTo, env.NEXT_PUBLIC_APP_URL) ?? '/dashboard';
+
+  await signIn('github', { redirectTo: safeReturnTo });
 }

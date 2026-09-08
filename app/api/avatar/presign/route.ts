@@ -12,7 +12,7 @@ import { getServerEnv } from '@/server/env';
 import { RATE_LIMITS, createRateLimiter } from '@/server/lib/ratelimit';
 import { AvatarError, presignAvatarUpload } from '@/server/services/profile';
 import { getCurrentUser } from '@/server/services/auth/session';
-import { resolveStorage } from '@/server/services/storage';
+import { isStorageConfigured, resolveStorage } from '@/server/services/storage';
 
 export async function POST(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser();
@@ -29,6 +29,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const env = getServerEnv();
+  if (!isStorageConfigured(env)) {
+    return NextResponse.json(
+      { ok: false, code: 'STORAGE_UNAVAILABLE', message: 'Photo uploads are unavailable.' },
+      { status: 503 },
+    );
+  }
 
   // 10 per user per hour — a presign is cheap but it signs a write to storage.
   const gate = await createRateLimiter(RATE_LIMITS.avatarPresignPerUser, env).limit(user.id);

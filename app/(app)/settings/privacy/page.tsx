@@ -1,5 +1,5 @@
 /**
- * What TraceLoop records about how you solve, and how to stop it.
+ * What Quadrantcode records about how you solve, and how to stop it.
  *
  * ## The copy describes what happens, not what the policy says
  *
@@ -27,7 +27,7 @@ export default async function PrivacySettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        description="What TraceLoop records while you solve, and how to erase it."
+        description="What Quadrantcode records while you solve, and how to erase it."
         title="Privacy"
       />
 

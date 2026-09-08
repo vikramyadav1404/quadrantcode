@@ -45,27 +45,27 @@ export function ResendPanel({ email }: { email: string }) {
     }
   }
 
-  const field =
-    'w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm';
-
   return (
-    <div className="flex flex-col gap-3">
-      <label className="text-sm" htmlFor="resend-email">
-        Email address
-      </label>
-      <input
-        autoComplete="email"
-        className={field}
-        id="resend-email"
-        onChange={(event) => setAddress(event.target.value)}
-        type="email"
-        value={address}
-      />
+    <div className="flex flex-col gap-5">
+      <div>
+        <label className="auth-label" htmlFor="resend-email">
+          Email address
+        </label>
+        <input
+          autoComplete="email"
+          className="auth-field"
+          id="resend-email"
+          onChange={(event) => setAddress(event.target.value)}
+          placeholder="you@example.com"
+          type="email"
+          value={address}
+        />
+      </div>
 
       {/* aria-disabled rather than disabled — see LoginForm for why. */}
       <button
         aria-disabled={pending || cooldown > 0 || address.length === 0}
-        className="self-start rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] aria-disabled:opacity-60"
+        className="auth-primary-button"
         onClick={() => {
           if (pending || cooldown > 0 || address.length === 0) return;
           void resend();
@@ -86,7 +86,10 @@ export function ResendPanel({ email }: { email: string }) {
         </p>
       ) : null}
 
-      <Link className="text-sm text-[var(--text-muted)] underline" href="/login">
+      <Link
+        className="text-center text-sm font-medium text-[var(--text-muted)] underline decoration-[var(--border)] underline-offset-4 hover:text-[var(--text-primary)]"
+        href="/login"
+      >
         Back to sign in
       </Link>
     </div>
