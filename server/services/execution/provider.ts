@@ -57,6 +57,7 @@ export type ExecutionRequest = {
     wallSeconds: number;
     memoryKb: number;
   };
+  lifecycle?: ExecutionLifecycle;
 };
 
 export type ExecutionResult = {
@@ -69,12 +70,69 @@ export type ExecutionResult = {
   compilerRuntimeVersion: string | null;
 };
 
+export type ExecutionLifecycle = {
+  heartbeat(
+    stage: 'sandbox_created' | 'compiled' | 'test_completed' | 'cleanup_started',
+  ): Promise<void>;
+  sandboxCreated(metadata: { name: string; expiresAt: Date | null }): Promise<void>;
+  cleanupFinished(confirmed: boolean): Promise<void>;
+};
+
+export type ExecutionSuiteRequest = Omit<ExecutionRequest, 'stdin' | 'expectedOutput'> & {
+  cases: ReadonlyArray<{ ordinal: number; stdin: string | null }>;
+  lifecycle?: ExecutionLifecycle;
+};
+
+export type ExecutionSuiteResult = {
+  compilerRuntimeVersion: string | null;
+  compileOutput: string | null;
+  cases: ExecutionResult[];
+};
+
 export interface ExecutionProvider {
   /** Shown in the UI and recorded, so nobody has to guess what ran their code. */
   readonly name: string;
   /** True when this provider actually executes anything. */
   readonly executes: boolean;
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
+}
+
+/** Optional compile-once capability used by the Vercel Sandbox backend. */
+export interface ExecutionSuiteProvider extends ExecutionProvider {
+  executeSuite(request: ExecutionSuiteRequest): Promise<ExecutionSuiteResult>;
+}
+
+export function supportsExecutionSuite(
+  provider: ExecutionProvider,
+): provider is ExecutionSuiteProvider {
+  return 'executeSuite' in provider && typeof provider.executeSuite === 'function';
+}
+
+export type ConfiguredExecutionBackend = 'vercel_sandbox' | 'judge0' | 'fake';
+
+export type ExecutionProviderEnv = {
+  EXECUTION_BACKEND?: ConfiguredExecutionBackend | undefined;
+  EXECUTION_SANDBOX_IMAGE?: string | undefined;
+  JUDGE0_URL?: string | undefined;
+  JUDGE0_API_KEY?: string | undefined;
+  NODE_ENV?: string | undefined;
+};
+
+/**
+ * Resolve one explicit backend. Judge0 is never an automatic fallback from a
+ * configured Sandbox backend. The legacy inference exists only for local and
+ * pre-migration compatibility.
+ */
+export function resolveExecutionBackend(env: ExecutionProviderEnv): ConfiguredExecutionBackend {
+  if (env.EXECUTION_BACKEND) {
+    if (env.EXECUTION_BACKEND === 'fake' && env.NODE_ENV === 'production') {
+      throw new ProviderUnavailableError('Fake execution is disabled in production');
+    }
+    return env.EXECUTION_BACKEND;
+  }
+  if (env.JUDGE0_URL) return 'judge0';
+  if (env.NODE_ENV !== 'production') return 'fake';
+  throw new ProviderUnavailableError('Code execution backend');
 }
 
 /**
@@ -95,6 +153,16 @@ export class ProviderUnavailableError extends Error {
     super(`${provider} could not run this. Your code was not executed.`);
     this.name = 'ProviderUnavailableError';
     if (cause !== undefined) this.cause = cause;
+  }
+}
+
+/** A persisted job cannot be executed as configured and must not be retried. */
+export class ExecutionConfigurationError extends Error {
+  readonly code = 'EXECUTION_CONFIGURATION_INVALID' as const;
+
+  constructor(message = 'This execution is no longer configured correctly.') {
+    super(message);
+    this.name = 'ExecutionConfigurationError';
   }
 }
 
@@ -156,16 +224,17 @@ export class UnavailableExecutionProvider implements ExecutionProvider {
  * Mirrors `resolveStorage` from F0.5: one place decides, and the surfaces that
  * care read `executes` rather than checking an env var themselves.
  */
-export function resolveProvider(env: {
-  JUDGE0_URL?: string | undefined;
-  JUDGE0_API_KEY?: string | undefined;
-  NODE_ENV?: string | undefined;
-}): ExecutionProvider {
-  if (!env.JUDGE0_URL) {
-    return env.NODE_ENV === 'production'
-      ? new UnavailableExecutionProvider()
-      : new FakeExecutionProvider();
+export function resolveProvider(env: ExecutionProviderEnv): ExecutionProvider {
+  let backend: ConfiguredExecutionBackend;
+  try {
+    backend = resolveExecutionBackend(env);
+  } catch {
+    return new UnavailableExecutionProvider();
   }
+
+  if (backend === 'fake') return new FakeExecutionProvider();
+  if (backend === 'vercel_sandbox') return new UnavailableExecutionProvider();
+  if (!env.JUDGE0_URL) return new UnavailableExecutionProvider();
 
   return new Judge0Provider({
     baseUrl: env.JUDGE0_URL,

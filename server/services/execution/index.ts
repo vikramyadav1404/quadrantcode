@@ -6,9 +6,14 @@
  * nothing. `pipeline.ts` is the only part that reads or writes.
  */
 export * from './limits';
+export * from './claim';
+export * from './consumer';
 export * from './native';
 export * from './pipeline';
 export * from './provider';
+export * from './queue';
+export * from './sandbox';
+export * from './sandbox-protocol';
 export * from './statemachine';
 export * from './submission-effects';
 export * from './types';

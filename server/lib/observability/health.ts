@@ -104,9 +104,9 @@ export async function checkHealth(
     await checkDatabase(db),
 
     checkConfigured(
-      'judge0',
-      env['JUDGE0_URL'],
-      'no JUDGE0_URL — code execution is unavailable; production never invents a verdict',
+      'execution_backend',
+      env['EXECUTION_BACKEND'],
+      'no EXECUTION_BACKEND — code execution is unavailable; production never invents a verdict',
     ),
     checkConfigured(
       'redis',

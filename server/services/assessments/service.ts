@@ -245,6 +245,7 @@ export async function runAssessmentAnswer(
     submit: boolean;
     now: Date;
     runner: ExecutionRunner;
+    backend?: 'legacy' | 'vercel_sandbox' | 'judge0' | 'fake';
   },
 ) {
   await saveAssessmentAnswer(db, input.userId, input, input.now);
@@ -274,6 +275,7 @@ export async function runAssessmentAnswer(
     stdin: null,
     now: input.now,
     runner: input.runner,
+    backend: input.backend,
   });
   if (result.ok && input.submit) {
     await db

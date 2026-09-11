@@ -15,19 +15,26 @@ import { getDb } from '@/server/db';
 import { getServerEnv } from '@/server/env';
 import { requireCurrentUser } from '@/server/services/auth/session';
 import {
-  InProcessExecutionRunner,
-  resolveProvider,
+  createRequestExecutionRunner,
+  resolveExecutionBackend,
   submitExecution,
 } from '@/server/services/execution';
 import { submitExecutionSchema } from '@/server/services/execution/input';
 import { captureSnapshot } from '@/server/services/timeline';
 import { snapshotCaptureEnabled } from '@/server/services/profile';
 import { recordEvent } from '@/server/services/session';
+import { assertFeatureEnabled } from '@/lib/flags';
 
 export type SubmitRunResult = { ok: true; jobId: string } | { ok: false; message: string };
 
 export async function submitRunAction(input: unknown): Promise<SubmitRunResult> {
   const user = await requireCurrentUser();
+
+  try {
+    assertFeatureEnabled('FEATURE_EXECUTION');
+  } catch {
+    return { ok: false, message: 'Code execution is currently unavailable.' };
+  }
 
   const parsed = submitExecutionSchema.safeParse(input);
   if (!parsed.success) {
@@ -38,7 +45,15 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
     };
   }
 
-  const result = await submitExecution(getDb(), {
+  const env = getServerEnv();
+  let backend: ReturnType<typeof resolveExecutionBackend>;
+  try {
+    backend = resolveExecutionBackend(env);
+  } catch {
+    return { ok: false, message: 'Code execution is not configured.' };
+  }
+  const db = getDb();
+  const result = await submitExecution(db, {
     userId: user.id,
     problemId: parsed.data.problemId,
     sessionId: parsed.data.sessionId ?? null,
@@ -47,13 +62,8 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
     source: parsed.data.source,
     stdin: parsed.data.stdin ?? null,
     now: new Date(),
-    /*
-     * With no `JUDGE0_URL` this resolves to the fake, which executes nothing.
-     * That is the deployed state today and it is visible here rather than
-     * hidden inside the pipeline: the page works, the results are not real
-     * execution, and the acceptance record says so.
-     */
-    runner: new InProcessExecutionRunner(getDb(), resolveProvider(getServerEnv())),
+    backend,
+    runner: createRequestExecutionRunner(db, env),
   });
 
   /*
