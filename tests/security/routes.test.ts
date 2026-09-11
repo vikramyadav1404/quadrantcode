@@ -109,10 +109,14 @@ const PUBLIC_ROUTES: Record<string, string> = {
 };
 
 /**
- * Routes that must reject an anonymous caller.
+ * Routes that must reject an anonymous caller, and that a USER authenticates to.
  *
  * Middleware covers the page prefixes; API routes each check for themselves,
  * because middleware's matcher is a list somebody has to remember to extend.
+ *
+ * Every entry here means "a human session, or nothing". A route authenticated by
+ * a machine credential instead belongs in MACHINE_ROUTES below — see the note
+ * there for why it is not merely a naming preference.
  */
 const PROTECTED_PREFIXES = [
   '/admin',
@@ -133,8 +137,34 @@ const PROTECTED_PREFIXES = [
   '/settings',
 ];
 
-function classify(path: string): 'public' | 'protected' | 'unclassified' {
+/**
+ * F3.1b · routes a PLATFORM COMPONENT calls, with the credential named.
+ *
+ * These are neither PUBLIC nor PROTECTED, and the distinction is not cosmetic.
+ * A signed-out request to `/api/session/active` is refused; a signed-out request
+ * to `/api/cron/executions/reconcile` carrying the right bearer **succeeds with
+ * 200**. Filing that under PROTECTED — a list whose every other member means "a
+ * human session, or nothing" — hides the one fact a reviewer most needs.
+ *
+ * Keyed by EXACT PATH, like PUBLIC_ROUTES and unlike PROTECTED_PREFIXES, because
+ * a prefix silently adopts routes nobody has looked at: `/api/cron` would have
+ * classified a later `/api/cron/rebuild-index` as reviewed when it was not. That
+ * is the drift this whole file exists to catch — `/analytics` and `/mistakes`
+ * went missing from middleware exactly that way.
+ *
+ * The reason must name the credential, so "what stands in for a session here?"
+ * is answered in the file rather than in somebody's memory.
+ */
+const MACHINE_ROUTES: Record<string, string> = {
+  '/api/cron/executions/reconcile':
+    'Vercel Cron only; a Bearer CRON_SECRET compared with timingSafeEqual, 404 without it',
+  '/api/queues/executions':
+    'Vercel Queue delivery only; the Queue signature plus VERCEL=1 and the execution flag, 404 without them',
+};
+
+function classify(path: string): 'public' | 'protected' | 'machine' | 'unclassified' {
   if (path in PUBLIC_ROUTES) return 'public';
+  if (path in MACHINE_ROUTES) return 'machine';
   if (PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
     return 'protected';
   }
@@ -180,20 +210,54 @@ describe('F4.8 · the route inventory', () => {
     }
   });
 
+  it('every machine route NAMES ITS CREDENTIAL, not just an entry', () => {
+    /*
+     * Stricter than the public rule above, because "this one is internal" is
+     * the sentence that gets an unauthenticated endpoint shipped. The reason has
+     * to say what is checked instead of a session.
+     */
+    // Not vacuous: an empty MACHINE_ROUTES would pass every loop below.
+    expect(Object.keys(MACHINE_ROUTES).length).toBeGreaterThanOrEqual(2);
+
+    for (const [path, reason] of Object.entries(MACHINE_ROUTES)) {
+      expect(reason.length, path).toBeGreaterThan(20);
+      expect(reason, path).not.toMatch(/test|otherwise|for now|temporar/i);
+      expect(reason, path).toMatch(/secret|signature|token|bearer/i);
+    }
+  });
+
+  it('EVERY MACHINE ROUTE IS AN EXACT PATH — a prefix would adopt its siblings', () => {
+    /*
+     * The guard on the decision above. Declaring `/api/cron` rather than the one
+     * route would mean a later `/api/cron/rebuild-index` is born classified,
+     * which is the drift this file exists to catch.
+     */
+    const declared = Object.keys(MACHINE_ROUTES);
+    const onDisk = routes.map((route) => route.path);
+
+    for (const path of declared) {
+      expect(onDisk, `${path} is declared but does not exist on disk`).toContain(path);
+    }
+  });
+
   it('POSITIVE CONTROL · the classifier really can return unclassified', () => {
     // Otherwise the assertion above passes against a function that says
     // "protected" to everything.
     expect(classify('/some/route/nobody/declared')).toBe('unclassified');
     expect(classify('/dashboard')).toBe('protected');
     expect(classify('/login')).toBe('public');
+    expect(classify('/api/cron/executions/reconcile')).toBe('machine');
+    // The sibling a prefix would have swallowed.
+    expect(classify('/api/cron/something-nobody-reviewed')).toBe('unclassified');
   });
 
-  it('no route is both public and protected', () => {
-    const contradictory = Object.keys(PUBLIC_ROUTES).filter((path) =>
-      PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)),
-    );
+  it('no route is declared in two categories', () => {
+    const inProtected = (path: string): boolean =>
+      PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 
-    expect(contradictory).toEqual([]);
+    expect(Object.keys(PUBLIC_ROUTES).filter(inProtected)).toEqual([]);
+    expect(Object.keys(MACHINE_ROUTES).filter(inProtected)).toEqual([]);
+    expect(Object.keys(MACHINE_ROUTES).filter((path) => path in PUBLIC_ROUTES)).toEqual([]);
   });
 });
 

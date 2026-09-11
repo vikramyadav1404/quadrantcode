@@ -16,7 +16,6 @@ import {
   type ExecutionRunner,
   FakeExecutionProvider,
   HOURLY_LIMIT,
-  IllegalExecutionTransitionError,
   ProviderUnavailableError,
   getExecution,
   runExecutionJob,
@@ -92,10 +91,18 @@ suite('F3.1 · the execution pipeline', () => {
       source: 'print(1)',
       now: NOW,
       runner,
+      featureFlags: { FEATURE_EXECUTION: 'true' },
       ...overrides,
     });
 
   describe('submitting', () => {
+    it('FEATURE_EXECUTION disabled creates neither a job nor a dispatch', async () => {
+      const result = await submit({ featureFlags: { FEATURE_EXECUTION: 'false' } });
+      expect(result).toMatchObject({ ok: false, limit: { reason: 'invalid' } });
+      expect(await ctx.db.select().from(executionJobs)).toHaveLength(0);
+      expect(runner.enqueued).toEqual([]);
+    });
+
     it('writes a queued job and hands the id to the runner', async () => {
       const result = await submit();
 
@@ -139,20 +146,19 @@ suite('F3.1 · the execution pipeline', () => {
       expect(attempt?.runtimeMs).toBeGreaterThan(0);
     });
 
-    it('refuses to run a job twice', async () => {
+    it('acknowledges a duplicate delivery without running twice', async () => {
       const submitted = await submit();
       if (!submitted.ok) throw new Error('submission was refused');
 
       await runExecutionJob(ctx.db, new FakeExecutionProvider(), submitted.jobId, NOW);
 
-      // `completed → running` is not a transition, and a second result would be
-      // a second truth about one run.
-      await expect(
-        runExecutionJob(ctx.db, new FakeExecutionProvider(), submitted.jobId, NOW),
-      ).rejects.toBeInstanceOf(IllegalExecutionTransitionError);
+      expect(
+        await runExecutionJob(ctx.db, new FakeExecutionProvider(), submitted.jobId, NOW),
+      ).toEqual({ kind: 'noop' });
+      expect(await ctx.db.select().from(runAttempts)).toHaveLength(1);
     });
 
-    it('AN OUTAGE FAILS THE JOB WITH A CLEAR MESSAGE, AND NO VERDICT', async () => {
+    it('AN OUTAGE RETRIES, THEN FAILS TERMINALLY WITH NO VERDICT', async () => {
       /*
        * The acceptance criterion. "Judge0 is down" and "your code is wrong"
        * must never reach a user as the same thing — so the job fails, and NO
@@ -162,24 +168,39 @@ suite('F3.1 · the execution pipeline', () => {
       const submitted = await submit();
       if (!submitted.ok) throw new Error('submission was refused');
 
-      await runExecutionJob(ctx.db, new DeadProvider(), submitted.jobId, NOW);
+      expect(await runExecutionJob(ctx.db, new DeadProvider(), submitted.jobId, NOW)).toEqual({
+        kind: 'retry',
+        afterSeconds: 15,
+      });
+      await runExecutionJob(
+        ctx.db,
+        new DeadProvider(),
+        submitted.jobId,
+        new Date(NOW.getTime() + 16_000),
+      );
+      await runExecutionJob(
+        ctx.db,
+        new DeadProvider(),
+        submitted.jobId,
+        new Date(NOW.getTime() + 77_000),
+      );
 
       const [job] = await ctx.db.select().from(executionJobs);
       expect(job?.status).toBe('failed');
-      expect(job?.error).toContain('was not executed');
+      expect(job?.error).toContain('after several attempts');
       expect(await ctx.db.select().from(runAttempts)).toHaveLength(0);
     });
 
-    it('the outage message does not promise a retry', async () => {
-      // There is nothing to pick the job back up (D17). A message implying
-      // otherwise would be the one lie this ticket's amendment calls out.
+    it('stores a sanitized retry code without a provider error body', async () => {
       const submitted = await submit();
       if (!submitted.ok) throw new Error('submission was refused');
 
       await runExecutionJob(ctx.db, new DeadProvider(), submitted.jobId, NOW);
 
       const [job] = await ctx.db.select().from(executionJobs);
-      expect(job!.error).not.toMatch(/retry|try again|automatically/i);
+      expect(job!.status).toBe('queued');
+      expect(job!.lastErrorCode).toBe('PROVIDER_UNAVAILABLE');
+      expect(job!.error).toBeNull();
     });
   });
 
@@ -320,6 +341,26 @@ suite('F3.1 · the execution pipeline', () => {
       }
 
       expect((await submit()).ok).toBe(true);
+    });
+
+    it('enforces the shared UTC-day free-tier admission limit', async () => {
+      const other = await createUser(ctx.db, { email: 'daily-cap@example.com' });
+      for (let index = 0; index < 20; index += 1) {
+        await ctx.db.insert(executionJobs).values({
+          userId: other.id,
+          problemId: externalProblemId,
+          language: 'python3',
+          source: `print(${index})`,
+          status: 'completed',
+          finishedAt: NOW,
+          createdAt: NOW,
+        });
+      }
+      const refused = await submit();
+      expect(refused).toMatchObject({
+        ok: false,
+        limit: { reason: 'global_daily', retryAt: expect.any(Date) },
+      });
     });
   });
 

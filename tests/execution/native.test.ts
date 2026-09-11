@@ -189,6 +189,7 @@ suite('native execution security and persistence', () => {
       stdin: null,
       now: new Date('2026-08-31T10:00:00.000Z'),
       runner: { enqueue: async (jobId) => void queued.push(jobId) },
+      featureFlags: { FEATURE_EXECUTION: 'true' },
     });
     expect(submitted.ok).toBe(true);
     const jobId = queued[0]!;
@@ -241,6 +242,7 @@ suite('native execution security and persistence', () => {
       stdin: null,
       now: new Date(),
       runner: { enqueue: async (jobId) => void queued.push(jobId) },
+      featureFlags: { FEATURE_EXECUTION: 'true' },
     });
     expect(submitted.ok).toBe(true);
     const [job] = await ctx.db

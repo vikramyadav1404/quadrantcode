@@ -12,6 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const PORT = Number(process.env.E2E_PORT ?? 3210);
 const JUDGE0_PORT = Number(process.env.JUDGE0_E2E_PORT ?? 3211);
+const REAL_SANDBOX_E2E = process.env.RUN_VERCEL_SANDBOX_E2E === '1';
 // `localhost`, not 127.0.0.1: Auth.js resolves its own origin from the Host
 // header, and a mismatch makes it reject callback URLs as cross-origin.
 const BASE_URL = `http://localhost:${PORT}`;
@@ -69,6 +70,11 @@ export default defineConfig({
         EMAIL_FROM: 'Quadrantcode <test@example.com>',
         E2E_EMAIL_CAPTURE: '1',
         JUDGE0_URL: `http://127.0.0.1:${JUDGE0_PORT}`,
+        EXECUTION_BACKEND: REAL_SANDBOX_E2E ? 'vercel_sandbox' : 'judge0',
+        EXECUTION_SANDBOX_IMAGE: REAL_SANDBOX_E2E
+          ? (process.env.EXECUTION_SANDBOX_IMAGE ?? '')
+          : '',
+        FEATURE_EXECUTION: 'true',
         /*
          * `next start` sets NODE_ENV=production, where the rate limiter refuses
          * the in-memory fallback — correctly, since it would not limit anything
@@ -76,6 +82,17 @@ export default defineConfig({
          * case where that fallback is sound.
          */
         ALLOW_IN_MEMORY_RATE_LIMIT: '1',
+        /*
+         * F3.1b: the cron reconciler's credential. Set HERE and nowhere else,
+         * for the same reason as the two flags below — `machine-routes.spec.ts`
+         * asserts that the wrong bearer and the literal `Bearer undefined` are
+         * refused, and a server with no secret at all refuses every caller
+         * identically, so the suite would go green having proved nothing.
+         *
+         * VERCEL is deliberately NOT set: `/api/queues/executions` must stay
+         * 404 off-platform, and that spec asserts it.
+         */
+        CRON_SECRET: 'e2e-cron-secret-not-for-production',
         /*
          * F0.3b: phone sign-in is behind this flag, and a spec that cannot reach
          * the endpoint proves nothing about it. With the flag off, every request

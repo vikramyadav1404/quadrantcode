@@ -6,6 +6,7 @@ import {
   ProviderUnavailableError,
   UnavailableExecutionProvider,
   resolveProvider,
+  resolveExecutionBackend,
 } from '@/server/services/execution/provider';
 
 const production = {
@@ -51,6 +52,36 @@ describe('production provider selection', () => {
 
   it('keeps the deterministic fake restricted to non-production development', () => {
     expect(resolveProvider({ NODE_ENV: 'development' })).toBeInstanceOf(FakeExecutionProvider);
+    expect(
+      resolveProvider({ NODE_ENV: 'production', EXECUTION_BACKEND: 'fake' }),
+    ).toBeInstanceOf(UnavailableExecutionProvider);
+  });
+
+  it('never automatically falls back from Sandbox to Judge0', () => {
+    expect(
+      resolveExecutionBackend({
+        NODE_ENV: 'production',
+        EXECUTION_BACKEND: 'vercel_sandbox',
+        JUDGE0_URL: 'https://judge.example',
+      }),
+    ).toBe('vercel_sandbox');
+    expect(
+      resolveProvider({
+        NODE_ENV: 'production',
+        EXECUTION_BACKEND: 'vercel_sandbox',
+        JUDGE0_URL: 'https://judge.example',
+      }),
+    ).toBeInstanceOf(UnavailableExecutionProvider);
+  });
+
+  it('rejects a mutable Sandbox image reference in server configuration', () => {
+    expect(() =>
+      __testing.parseServerEnv({
+        ...production,
+        EXECUTION_BACKEND: 'vercel_sandbox',
+        EXECUTION_SANDBOX_IMAGE: 'quadrantcode-execution:latest',
+      }),
+    ).toThrow(/immutable sha256 digest/);
   });
 });
 
