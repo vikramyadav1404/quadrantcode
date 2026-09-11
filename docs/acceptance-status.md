@@ -717,11 +717,11 @@ depends on.
 ## F3.1 · `execution-pipeline`
 
 **Branch:** `feat/F3.1-execution-pipeline` · **Merged to `main`** ·
-`FEATURE_EXECUTION_PIPELINE=false`
+`FEATURE_EXECUTION=false`
 
-**Partly BLOCKED.** There is no `JUDGE0_URL`, so nothing in this ticket has ever
-run a line of user code. Everything below is honest about which side of that
-line it sits on.
+**Implemented, live gate BLOCKED.** Durable Queue/Sandbox code is locally tested,
+but the custom image has not been built, digest-pinned or proven by the manual
+Vercel preview security suite. Keep the feature disabled until that gate passes.
 
 | #   | Criterion                                                              | State                   | Evidence                                                                                                                                                                          |
 | --- | ---------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -732,32 +732,30 @@ line it sits on.
 | 5   | The rate-limit message names when capacity returns                     | **DONE**                | `tests/execution/pipeline.test.ts` — asserts the literal reset time in the message                                                                                                |
 | 6   | The concurrency cap holds under a parallel-submit test                 | **DONE**                | `tests/execution/pipeline.test.ts` — 8 simultaneous submissions, exactly 5 accepted                                                                                               |
 | 7   | An external-link problem is a scratchpad with no comparison            | **DONE**                | `tests/execution/pipeline.test.ts` + `e2e/execution.spec.ts` — no test counts rendered, `expectedOutput` is unconditionally null                                                  |
-| 8   | A provider outage degrades without crashing                            | **DONE**                | `tests/execution/pipeline.test.ts` — the job fails, **no `run_attempts` row is written**, and the message promises no retry                                                       |
-| —   | **Real code execution**                                                | **BLOCKED**             | No `JUDGE0_URL`. `Judge0Provider` is written from the published API and has never been run                                                                                        |
+| 8   | A provider outage degrades without crashing                            | **DONE**                | `tests/execution/pipeline.test.ts` — infrastructure retries twice, terminally fails after attempt three, and writes no `run_attempts` row                                         |
+| —   | **Real code execution**                                                | **BLOCKED live gate**   | Sandbox image lock is intentionally unverified until build, scan, SBOM and controlled preview contracts pass                                                                      |
 | —   | Per-problem-per-language draft autosave                                | **DONE (localStorage)** | `components/editor/RunPanel.tsx`                                                                                                                                                  |
 | —   | A server-side draft snapshot every 60 s                                | **DEFERRED to F3.2**    | F3.2 owns server-side code storage; a second home for the user's code would guarantee the two disagree                                                                            |
-| —   | BullMQ queue, retries, dead-letter                                     | **CUT**                 | F2.3 is cut (**D17**). The table is the queue                                                                                                                                     |
+| —   | Durable queue, leases and retries                                      | **DONE locally**        | Vercel Queue push consumer plus Neon outbox, 75-second leases, fencing, 15/60-second backoff and daily reconciliation                                                             |
 
 ### What BLOCKED means here, precisely
 
-`resolveProvider` returns `FakeExecutionProvider` when there is no URL, and the
-fake reports `executes: false`. Every test in this ticket, and the whole e2e
-spec, ran against it. So:
+The unit and database suites do not provision a real Sandbox. The existing
+browser regression uses an explicit local Judge0 contract only inside a
+localhost production-build harness that `deploy:check` rejects. So:
 
-- **Verified:** the state machine, both limits, the transaction boundary, the
-  outage path, the stall sweep, IDOR scoping, C1 behaviour, and how output is
-  rendered.
+- **Verified:** the state machine, admission limits, outbox, idempotent payload,
+  100-way atomic claim, lease fencing/recovery, three-attempt policy, exactly-once
+  effects, cleanup calls, IDOR scoping, C1 behaviour and output rendering.
 - **Verified without an instance because it is pure:** Judge0's status-id →
   verdict mapping, including that an unrecognised id becomes `internal_error`
   rather than quietly becoming `accepted` after a Judge0 upgrade.
-- **Unverified:** every byte that crosses the network. The submission shape, the
-  base64 handling, the polling contract, the error responses, the language ids,
-  and whether the limits are honoured at all.
+- **Unverified:** the live Vercel Queue control plane, custom VCR image, inner
+  cgroup/namespace availability, egress denial, resource verdicts and cleanup
+  behaviour on the deployed platform.
 
-**The limits are not a claim about isolation.** `EXECUTION_LIMITS` is what is
-sent with each submission. Whether a 2-second CPU cap and a disabled network are
-enforced is a property of how the Judge0 instance was deployed. Nothing in the
-code, the UI or this document calls it a sandbox.
+The SDK configuration and trusted supervisor implement the intended limits;
+they are not accepted as deployed proof until the live preview contracts pass.
 
 ### The concurrency cap needed a lock, and the criterion knew it
 
@@ -766,19 +764,17 @@ count of four and each decide they are the fifth. Written that way the cap holds
 under no parallelism at all — which is exactly why the criterion says _under a
 parallel-submit test_.
 
-`submitExecution` takes `pg_advisory_xact_lock(hashtext(user_id))` inside the
-transaction that counts and inserts, so only a user racing themselves waits. The
-test submits 8 at once and asserts 5 land; without the lock it lets 8 through.
+`submitExecution` takes a global admission advisory lock followed by the user
+lock inside the count/insert transaction. The global lock fences the UTC-day
+free allowance; the user lock preserves 20/hour and five live jobs. Worker claim
+uses a separate capacity lock for the eight-Sandbox ceiling.
 
 ### An outage is not a verdict
 
-A provider failure fails the **job** and writes no `run_attempts` row. Recording
-`internal_error` would put a statement about the user's program into the
-database that nothing observed — "Judge0 is down" arriving as "your code is
-wrong" is the one message this ticket must not get wrong.
-
-Nothing retries. That is D17's cost, and the failure message says so rather than
-promising a recovery that is not coming.
+Infrastructure failure requeues after 15 then 60 seconds; attempt three fails the
+**job** with a sanitized code and no `run_attempts` row. User verdicts never
+retry. Judge0 remains an explicit optional backend and is never automatic
+failover from Sandbox.
 
 ### Found while building
 
@@ -803,14 +799,10 @@ execution output passes through it.
 
 ### The state machine, and the sweep that stops it locking people out
 
-`queued → running → completed | failed`, and `queued → failed` for a provider
-that was already unreachable. Nothing leaves a terminal state.
-
-`npm run executions:sweep` fails jobs whose heartbeat is older than 120 s.
-Unlike the session sweep, **something depends on this one running**: a stuck
-`running` row counts against its owner's concurrency cap forever, and five of
-them lock that user out of the feature entirely. A deploy mid-run is enough to
-leave one behind, because the runner is in-process.
+`queued → running → completed | failed`, with retryable infrastructure failure
+returning `running → queued`. Terminal rows are idempotent no-ops. Queue callbacks
+and the daily cron reclaim expired leases, republish undispatched rows, expire
+messages beyond retention and retry pending Sandbox cleanup.
 
 ---
 

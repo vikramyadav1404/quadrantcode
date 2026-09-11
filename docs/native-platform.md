@@ -78,9 +78,10 @@ step is completed.
 ## Execution behavior
 
 Run executes visible/sample cases plus an optional custom case. Submit executes
-the complete suite. Each case is sent to Judge0 independently with configured
-CPU, wall, memory, network and output limits. Dynamic `/languages` discovery is
-used instead of permanent numeric Judge0 IDs.
+the complete suite. Vercel Sandbox compiles once and runs each case in a fresh
+per-case workspace inside one network-denied ephemeral VM. Judge0 remains an
+explicit optional backend and keeps dynamic `/languages` discovery instead of
+permanent numeric IDs.
 
 The browser receives only safe case metadata. Hidden inputs, expected outputs,
 actual outputs, wrappers and reference code are neither serialized into the
@@ -113,8 +114,8 @@ as production secret material.
 
 ## External requirements
 
-Local verification is complete, but launch still needs managed PostgreSQL,
-real authentication/email configuration and a real Judge0 deployment. Judge0
-must be checked for supported runtime names, resource-limit enforcement,
-disabled networking, outage behavior and output caps. These are deployment
-properties and cannot be proven by the local HTTP contract server.
+Local verification is complete, but launch still needs the pinned VCR image and
+controlled Vercel preview contracts. Resource enforcement, namespace/cgroup
+support, disabled networking, cleanup and quota behavior are deployment
+properties and cannot be proven by the local Sandbox mock. Judge0 needs its own
+equivalent checks only if it is deliberately selected.

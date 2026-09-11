@@ -578,6 +578,10 @@ teaches people to disable it. The check belongs in review, and now in this entry
 
 ## D17 · F2.3 is cut, so the in-process runner is permanent
 
+> **Historical decision, superseded for code execution by D26.** BullMQ, Redis
+> and the generic standalone worker remain cut. The managed Queue exception is
+> intentionally limited to untrusted execution; imports retain this decision.
+
 **Decision (Vikram, scope).** The target build is 11 more tickets, not 21. F2.3
 `job-runtime` — BullMQ, Upstash Redis, the standalone queue worker — is cut.
 
@@ -1135,6 +1139,10 @@ failed in a full run, which is what that race looks like from outside.
 
 ## D24 · Execution is a table, a lock, and a provider seam — and never a sandbox
 
+> **Historical implementation, superseded by D26.** Its provider boundary,
+> polling shape and “outage is not a verdict” rule remain; dispatch, retry and
+> isolation are now implemented by Vercel Queue, Neon leases and Vercel Sandbox.
+
 **Context:** F3.1 specifies Monaco plus BullMQ-queued Judge0 execution. Two
 things are missing at once: F2.3 is cut (**D17**) so there is no queue, and
 there is no `JUDGE0_URL` so there is no judge.
@@ -1325,3 +1333,30 @@ building a second home for the user's code. That resolves here: localStorage
 holds the **draft** — latest text, per browser, so a reload loses nothing —
 while `code_snapshots` holds the **history**, server-side and immutable. One is
 overwritten constantly and belongs to a device; the other belongs to a sitting.
+
+---
+
+## D26 · Vercel Queue dispatches IDs; Neon owns execution truth
+
+**Context:** In-process execution cannot survive a serverless suspend. Automatic
+provider failover can execute the same untrusted submission twice, while a queue
+and a relational transaction cannot atomically commit together.
+
+Vercel Queue push mode carries only a version and execution job UUID. The Neon
+row is also a transactional outbox: it is committed before publishing, the UUID
+is the Queue idempotency key, and a daily authenticated reconciler republishes
+undispatched rows. At-least-once delivery is fenced by an atomic row claim,
+75-second renewable lease and unique `run_attempts.job_id`; learning effects and
+terminal completion share the attempt transaction.
+
+Vercel Sandbox is the explicit production backend. A submission gets one
+ephemeral, network-denied VM and is compiled once. Cases get separate temporary
+workspaces, while expected output stays in the consumer. Judge0 remains an
+explicit optional selection, never automatic fallback. Fake execution is local
+only and cannot pass production configuration validation.
+
+**Cost:** a crash after Neon commit but before Queue publish can wait for the
+Hobby plan's daily cron, and a crash after Sandbox execution but before database
+finalization can spend duplicate CPU. Database effects remain exactly once.
+Keep the feature disabled until the digest-pinned image proves its cgroup,
+namespace, egress and cleanup contracts in a controlled preview.

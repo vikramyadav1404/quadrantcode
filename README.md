@@ -67,7 +67,7 @@ Not built, not being built. Listed so their absence is a decision on the record.
 | ID    | Feature                               | What its absence means today                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | F2.2  | Four-mode revision experience         | F2.1 ships `/revision` — the due list, in risk order, with three outcomes. The four distinct revision **modes** are cut, and nothing pretends otherwise (**D23**)                                                                                                                                                                                                                                                                 |
-| F2.3  | Queue runtime & standalone worker     | **No BullMQ, no Redis queue.** Background work is in-process with state in Postgres; no automatic retry, no scheduled sweeps. F3.1 shipped under this: `execution_jobs` **is** the queue. See **D17**, **D24**                                                                                                                                                                                                                    |
+| F2.3  | Generic queue runtime & worker        | BullMQ, Redis and the standalone worker remain cut. Execution now uses a narrowly scoped managed Vercel Queue consumer with Neon as its outbox/state machine (**D26**); imports and other jobs keep their existing execution model                                                                                                                                                                                                |
 | F2.4  | Multi-channel notification engine     | No reminders of any kind — it was queue-dependent                                                                                                                                                                                                                                                                                                                                                                                 |
 | F2.5  | Contest sync & upsolve tracker        | No contest ingestion                                                                                                                                                                                                                                                                                                                                                                                                              |
 | F4.2  | Structured preparation tracks         | `target_role` is captured at onboarding and unused                                                                                                                                                                                                                                                                                                                                                                                |
@@ -443,43 +443,50 @@ them:
 
 ## Code execution (F3.1)
 
-**There is no Judge0 instance.** Without `JUDGE0_URL`, `resolveProvider` returns
-a fake that executes nothing and reports `executes: false`. The editor, the
-limits, the state machine and the result panel all work; the results are not
-real execution, and nothing in the code or the UI says otherwise.
+Production dispatch is a Vercel Queue containing only `{ version, jobId }`.
+Neon remains the source of truth and transactional outbox: the request validates
+the user and limits, inserts a queued row, publishes its idempotent job ID and
+returns for polling. The private consumer atomically claims a 75-second fenced
+lease, compiles once, runs at most six cases in one ephemeral Vercel Sandbox,
+stores one attempt/effect transaction and acknowledges the message.
 
-`Judge0Provider` is written from the published API and is **UNVERIFIED** — it
-has never run against an instance. Supplying the URL is then a configuration
-change rather than a development task.
+`EXECUTION_BACKEND` is explicit. `vercel_sandbox` never falls back automatically
+to `judge0`, because an ambiguous failover could execute a submission twice.
+The existing Judge0 provider remains an optional contract; `fake` is rejected in
+production. `FEATURE_EXECUTION` is checked before a job row exists.
 
-### These are configured limits, not a sandbox
+### Sandbox release gate
 
-Every submission carries a 2-second CPU limit, a 5-second wall-clock limit,
-256 MB of memory, no network, and at most 32 KB of captured output. That is what
-is **sent**. Whether it is enforced is a property of how the Judge0 instance was
-deployed — its isolation, its cgroups, its network policy — none of which lives
-in this repository. **Do not describe this as a secure sandbox.**
+Every Sandbox is created with one vCPU, a 50-second session timeout, deny-all
+networking, no ports, no persistence and an empty environment. The image must be
+configured by immutable digest. Its trusted supervisor uses namespaces, cgroup
+v2, an unprivileged account, a 64 MiB temporary workspace, a 32-process ceiling,
+resource limits and aggregate output capture. Expected answers remain in the
+consumer and hidden inputs are supplied one case at a time.
+
+The checked-in `sandbox/toolchain-lock.json` is deliberately `verified: false`
+until an image is built, scanned, assigned its immutable VCR digest and passes
+the controlled preview security suite. Keep `FEATURE_EXECUTION=false` until that
+manual gate succeeds; local mocks cannot prove the live platform supports every
+inner namespace/cgroup control.
 
 ### Limits a user meets
 
-Twenty runs per rolling hour and five concurrent, both counted in Postgres
+Twenty runs per rolling hour, five live jobs per user, twenty accepted jobs per
+UTC day globally and eight active Sandbox leases are counted in Postgres
 rather than in memory, because two serverless invocations each counting their
-own executions both see one. The hourly message names the time capacity returns,
-computed from the oldest run still inside the window. The concurrency message
-names no time, because that limit clears when a run finishes and inventing a
-clock time would be a promise nothing keeps.
+own executions both see one.
 
 ### An outage is never a verdict
 
-A provider failure fails the **job** and writes no `run_attempts` row. Recording
-`internal_error` would be a statement about the user's program that nothing
-observed. Nothing retries — there is no queue (**D17**) — and the message says
-so rather than promising a recovery that is not coming.
-
-**Run `npm run executions:sweep` after every deploy.** A job stuck at `running`
-counts against its owner's concurrency cap forever, and five of them lock that
-user out of the feature entirely. The in-process runner cannot survive a deploy
-mid-run, so this is not hypothetical.
+Provider/control-plane failures are retried after 15 and 60 seconds. The third
+failed execution attempt terminally fails the **job** with a sanitized code and
+writes no `run_attempts` row. User verdicts—accepted, wrong answer, compile
+error, runtime error, TLE or MLE—are terminal and never retried. Duplicate Queue
+delivery may spend Sandbox CPU after a crash, but lease fencing and the unique
+attempt row prevent duplicate application effects. The daily authenticated cron
+republishes undispatched outbox rows, reclaims expired leases, expires messages
+past retention and retries pending Sandbox cleanup.
 
 ### Program output is rendered, not sanitised
 
@@ -614,11 +621,11 @@ followed, which is the other half of this ticket.
 
 ### One request id, from the edge to the job
 
-Middleware assigns it, `AsyncLocalStorage` carries it down the await chain, and
-that includes the `setImmediate` the in-process runner uses — so an execution is
-traceable back to the click that started it. An id supplied upstream is honoured,
-capped at 64 characters and stripped, because it lands in every log line for the
-request.
+Middleware assigns it and `AsyncLocalStorage` carries it through the request.
+Durable execution starts a new consumer trace keyed by the non-secret job UUID;
+the Queue payload deliberately carries no user/source/test or request context.
+An id supplied upstream is honoured, capped at 64 characters and stripped,
+because it lands in every log line for the request.
 
 **Middleware runs on the Edge runtime**, which has no `node:async_hooks`. That
 is why the header and the id generator live in `request-id.ts` and nothing there

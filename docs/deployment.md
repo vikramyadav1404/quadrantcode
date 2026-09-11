@@ -100,8 +100,10 @@ gate.
 - Resend: send to Gmail and another mailbox provider; verify SPF, DKIM and DMARC
   results, link expiry, one-time use, and sender reputation.
 - MSG91: request, retry, wrong-code, expiry and lockout on a real device.
-- Judge0: compare `/languages` with the app mapping; run accepted, compile,
-  runtime, timeout, output-cap, network-disabled, and provider-outage cases.
+- Vercel Queue/Sandbox: build and scan the digest-pinned image, record its SBOM
+  and exact toolchain report, then run accepted, compile, runtime, timeout,
+  memory, output, fork, disk, secret-isolation and deny-all-network cases in a
+  controlled preview. Judge0 validation is required only when explicitly selected.
   Then validate each native problem from its admin review page and confirm its
   validation timestamp/provider summary before publishing.
 - Avatar storage: upload valid JPEG/PNG/WebP plus oversize and disguised files;
@@ -117,15 +119,15 @@ gate.
 - `/api/health` remains the terse compatibility/dependency endpoint.
 - `/admin/health` is the authenticated operational view.
 
-After deployment, watch Vercel function errors, Postgres connection usage,
-Upstash denials, email bounces/complaints, OTP failures, Judge0 latency and
-Sentry error rate. Roll back the Vercel deployment first if the release is bad;
+After deployment, watch Vercel function errors, Queue age/redeliveries, active
+leases, Sandbox cleanup, daily quota, Postgres connection usage, Upstash denials,
+email/OTP failures and Sentry error rate. Roll back the Vercel deployment first;
 restore the database only when data/schema damage is confirmed.
 
 ## Background work
 
-There is no deployed Redis/BullMQ worker in the trimmed architecture. Imports
-and executions use in-process runners with durable Postgres job rows. Schedule
-the existing sweep, retention, cleanup and rollup scripts with an authenticated
-cron/operations runner before claiming automated recovery. Do not deploy the
-placeholder worker as if it supplied retries—it does not.
+Execution uses Vercel Queue push delivery; it requires no Redis or separately
+deployed worker. Neon owns the job state, leases and exactly-once effects. The
+private Queue route performs execution and the authenticated daily cron handles
+dispatch/lease/cleanup recovery. Other background scripts remain operational
+tasks; the placeholder standalone worker still does not process executions.
