@@ -35,6 +35,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import {
+  executionBackendEnum,
   executionLanguageEnum,
   executionModeEnum,
   executionStatusEnum,
@@ -96,6 +97,8 @@ export const executionJobs = pgTable(
     mode: executionModeEnum().notNull().default('run'),
     problemVersion: integer().notNull().default(1),
     status: executionStatusEnum().notNull().default('queued'),
+    /** Pinned at acceptance time; providers are never selected by automatic failover. */
+    backend: executionBackendEnum().notNull().default('legacy'),
 
     /**
      * The submitted source.
@@ -122,6 +125,24 @@ export const executionJobs = pgTable(
      * to be distinguishable from one that is merely slow.
      */
     heartbeatAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+
+    /** Durable Queue publishing/outbox state. */
+    dispatchAttemptCount: smallint().notNull().default(0),
+    queueMessageId: text(),
+    dispatchedAt: timestamp({ withTimezone: true }),
+    queueExpiresAt: timestamp({ withTimezone: true }),
+
+    /** Execution retries and the fencing lease owned by the active worker. */
+    attemptCount: smallint().notNull().default(0),
+    nextAttemptAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    leaseToken: uuid(),
+    leaseExpiresAt: timestamp({ withTimezone: true }),
+
+    /** Sanitized lifecycle evidence only; never a credential or Sandbox environment. */
+    sandboxName: text(),
+    sandboxExpiresAt: timestamp({ withTimezone: true }),
+    cleanupPending: boolean().notNull().default(false),
+    lastErrorCode: text(),
 
     /** Why the JOB failed — never why the code was wrong. */
     error: text(),
@@ -151,6 +172,20 @@ export const executionJobs = pgTable(
       .on(table.heartbeatAt)
       .where(sql`${table.status} in ('queued', 'running')`),
 
+    index('execution_jobs_dispatch_reconcile_idx')
+      .on(table.nextAttemptAt, table.createdAt)
+      .where(sql`${table.status} = 'queued' and ${table.dispatchedAt} is null`),
+
+    index('execution_jobs_expired_lease_idx')
+      .on(table.leaseExpiresAt)
+      .where(sql`${table.status} = 'running' and ${table.leaseExpiresAt} is not null`),
+
+    index('execution_jobs_daily_created_idx').on(table.createdAt),
+
+    index('execution_jobs_cleanup_pending_idx')
+      .on(table.updatedAt)
+      .where(sql`${table.cleanupPending} is true`),
+
     check('execution_jobs_source_not_empty', sql`length(${table.source}) > 0`),
     check(
       'execution_jobs_source_within_cap',
@@ -159,6 +194,19 @@ export const executionJobs = pgTable(
     check(
       'execution_jobs_stdin_within_cap',
       sql`(${table.stdin} is null or length(${table.stdin}) <= ${sql.raw(String(MAX_STDIN_BYTES))})`,
+    ),
+    check(
+      'execution_jobs_attempt_counts_non_negative',
+      sql`${table.dispatchAttemptCount} >= 0 and ${table.attemptCount} >= 0`,
+    ),
+    check(
+      'execution_jobs_lease_pair_coherent',
+      sql`(${table.leaseToken} is null) = (${table.leaseExpiresAt} is null)`,
+    ),
+    check(
+      'execution_jobs_claimed_lease_present',
+      sql`${table.backend} = 'legacy' or ${table.status} <> 'running'
+          or (${table.leaseToken} is not null and ${table.leaseExpiresAt} is not null)`,
     ),
 
     /**

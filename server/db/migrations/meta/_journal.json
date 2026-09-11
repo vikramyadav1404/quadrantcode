@@ -169,6 +169,13 @@
       "when": 1788183115554,
       "tag": "0023_jazzy_plazm",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788867716815,
+      "tag": "0024_execution_queue_leases",
+      "breakpoints": true
     }
   ]
 }
