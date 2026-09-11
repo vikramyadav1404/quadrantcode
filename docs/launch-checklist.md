@@ -13,9 +13,13 @@
 - [ ] Support mailbox is monitored.
 - [ ] Optional phone, execution and avatar features stay off until their real
       provider tests pass.
-- [ ] Migrations 0020–0023 are applied and `npm run native:import` reports
+- [ ] Migrations 0020–0024 are applied and `npm run native:import` reports
       exactly 100 problems and 20 papers.
-- [ ] Every published native problem has a current real-Judge0 validation; no
+- [ ] `sandbox/toolchain-lock.json` records verified immutable base, Node and
+      VCR image digests; its SBOM and vulnerability scan are archived.
+- [ ] Preview Sandbox contracts prove TLE, MLE, PID, output, disk, network,
+      secret isolation, hidden-input isolation, per-case cleanup and final stop.
+- [ ] Every published native problem has a current real-provider validation; no
       imported `needs_review` item was bulk-promoted.
 
 ## Release gate
@@ -27,6 +31,7 @@
 - [ ] `npm run native:validate`
 - [ ] `npm run papers:validate`
 - [ ] `npm run native:validate-references`
+- [ ] `npm run execution:image:verify`
 - [ ] `npm run contrast`
 - [ ] `npm test`
 - [ ] `npm run build`
@@ -46,5 +51,7 @@
 - [ ] Admin authorization, IDOR denial, upload caps, and rate limits were smoke-tested.
 - [ ] Native Run/Submit, hidden-case redaction, company evidence labels and one
       timed mock paper passed manual QA from `docs/native-manual-qa.md`.
+- [ ] Queue age, retry count, expired leases, cleanup-pending jobs and UTC-day
+      admission count are visible and within their limits.
 - [ ] Logs and Sentry contain no OTP, token, email body, or database URL.
 - [ ] Rollback owner and rollback deployment are identified.

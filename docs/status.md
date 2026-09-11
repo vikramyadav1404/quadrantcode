@@ -1,6 +1,7 @@
 # Quadrantcode status
 
-_Updated 1 September 2026 after the native-platform completion pass._
+_Updated 11 September 2026 on `feat/F3.1b-execution-queue` (F3.1b · durable
+execution queue). Previous revision: 1 September 2026, native-platform pass._
 
 ## Current outcome
 
@@ -35,9 +36,9 @@ workflow described in `docs/native-platform.md`:
    audit history and guarded import/export.
 
 Generated content intentionally imports as `needs_review`. Local compiler
-validation is strong reproducible evidence, but it is not a real Judge0 run.
-Publishing therefore still requires an administrator to validate every
-language/test combination through the configured production Judge0 provider.
+validation is strong reproducible evidence, but it is not a live production
+provider run. Publishing therefore still requires an administrator to validate
+every language/test combination through the explicitly configured provider.
 
 ## Completed in this pass
 
@@ -60,22 +61,54 @@ language/test combination through the configured production Judge0 provider.
 9. Added a manual, protected production migration workflow and documented the
    Vercel Git deployment path.
 10. Updated vulnerable runtime dependencies/overrides identified by `npm audit`.
+11. Added Vercel Queue durable execution dispatch, Neon leases/fencing/recovery,
+    an optional explicit Judge0 fallback, and a deny-all Vercel Sandbox provider.
+12. Added the custom five-language image/supervisor contract. Its lock remains
+    unverified until the image is built, scanned and proven in preview.
 
 ## Local release-gate evidence
 
-Run on 1 September 2026 against a real local PostgreSQL test database:
+Run on 11 September 2026 on `feat/F3.1b-execution-queue`, against a real local
+PostgreSQL test database:
 
-| Gate                         | Result                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| TypeScript, ESLint, Prettier | pass                                                                      |
-| Production build             | pass; 53 application pages generated                                      |
-| Vitest                       | 1,202 pass; 5 optional credential tests skipped                           |
-| Playwright                   | 118/118 pass against `next start` and a local Judge0 HTTP contract server |
-| Native content               | 100/100 problems and 20/20 papers pass structural validation              |
-| Reference execution          | 3,000/3,000 local compiler executions match expected output               |
-| WCAG token contrast          | all pairs pass                                                            |
-| Production dependency audit  | 0 vulnerabilities                                                         |
-| Full dependency audit        | 4 moderate dev-only findings in Drizzle Kit's legacy esbuild dependency   |
+| Gate                         | Result                                                               |
+| ---------------------------- | -------------------------------------------------------------------- |
+| TypeScript, ESLint, Prettier | pass                                                                 |
+| Production build             | pass; 44 page bundles and 22 route handlers                          |
+| Vitest                       | 1,250 pass, 0 fail, 5 skipped (86 files)                             |
+| Playwright                   | 128/128 pass against `next start` and a local Judge0 contract server |
+| Native content               | 100/100 problems and 20/20 papers pass structural validation         |
+| WCAG token contrast          | all pairs pass                                                       |
+| Production dependency audit  | 0 vulnerabilities                                                    |
+| **Execution image lock**     | **expected FAIL — see below**                                        |
+
+`npm run execution:image:verify` reports four issues and is expected to until
+the image is built:
+
+```
+execution image: toolchain lock is not marked verified
+execution image: built VCR image digest is missing or mutable
+execution image: base image digest is missing or mutable
+execution image: Node image digest is missing or mutable
+```
+
+The five skips are the `STORAGE_INTEGRATION=1` live-bucket suite
+(`tests/profile/storage-contract.test.ts`), unchanged; no execution test skips.
+
+Two figures in the previous table were **not** carried forward, because they are
+not comparable to this branch and reprinting them would have been a false
+baseline:
+
+- _53 application pages_ counted the build's printed route table. The figures
+  above are counted from `.next/server/app` instead, and are not the same
+  measurement.
+- _Playwright 118/118_ predates `auth-providers.spec.ts` and
+  `native-platform.spec.ts`, which landed after 1 September. Against the real
+  baseline — `main` at this branch point, 113 — the suite is **113 → 128**:
+  `execution-queue.spec.ts` (5) and `machine-routes.spec.ts` (10).
+
+Reference execution (3,000 local compiler runs) was not re-run this pass and its
+1 September result stands.
 
 This evidence makes the repository code-ready. It does not replace a preview
 deployment, real provider tests, backup/restore drill, or post-deploy smoke
@@ -96,6 +129,67 @@ test.
 | MSG91 key/template                                | phone OTP, only when that feature is enabled          |
 | Judge0 URL/key                                    | real execution, only when execution is enabled        |
 | S3-compatible avatar bucket credentials/domain    | avatar uploads                                        |
+
+## Standing risks
+
+### The execution consumer's access control is a beta platform feature
+
+`/api/queues/executions` is **not authenticated by a signature**. Neither
+`validExecutionDelivery` nor the `@vercel/queue` SDK performs any cryptographic
+check: the SDK's only rejections are CloudEvent parse errors, and a search of
+its distributed source for `signature`, `verify` or `hmac` returns nothing.
+
+What keeps the route private is the `queue/v2beta` trigger declared in
+`vercel.json`. Per Vercel's public-beta changelog: _"Adding a trigger makes the
+route private: it has no public URL and only Vercel's queue infrastructure can
+invoke it."_
+
+Three consequences worth holding:
+
+1. **It is `v2beta`.** The trigger is an experimental, pre-GA API. A breaking
+   change, a rename, or a change in privacy semantics between beta and GA
+   directly changes whether this endpoint is reachable from the internet.
+   Re-read the changelog before upgrading `@vercel/queue` (pinned at `0.5.0`).
+2. **Deleting the trigger is a silent privilege escalation.** It breaks no
+   build, fails no typecheck, and changes no application code — it just turns a
+   private handler public. `tests/security/machine-routes.test.ts` asserts the
+   trigger and its topic so that removal fails CI instead of shipping.
+3. **The blast radius is deliberately small**, which is why this is an accepted
+   risk rather than a blocker. The queue payload is `{ version: 1, jobId }` and
+   nothing else — no code, no language, no test data ever leaves the database
+   (`dispatchExecutionJob`). A forged delivery can therefore only name a job
+   UUID; it cannot inject code or select another user's data, because the row
+   decides both, not the message.
+
+   The defences are listed in the order they should be relied on:
+
+   1. **Idempotency, which holds even against a correctly guessed id.** An
+      unknown id is a no-op, a terminal id is a no-op, and a mismatched
+      `queueMessageId` is refused. Past that, the atomic claim, the 75-second
+      lease and the unique `run_attempts.job_id` mean a replayed or duplicated
+      delivery cannot produce a second effect. This is structural: it does not
+      depend on the attacker failing to know something.
+   2. **Unguessability, as a second line only.** Ids are
+      `uuid … DEFAULT gen_random_uuid()` (`0014_execution_pipeline.sql`), i.e.
+      **UUIDv4** — 122 random bits, not the time-ordered UUIDv7 whose leading
+      timestamp would narrow the search space. Worth having, but it is entropy,
+      not a control, and it is deliberately not the argument this rests on.
+
+`permitsQueueConsumer` (VERCEL=1 **and** `FEATURE_EXECUTION`) is the second
+control, and is the reason the route answers 404 everywhere but production.
+
+**Revisit the moment the queue payload carries anything beyond a job id.** At
+that point the argument above stops holding and the payload needs its own HMAC,
+because the platform boundary would no longer be the only thing between an
+attacker and the contents of a job.
+
+### Concurrent test runs share one database
+
+`tests/helpers/db.ts` rebuilds the fixed `public` schema in `beforeAll`.
+`vitest.config.ts` sets `fileParallelism: false` so files within a run cannot
+collide, but **two runs against the same database will**, with failures like
+`relation "users" does not exist` that look like code faults and are not. Run
+one suite at a time against `:55432`.
 
 ## Deliberately not claimed
 
