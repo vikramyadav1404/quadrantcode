@@ -11,7 +11,11 @@ import {
   runAssessmentAnswer,
   switchAssessmentQuestion,
 } from '@/server/services/assessments';
-import { InProcessExecutionRunner, resolveProvider } from '@/server/services/execution';
+import {
+  createRequestExecutionRunner,
+  resolveExecutionBackend,
+} from '@/server/services/execution';
+import { assertFeatureEnabled } from '@/lib/flags';
 
 export type AssessmentActionResult =
   { ok: true; jobId?: string } | { ok: false; message: string };
@@ -40,12 +44,16 @@ export async function runAssessmentAnswerAction(
 ): Promise<AssessmentActionResult> {
   const user = await requireCurrentUser();
   try {
+    assertFeatureEnabled('FEATURE_EXECUTION');
     const input = assessmentAnswerSchema.extend({ submit: z.boolean() }).parse(rawInput);
-    const result = await runAssessmentAnswer(getDb(), {
+    const env = getServerEnv();
+    const db = getDb();
+    const result = await runAssessmentAnswer(db, {
       ...input,
       userId: user.id,
       now: new Date(),
-      runner: new InProcessExecutionRunner(getDb(), resolveProvider(getServerEnv())),
+      backend: resolveExecutionBackend(env),
+      runner: createRequestExecutionRunner(db, env),
     });
     return result.ok
       ? { ok: true, jobId: result.jobId }
@@ -70,6 +78,10 @@ export async function finalizeAssessmentAction(
 }
 
 function safeMessage(error: unknown): string {
+  if (error instanceof Error && error.name === 'FeatureDisabledError')
+    return 'Code execution is currently unavailable.';
+  if (error instanceof Error && error.name === 'ProviderUnavailableError')
+    return 'Code execution is not configured.';
   if (error instanceof Error && error.name === 'ZodError')
     return 'That assessment request is invalid.';
   if (error instanceof Error && /assessment|question|expired/i.test(error.message))

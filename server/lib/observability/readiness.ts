@@ -29,8 +29,13 @@ export function readinessConfigIssues(
     issues.push('phone_delivery');
   }
 
-  if (enabled(flags['FEATURE_EXECUTION']) && !env.JUDGE0_URL) {
-    issues.push('code_execution');
+  if (enabled(flags['FEATURE_EXECUTION'])) {
+    const sandboxReady =
+      env.EXECUTION_BACKEND === 'vercel_sandbox' &&
+      /^.+@sha256:[a-f0-9]{64}$/i.test(env.EXECUTION_SANDBOX_IMAGE ?? '') &&
+      Boolean(env.CRON_SECRET && env.CRON_SECRET.length >= 32);
+    const judge0Ready = env.EXECUTION_BACKEND === 'judge0' && Boolean(env.JUDGE0_URL);
+    if (!sandboxReady && !judge0Ready) issues.push('code_execution');
   }
 
   return issues;

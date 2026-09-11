@@ -20,8 +20,13 @@ import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { executionJobs, problems, runAttempts, solveSessions } from '@/server/db/schema';
 import { checkExecutionLimits, type LimitVerdict } from './limits';
-import { type ExecutionProvider, ProviderUnavailableError } from './provider';
-import { LIVE_STATUSES, assertTransition } from './statemachine';
+import {
+  ExecutionConfigurationError,
+  type ExecutionProvider,
+  ProviderUnavailableError,
+  type ConfiguredExecutionBackend,
+} from './provider';
+import { LIVE_STATUSES } from './statemachine';
 import type { ExecutionResultView } from '@/lib/execution/view';
 import type { ExecutionLanguage } from './types';
 import type { ExecutionMode } from '@/lib/native/constants';
@@ -31,6 +36,17 @@ import { applyVerifiedSubmissionEffectsTx } from './submission-effects';
 import { recomputeStreak, type LocalDate } from '@/server/services/streak';
 import { syncAssessmentAnswerForExecutionTx } from '@/server/services/assessments/scoring';
 import { recordEvent } from '@/server/services/session';
+import { assertFeatureEnabled } from '@/lib/flags';
+import type { EnvSource } from '@/lib/env';
+import {
+  claimExecutionJob,
+  failClaimedExecution,
+  finalizeClaimedExecution,
+  heartbeatExecutionJob,
+  recordSandboxCleanup,
+  recordSandboxCreated,
+  retryClaimedExecution,
+} from './claim';
 
 /** A job whose heartbeat is older than this is treated as dead. */
 export const EXECUTION_STALE_SECONDS = 120;
@@ -96,9 +112,20 @@ export async function submitExecution(
     stdin?: string | null;
     now: Date;
     runner: ExecutionRunner;
+    backend?: ConfiguredExecutionBackend | 'legacy';
+    featureFlags?: EnvSource;
   },
 ): Promise<SubmitResult> {
+  try {
+    assertFeatureEnabled('FEATURE_EXECUTION', input.featureFlags ?? process.env);
+  } catch {
+    return invalidSubmission('Code execution is currently unavailable.');
+  }
+
   const outcome = await db.transaction(async (tx): Promise<SubmitResult> => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('quadrantcode-execution-admission-v1'))`,
+    );
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.userId}))`);
 
     const limit = await checkExecutionLimits(tx, { userId: input.userId, now: input.now });
@@ -153,6 +180,8 @@ export async function submitExecution(
         stdin: input.stdin ?? null,
         queuedAt: input.now,
         heartbeatAt: input.now,
+        nextAttemptAt: input.now,
+        backend: input.backend ?? 'legacy',
       })
       .returning({ id: executionJobs.id });
 
@@ -161,7 +190,13 @@ export async function submitExecution(
 
   // Outside the transaction: the runner must not start before the row it is
   // about to read has committed.
-  if (outcome.ok) await input.runner.enqueue(outcome.jobId);
+  if (outcome.ok) {
+    try {
+      await input.runner.enqueue(outcome.jobId);
+    } catch {
+      // The committed row is the outbox. Reconciliation will retry publishing.
+    }
+  }
 
   return outcome;
 }
@@ -177,7 +212,18 @@ export async function runExecutionJob(
   provider: ExecutionProvider,
   jobId: string,
   now: Date = new Date(),
-): Promise<void> {
+): Promise<
+  | { kind: 'completed' }
+  | { kind: 'failed' }
+  | { kind: 'retry'; afterSeconds: number }
+  | { kind: 'noop' }
+> {
+  const started = Date.now();
+  const clock = () => new Date(now.getTime() + Date.now() - started);
+  const claim = await claimExecutionJob(db, jobId, now);
+  if (claim.kind === 'retry') return { kind: 'retry', afterSeconds: claim.afterSeconds };
+  if (claim.kind === 'noop') return { kind: 'noop' };
+
   const [job] = await db
     .select({
       id: executionJobs.id,
@@ -190,6 +236,7 @@ export async function runExecutionJob(
       problemVersion: executionJobs.problemVersion,
       source: executionJobs.source,
       stdin: executionJobs.stdin,
+      backend: executionJobs.backend,
       sourceType: problems.sourceType,
     })
     .from(executionJobs)
@@ -197,16 +244,54 @@ export async function runExecutionJob(
     .where(eq(executionJobs.id, jobId))
     .limit(1);
 
-  if (!job) return;
+  if (!job) return { kind: 'noop' };
 
-  assertTransition(job.status, 'running');
+  const lifecycle = {
+    heartbeat: async () => heartbeatExecutionJob(db, jobId, claim.leaseToken, clock()),
+    sandboxCreated: async (metadata: { name: string; expiresAt: Date | null }) =>
+      recordSandboxCreated(db, {
+        jobId,
+        leaseToken: claim.leaseToken,
+        ...metadata,
+        now: clock(),
+      }),
+    cleanupFinished: async (confirmed: boolean) =>
+      recordSandboxCleanup(db, {
+        jobId,
+        leaseToken: claim.leaseToken,
+        confirmed,
+        now: clock(),
+      }),
+  };
 
-  await db
-    .update(executionJobs)
-    .set({ status: 'running', startedAt: now, heartbeatAt: now, updatedAt: now })
-    .where(and(eq(executionJobs.id, jobId), eq(executionJobs.status, 'queued')));
+  let heartbeatFailure: unknown;
+  let heartbeatPending: Promise<void> | undefined;
+  const timer = setInterval(() => {
+    if (heartbeatPending) return;
+    heartbeatPending = lifecycle
+      .heartbeat()
+      .catch((error) => {
+        heartbeatFailure = error;
+      })
+      .finally(() => {
+        heartbeatPending = undefined;
+      });
+  }, 15_000);
+  timer.unref();
 
   try {
+    const expectedProvider =
+      job.backend === 'vercel_sandbox'
+        ? 'vercel-sandbox'
+        : job.backend === 'judge0'
+          ? 'judge0'
+          : job.backend === 'fake'
+            ? 'fake'
+            : null;
+    if (expectedProvider && provider.name !== expectedProvider) {
+      throw new ExecutionConfigurationError('The configured execution backend changed.');
+    }
+
     const result =
       job.sourceType === 'original'
         ? await executeNativeProblem(db, provider, {
@@ -216,6 +301,7 @@ export async function runExecutionJob(
             mode: job.mode,
             source: job.source,
             stdin: job.stdin,
+            lifecycle,
           })
         : await provider.execute({
             language: job.language,
@@ -223,127 +309,124 @@ export async function runExecutionJob(
             stdin: job.stdin,
             // External-link problems are scratchpads; C1 forbids stored tests.
             expectedOutput: null,
+            lifecycle,
           });
 
-    const finishedAt = new Date();
-
-    const streakDate = await db.transaction(async (tx): Promise<LocalDate | null> => {
-      await tx
-        .update(executionJobs)
-        .set({
-          status: 'completed',
-          finishedAt,
-          heartbeatAt: finishedAt,
-          updatedAt: finishedAt,
-        })
-        .where(eq(executionJobs.id, jobId));
-
-      const nativeResult = isNativeExecutionResult(result) ? result : null;
-      const attempt: typeof runAttempts.$inferInsert = {
-        jobId,
-        userId: job.userId,
-        problemId: job.problemId,
-        sessionId: job.sessionId,
-        language: job.language,
-        verdict: result.verdict,
-        serverVerified: provider.executes,
-        serverVerifiedAt: provider.executes ? finishedAt : null,
-        providerName: provider.executes ? provider.name : null,
-        compilerRuntimeVersion: result.compilerRuntimeVersion,
-        runtimeMs: result.runtimeMs,
-        memoryKb: result.memoryKb,
+    await heartbeatPending;
+    if (heartbeatFailure) throw heartbeatFailure;
+    const finishedAt = clock();
+    const nativeResult = isNativeExecutionResult(result) ? result : null;
+    const attempt: typeof runAttempts.$inferInsert = {
+      jobId,
+      userId: job.userId,
+      problemId: job.problemId,
+      sessionId: job.sessionId,
+      language: job.language,
+      verdict: result.verdict,
+      serverVerified: provider.executes,
+      serverVerifiedAt: provider.executes ? finishedAt : null,
+      providerName: provider.executes ? provider.name : null,
+      compilerRuntimeVersion: result.compilerRuntimeVersion,
+      runtimeMs: result.runtimeMs,
+      memoryKb: result.memoryKb,
+      testsPassed: nativeResult?.testsPassed ?? null,
+      testsTotal: nativeResult?.testsTotal ?? null,
+      testResults: nativeResult?.testResults ?? null,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      compileOutput: result.compileOutput,
+    };
+    let streakDate: LocalDate | null = null;
+    const finalized = await finalizeClaimedExecution(db, {
+      jobId,
+      leaseToken: claim.leaseToken,
+      finishedAt,
+      attempt,
+      applyEffects: async (tx) => {
         /*
-         * Null for a scratchpad run, always. `0 / 0` reads as a failure rather
-         * than as "there was nothing to check", and there never will be
-         * anything to check for a problem hosted elsewhere.
+         * A timeline run event belongs beside the attempt that proves the run
+         * completed. Recording it at queue time would claim an abandoned or
+         * provider-failed job actually ran; recording it only for native Submit
+         * made ordinary scratchpad Run disappear from session history.
          */
-        testsPassed: nativeResult?.testsPassed ?? null,
-        testsTotal: nativeResult?.testsTotal ?? null,
-        testResults: nativeResult?.testResults ?? null,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        compileOutput: result.compileOutput,
-      };
-      await tx.insert(runAttempts).values(attempt);
+        if (job.sessionId) {
+          await recordEvent(tx, {
+            sessionId: job.sessionId,
+            type: 'run_attempted',
+            occurredAt: finishedAt,
+            payload: {
+              mode: job.mode,
+              verdict: result.verdict,
+              serverVerified: provider.executes,
+            },
+          });
+        }
 
-      /*
-       * A timeline run event belongs beside the attempt that proves the run
-       * completed. Recording it at queue time would claim an abandoned or
-       * provider-failed job actually ran; recording it only for native Submit
-       * made ordinary scratchpad Run disappear from session history.
-       */
-      if (job.sessionId) {
-        await recordEvent(tx, {
-          sessionId: job.sessionId,
-          type: 'run_attempted',
-          occurredAt: finishedAt,
-          payload: {
-            mode: job.mode,
+        if (provider.executes && job.mode === 'assessment') {
+          await syncAssessmentAnswerForExecutionTx(tx, {
+            executionJobId: jobId,
             verdict: result.verdict,
-            serverVerified: provider.executes,
-          },
-        });
-      }
+            now: finishedAt,
+          });
+        }
 
-      if (provider.executes && job.mode === 'assessment') {
-        await syncAssessmentAnswerForExecutionTx(tx, {
-          executionJobId: jobId,
-          verdict: result.verdict,
-          now: finishedAt,
-        });
-      }
-
-      if (provider.executes && job.mode === 'submit') {
-        const effect = await applyVerifiedSubmissionEffectsTx(tx, {
-          userId: job.userId,
-          problemId: job.problemId,
-          sessionId: job.sessionId,
-          verdict: result.verdict,
-          runtimeMs: result.runtimeMs,
-          now: finishedAt,
-        });
-        return effect.streakDate;
-      }
-      return null;
+        if (provider.executes && job.mode === 'submit') {
+          const effect = await applyVerifiedSubmissionEffectsTx(tx, {
+            userId: job.userId,
+            problemId: job.problemId,
+            sessionId: job.sessionId,
+            verdict: result.verdict,
+            runtimeMs: result.runtimeMs,
+            now: finishedAt,
+          });
+          streakDate = effect.streakDate;
+        }
+      },
     });
+
+    if (finalized === 'stale') return { kind: 'retry', afterSeconds: 5 };
+    if (finalized === 'duplicate') return { kind: 'noop' };
 
     if (streakDate) {
       try {
         await recomputeStreak(db, job.userId, streakDate);
-      } catch (error) {
+      } catch {
         console.error(
           JSON.stringify({
             event: 'execution.streak_recompute_failed',
             jobId,
-            reason: error instanceof Error ? error.message : 'unknown',
+            reason: 'STREAK_RECOMPUTE_FAILED',
           }),
         );
       }
     }
+    return { kind: 'completed' };
   } catch (error) {
-    /*
-     * The job failed; the code did not. No `run_attempts` row is written,
-     * because a verdict would say something about the user's program that
-     * nothing observed — and `internal_error` is a verdict, not an absence.
-     */
-    const finishedAt = new Date();
-    const message =
-      error instanceof ProviderUnavailableError
-        ? error.message
-        : 'The runner failed before your code could be executed.';
+    if (error instanceof ExecutionConfigurationError) {
+      await failClaimedExecution(db, {
+        jobId,
+        leaseToken: claim.leaseToken,
+        code: error.code,
+        message: error.message,
+      });
+      return { kind: 'failed' };
+    }
 
-    await db
-      .update(executionJobs)
-      .set({
-        status: 'failed',
-        finishedAt,
-        heartbeatAt: finishedAt,
-        error: message,
-        updatedAt: finishedAt,
-      })
-      .where(eq(executionJobs.id, jobId));
-
-    if (!(error instanceof ProviderUnavailableError)) throw error;
+    const code =
+      error instanceof ProviderUnavailableError ? error.code : 'EXECUTION_WORKER_ERROR';
+    const retry = await retryClaimedExecution(db, {
+      jobId,
+      leaseToken: claim.leaseToken,
+      attempt: claim.attempt,
+      code,
+      now: clock(),
+    });
+    if (retry.terminal) return { kind: 'failed' };
+    if (retry.afterSeconds !== null) return { kind: 'retry', afterSeconds: retry.afterSeconds };
+    return { kind: 'noop' };
+  } finally {
+    clearInterval(timer);
+    await heartbeatPending;
   }
 }
 
@@ -487,6 +570,7 @@ export async function sweepStalledExecutions(db: Database, now: Date): Promise<n
     })
     .where(
       and(
+        eq(executionJobs.backend, 'legacy'),
         inArray(executionJobs.status, [...LIVE_STATUSES]),
         lt(executionJobs.heartbeatAt, cutoff),
       ),

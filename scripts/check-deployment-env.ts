@@ -26,8 +26,21 @@ if (!email && !github)
 if (process.env.FEATURE_PHONE_OTP === 'true' && !env.MSG91_AUTH_KEY) {
   issues.push('MSG91 credentials are required while FEATURE_PHONE_OTP=true');
 }
-if (process.env.FEATURE_EXECUTION === 'true' && !env.JUDGE0_URL) {
-  issues.push('JUDGE0_URL is required while FEATURE_EXECUTION=true');
+if (process.env.FEATURE_EXECUTION === 'true') {
+  if (!env.EXECUTION_BACKEND) {
+    issues.push('EXECUTION_BACKEND is required while FEATURE_EXECUTION=true');
+  } else if (env.EXECUTION_BACKEND === 'vercel_sandbox') {
+    if (!/^.+@sha256:[a-f0-9]{64}$/i.test(env.EXECUTION_SANDBOX_IMAGE ?? '')) {
+      issues.push('EXECUTION_SANDBOX_IMAGE must be an immutable digest reference');
+    }
+    if (!env.CRON_SECRET || env.CRON_SECRET.length < 32) {
+      issues.push('CRON_SECRET must contain at least 32 characters');
+    }
+  } else if (env.EXECUTION_BACKEND === 'judge0' && !env.JUDGE0_URL) {
+    issues.push('JUDGE0_URL is required when EXECUTION_BACKEND=judge0');
+  } else if (env.EXECUTION_BACKEND === 'fake') {
+    issues.push('fake execution cannot be enabled in production');
+  }
 }
 if (!env.SENTRY_DSN || !env.NEXT_PUBLIC_SENTRY_DSN) {
   issues.push('server and public Sentry DSNs are required for production monitoring');

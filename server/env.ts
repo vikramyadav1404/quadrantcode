@@ -38,6 +38,29 @@ const optionalUrl = z.preprocess(
   z.string().url().optional(),
 );
 
+/**
+ * A machine credential: trimmed, and long enough to be worth comparing.
+ *
+ * Trimmed because `'  secret  '` pasted out of a dashboard is a different byte
+ * string from the one the caller sends, and the failure looks like "cron is
+ * broken" rather than "the value has spaces". Whitespace-only collapses to ''
+ * and is then treated as absent, so the route's `!env.CRON_SECRET` guard
+ * refuses every caller instead of comparing against a blank.
+ *
+ * 32 characters because this is the entire credential — there is no session,
+ * no second factor and no user behind it. The same floor AUTH_SECRET already
+ * uses.
+ */
+const optionalSecret = (label: string) =>
+  z.preprocess(
+    (value) => {
+      if (typeof value !== 'string') return value;
+      const trimmed = value.trim();
+      return trimmed === '' ? undefined : trimmed;
+    },
+    z.string().min(32, `${label} must be at least 32 characters`).optional(),
+  );
+
 /** Variables the server cannot boot without. */
 const requiredServerSchema = z.object({
   DATABASE_URL: nonEmpty('DATABASE_URL').refine(
@@ -80,6 +103,12 @@ const optionalServerSchema = z.object({
   GITHUB_SECRET: optionalString,
   JUDGE0_URL: optionalUrl,
   JUDGE0_API_KEY: optionalString,
+  EXECUTION_BACKEND: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.enum(['vercel_sandbox', 'judge0', 'fake']).optional(),
+  ),
+  EXECUTION_SANDBOX_IMAGE: optionalString,
+  CRON_SECRET: optionalSecret('CRON_SECRET'),
   RAZORPAY_KEY_ID: optionalString,
   RAZORPAY_KEY_SECRET: optionalString,
   RAZORPAY_WEBHOOK_SECRET: optionalString,
@@ -122,6 +151,24 @@ const serverEnvSchema = requiredServerSchema
     addPairIssue(value, context, 'RESEND_API_KEY', 'EMAIL_FROM');
     addPairIssue(value, context, 'MSG91_AUTH_KEY', 'MSG91_TEMPLATE_ID');
     addPairIssue(value, context, 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN');
+
+    if (
+      value.EXECUTION_SANDBOX_IMAGE &&
+      !/^.+@sha256:[a-f0-9]{64}$/i.test(value.EXECUTION_SANDBOX_IMAGE)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['EXECUTION_SANDBOX_IMAGE'],
+        message: 'EXECUTION_SANDBOX_IMAGE must use an immutable sha256 digest',
+      });
+    }
+    if (value.NODE_ENV === 'production' && value.EXECUTION_BACKEND === 'fake') {
+      context.addIssue({
+        code: 'custom',
+        path: ['EXECUTION_BACKEND'],
+        message: 'fake execution is not allowed in production',
+      });
+    }
 
     const storageKeys = [
       'S3_ENDPOINT',

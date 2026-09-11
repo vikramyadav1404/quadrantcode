@@ -7,8 +7,12 @@ import {
   type SafeTestResult,
 } from '@/server/db/schema';
 import type { ExecutionMode } from '@/lib/native/constants';
-import type { ExecutionProvider, ExecutionResult } from './provider';
-import { EXECUTION_LIMITS, ProviderUnavailableError } from './provider';
+import type { ExecutionLifecycle, ExecutionProvider, ExecutionResult } from './provider';
+import {
+  EXECUTION_LIMITS,
+  ExecutionConfigurationError,
+  supportsExecutionSuite,
+} from './provider';
 import type { ExecutionLanguage, ExecutionVerdict } from './types';
 
 const USER_CODE_MARKER = '/*__USER_CODE__*/';
@@ -20,6 +24,7 @@ type NativeJob = {
   mode: ExecutionMode;
   source: string;
   stdin: string | null;
+  lifecycle?: ExecutionLifecycle;
 };
 
 export type NativeExecutionResult = ExecutionResult & {
@@ -74,7 +79,9 @@ export async function executeNativeProblem(
     .limit(1);
 
   if (!configuration) {
-    throw new ProviderUnavailableError('Native judge', 'missing version or language template');
+    throw new ExecutionConfigurationError(
+      'The problem version or language template is missing.',
+    );
   }
 
   const storedTests =
@@ -111,7 +118,7 @@ export async function executeNativeProblem(
       : storedTests;
 
   if (plan.length === 0) {
-    throw new ProviderUnavailableError('Native judge', 'no test cases are configured');
+    throw new ExecutionConfigurationError('No test cases are configured for this problem.');
   }
 
   const wrappedSource = wrapUserSource(configuration.wrapperTemplate, job.source);
@@ -139,14 +146,33 @@ export async function executeNativeProblem(
   let safeStdout: string | null = null;
   const testResults: SafeTestResult[] = [];
 
-  for (const test of plan) {
-    const result = await provider.execute({
-      language: job.language,
-      source: wrappedSource,
-      stdin: test.input,
-      expectedOutput: null,
-      limits,
-    });
+  const suite = supportsExecutionSuite(provider)
+    ? await provider.executeSuite({
+        language: job.language,
+        source: wrappedSource,
+        limits,
+        cases: plan.map((test) => ({ ordinal: test.ordinal, stdin: test.input })),
+        lifecycle: job.lifecycle,
+      })
+    : null;
+
+  if (suite && suite.cases.length !== plan.length) {
+    throw new ExecutionConfigurationError(
+      'The execution provider returned an incomplete suite.',
+    );
+  }
+
+  for (const [index, test] of plan.entries()) {
+    const result =
+      suite?.cases[index] ??
+      (await provider.execute({
+        language: job.language,
+        source: wrappedSource,
+        stdin: test.input,
+        expectedOutput: null,
+        limits,
+        lifecycle: job.lifecycle,
+      }));
 
     compilerRuntimeVersion ??= result.compilerRuntimeVersion;
     compileOutput ??= result.compileOutput;

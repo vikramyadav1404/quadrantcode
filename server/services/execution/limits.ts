@@ -16,7 +16,7 @@
  * "wait four minutes" and "come back tomorrow" is the whole content of the
  * message.
  */
-import { and, asc, eq, gt, inArray } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray, lt } from 'drizzle-orm';
 import type { Database, Transaction } from '@/server/db';
 import { executionJobs } from '@/server/db/schema';
 import { LIVE_STATUSES } from './statemachine';
@@ -27,13 +27,19 @@ export const HOURLY_LIMIT = 20;
 /** Executions a user may have in flight at once. */
 export const CONCURRENT_LIMIT = 5;
 
+/** Conservative shared Hobby allowance guard, reset at UTC midnight. */
+export const GLOBAL_DAILY_LIMIT = 20;
+
+/** Database-enforced ceiling below Vercel's platform concurrency quota. */
+export const GLOBAL_SANDBOX_CONCURRENCY = 8;
+
 const HOUR_MS = 60 * 60 * 1000;
 
 export type LimitVerdict =
   | { allowed: true }
   | {
       allowed: false;
-      reason: 'hourly' | 'concurrent';
+      reason: 'hourly' | 'concurrent' | 'global_daily';
       message: string;
       /** When the user may try again. Always set for the hourly limit. */
       retryAt: Date | null;
@@ -52,8 +58,12 @@ export async function checkExecutionLimits(
 ): Promise<LimitVerdict> {
   const { userId, now } = input;
   const windowStart = new Date(now.getTime() - HOUR_MS);
+  const utcDayStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+  const nextUtcDay = new Date(utcDayStart.getTime() + 24 * HOUR_MS);
 
-  const [live, recent] = await Promise.all([
+  const [live, recent, globalToday] = await Promise.all([
     db
       .select({ id: executionJobs.id })
       .from(executionJobs)
@@ -69,6 +79,13 @@ export async function checkExecutionLimits(
       .from(executionJobs)
       .where(and(eq(executionJobs.userId, userId), gt(executionJobs.createdAt, windowStart)))
       .orderBy(asc(executionJobs.createdAt)),
+
+    db
+      .select({ id: executionJobs.id })
+      .from(executionJobs)
+      .where(
+        and(gte(executionJobs.createdAt, utcDayStart), lt(executionJobs.createdAt, nextUtcDay)),
+      ),
   ]);
 
   if (live.length >= CONCURRENT_LIMIT) {
@@ -97,6 +114,15 @@ export async function checkExecutionLimits(
       reason: 'hourly',
       message: `That is ${HOURLY_LIMIT} runs this hour. You can run again at ${formatTime(retryAt)}.`,
       retryAt,
+    };
+  }
+
+  if (globalToday.length >= GLOBAL_DAILY_LIMIT) {
+    return {
+      allowed: false,
+      reason: 'global_daily',
+      message: `Today's shared execution allowance is full. Try again at ${nextUtcDay.toISOString()}.`,
+      retryAt: nextUtcDay,
     };
   }
 
