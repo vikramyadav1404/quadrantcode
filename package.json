@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "next build",
@@ -35,6 +35,7 @@
     "avatars:cleanup": "tsx scripts/cleanup-avatars.ts",
     "sessions:sweep": "tsx scripts/sweep-sessions.ts",
     "executions:sweep": "tsx scripts/sweep-executions.ts",
+    "execution:image:verify": "tsx scripts/verify-execution-image.ts",
     "snapshots:purge": "tsx scripts/purge-snapshots.ts",
     "snapshots:measure": "tsx scripts/measure-snapshot-storage.ts",
     "mistakes:rollup": "tsx scripts/rollup-mistakes.ts",
@@ -67,6 +68,8 @@
     "@aws-sdk/s3-request-presigner": "^3.1110.0",
     "@monaco-editor/react": "^4.7.0",
     "@sentry/nextjs": "^10.72.0",
+    "@vercel/queue": "0.5.0",
+    "@vercel/sandbox": "3.2.1",
     "clsx": "^2.1.1",
     "csv-parse": "^7.0.2",
     "csv-stringify": "^6.8.3",
@@ -89,6 +92,7 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@vercel/sandbox-mock": "3.2.1",
     "dotenv": "^17.0.0",
     "drizzle-kit": "^0.31.1",
     "embedded-postgres": "^18.4.0-beta.17",

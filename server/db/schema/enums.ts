@@ -245,6 +245,14 @@ export const executionStatusEnum = pgEnum('execution_status', [
   'failed',
 ]);
 
+/** The explicitly selected execution implementation for a persisted job. */
+export const executionBackendEnum = pgEnum('execution_backend', [
+  'legacy',
+  'vercel_sandbox',
+  'judge0',
+  'fake',
+]);
+
 /**
  * F3.1 · how an execution ENDED, mapped from the provider's own statuses.
  *
