@@ -1,0 +1,2167 @@
+{
+  "schemaVersion": 1,
+  "batch": 8,
+  "reviewStatus": "needs_review",
+  "problems": [
+    {
+      "slug": "transit-zone-clusters",
+      "title": "Transit Zone Clusters",
+      "difficulty": "easy",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Transit Zone Clusters is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Transit Zone Clusters. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "device-mesh-components",
+      "title": "Device Mesh Components",
+      "difficulty": "medium",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Device Mesh Components is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Device Mesh Components. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "friend-circle-counter",
+      "title": "Friend Circle Counter",
+      "difficulty": "easy",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Friend Circle Counter is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Friend Circle Counter. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "warehouse-link-groups",
+      "title": "Warehouse Link Groups",
+      "difficulty": "hard",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Warehouse Link Groups is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Warehouse Link Groups. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "pipeline-network-regions",
+      "title": "Pipeline Network Regions",
+      "difficulty": "medium",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Pipeline Network Regions is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Pipeline Network Regions. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "constellation-connection-groups",
+      "title": "Constellation Connection Groups",
+      "difficulty": "easy",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Constellation Connection Groups is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Constellation Connection Groups. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "server-fleet-clusters",
+      "title": "Server Fleet Clusters",
+      "difficulty": "medium",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Server Fleet Clusters is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Server Fleet Clusters. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "trail-map-components",
+      "title": "Trail Map Components",
+      "difficulty": "easy",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Trail Map Components is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Trail Map Components. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "workshop-collaboration-groups",
+      "title": "Workshop Collaboration Groups",
+      "difficulty": "hard",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Workshop Collaboration Groups is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Workshop Collaboration Groups. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "beacon-network-regions",
+      "title": "Beacon Network Regions",
+      "difficulty": "medium",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "graph-components"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Beacon Network Regions is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise undirected connected components result before the next decision can be made.",
+      "statement": "Implement the required function for Beacon Network Regions. Interpret the supplied sequence exactly as described in the input contract, compute the undirected connected components, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is node count n. Remaining values are endpoint pairs for undirected edges over nodes 0..n-1.",
+      "outputFormat": "Return the number of connected components, counting isolated nodes.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= n <= 200000",
+        "The remaining input length is even",
+        "0 <= each edge endpoint < n; duplicate edges and self-loops may occur."
+      ],
+      "examples": [
+        {
+          "input": "5 0 1 1 2 3 4",
+          "output": "2",
+          "explanation": "Example 1 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "3 0 1 1 2",
+          "output": "1",
+          "explanation": "Example 2 follows the stated undirected connected components process. Every contributing value is visible in the input, and the computed result is 1."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 0 1 1 2 3 4",
+          "expectedOutput": "2",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "3 0 1 1 2",
+          "expectedOutput": "1",
+          "explanation": "Applying the undirected connected components rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 1 0 1 2 2",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "120 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13 14 14 15 15 16 16 17 17 18 18 19 19 20 20 21 21 22 22 23 23 24 24 25 25 26 26 27 27 28 28 29 29 30 30 31 31 32 32 33 33 34 34 35 35 36 36 37 37 38 38 39 39 40 40 41 41 42 42 43 43 44 44 45 45 46 46 47 47 48 48 49 49 50 50 51 51 52 52 53 53 54 54 55 55 56 56 57 57 58 58 59 59 60 60 61 61 62 62 63 63 64 64 65 65 66 66 67 67 68 68 69 69 70 70 71 71 72 72 73 73 74 74 75 75 76 76 77 77 78 78 79 79 80 80 81 81 82 82 83 83 84 84 85 85 86 86 87 87 88 88 89 89 90 90 91 91 92 92 93 93 94 94 95 95 96 96 97 97 98 98 99 99 100 100 101 101 102 102 103 103 104 104 105 105 106 106 107 107 108 108 109 109 110 110 111 111 112 112 113 113 114 114 115 115 116 116 117 117 118 118 119",
+          "expectedOutput": "1",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 0 0 2 3",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Begin with every node in its own group.",
+        "Union the endpoints of each edge and count how many roots remain."
+      ],
+      "editorial": {
+        "overview": "A disjoint-set union structure starts with n components and merges the roots of every edge.",
+        "bruteForceApproach": "For each unvisited node, run a graph traversal and mark every reachable node.",
+        "optimalApproach": "Union by representative with path compression; decrement the component count only when two roots differ.",
+        "correctnessProof": "Initially each isolated node is one component. An edge between different representatives merges exactly two components and reduces the count by one; an edge inside one representative changes nothing. After all edges, representatives match graph connectivity.",
+        "timeComplexity": "O((n + m) α(n))",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    }
+  ]
+}

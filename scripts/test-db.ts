@@ -20,7 +20,7 @@ const PORT = 55432;
 const USER = 'postgres';
 const PASSWORD = 'postgres';
 const DATA_DIR = resolve('.tmp/pgdata');
-export const TEST_DB_NAME = 'traceloop_test';
+export const TEST_DB_NAME = 'quadrantcode_test';
 export const TEST_DATABASE_URL = `postgresql://${USER}:${PASSWORD}@localhost:${PORT}/${TEST_DB_NAME}`;
 
 function instance(): EmbeddedPostgres {

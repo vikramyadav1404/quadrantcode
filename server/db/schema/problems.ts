@@ -18,6 +18,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -66,6 +67,13 @@ export const problems = pgTable(
     isPremium: boolean().notNull().default(false),
     status: problemStatusEnum().notNull().default('draft'),
 
+    /** Admin-only adjustment (-2..2) used when observed performance disagrees with the label. */
+    difficultyCalibration: smallint().notNull().default(0),
+    /** The immutable content version currently selected for readers and new submissions. */
+    currentVersion: integer().notNull().default(1),
+    acceptedSubmissions: integer().notNull().default(0),
+    totalSubmissions: integer().notNull().default(0),
+
     // ── Statement-bearing columns ─────────────────────────────────────────
     // MUST be NULL when source_type = 'external_link'. F4.1 adds the rest of
     // the authoring fields (reference solution, complexities, common mistakes)
@@ -76,6 +84,23 @@ export const problems = pgTable(
     constraintsText: text(),
     examples: jsonb().$type<ProblemExample[]>(),
     editorial: text(),
+
+    /**
+     * F1.2 deduplication key — `normaliseProblemUrl(external_url)`.
+     *
+     * NOT a generated column, unlike `search_vector` below, and the difference
+     * is worth stating because the two look like they should match.
+     * `to_tsvector` exists in Postgres; the URL normaliser does not. Expressing
+     * it in SQL would mean maintaining LeetCode's tab suffixes and Codeforces'
+     * two-URL problem in both a TypeScript function and a Postgres expression,
+     * and the failure mode when they drift is silent duplicate rows.
+     *
+     * So it is maintained by the service instead, which is only safe because
+     * every write goes through `createProblem`/`updateProblem`. A test asserts
+     * the stored value equals the function's output for every row, which is the
+     * drift detector a generated column would not have needed.
+     */
+    externalUrlNormalised: text(),
 
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -97,6 +122,25 @@ export const problems = pgTable(
   },
   (table) => [
     uniqueIndex('problems_slug_key').on(table.slug),
+
+    /**
+     * Serves: F1.2 import deduplication, the lookup every imported row does —
+     *   SELECT id FROM problems
+     *   WHERE external_url_normalised = $1 AND status <> 'archived'
+     * and simultaneously ENFORCES that one URL is one catalog row, so a race
+     * between two concurrent imports cannot create a duplicate that the SELECT
+     * above did not see.
+     *
+     * Partial on two counts. `IS NOT NULL` excludes original problems, which
+     * have no external URL and would otherwise all collide on NULL — Postgres
+     * treats NULLs as distinct in a unique index, so this is belt-and-braces
+     * for clarity rather than correctness. `status <> 'archived'` is the load
+     * bearing half: archiving a problem must not permanently reserve its URL,
+     * or a user who archived something could never re-add it.
+     */
+    uniqueIndex('problems_external_url_normalised_key')
+      .on(table.externalUrlNormalised)
+      .where(sql`${table.externalUrlNormalised} is not null and ${table.status} <> 'archived'`),
 
     /**
      * Serves: title search —
@@ -172,6 +216,15 @@ export const problems = pgTable(
     ),
 
     check('problems_estimated_minutes_positive', sql`${table.estimatedMinutes} > 0`),
+    check(
+      'problems_difficulty_calibration_range',
+      sql`${table.difficultyCalibration} between -2 and 2`,
+    ),
+    check('problems_current_version_positive', sql`${table.currentVersion} > 0`),
+    check(
+      'problems_submission_counts_coherent',
+      sql`${table.acceptedSubmissions} >= 0 and ${table.totalSubmissions} >= ${table.acceptedSubmissions}`,
+    ),
   ],
 );
 

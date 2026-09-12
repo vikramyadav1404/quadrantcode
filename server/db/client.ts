@@ -20,6 +20,16 @@ import * as schema from './schema';
 
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
+/**
+ * What `db.transaction(async (tx) => …)` hands its callback.
+ *
+ * Derived rather than written out, so it cannot drift from the driver's real
+ * type. Needed the moment a helper has to run both inside a transaction and on
+ * its own — F1.4's event writer is the first — because typing that helper as
+ * `Database` silently excludes `tx`.
+ */
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
 let client: ReturnType<typeof postgres> | undefined;
 let database: Database | undefined;
 
@@ -29,7 +39,7 @@ let database: Database | undefined;
  * URL. The worker is long-lived and may hold more.
  */
 function createClient(url: string) {
-  const isWorker = process.env.TRACELOOP_ROLE === 'worker';
+  const isWorker = process.env.QUADRANTCODE_ROLE === 'worker';
   return postgres(url, {
     max: isWorker ? 10 : 3,
     idle_timeout: 20,
@@ -46,7 +56,7 @@ export function getDb(): Database {
   return database;
 }
 
-/** Closes the pool. Called by the worker's graceful-shutdown path (F2.3). */
+/** Closes the pool. Called by the worker's graceful-shutdown path. */
 export async function closeDb(): Promise<void> {
   if (client) {
     await client.end({ timeout: 5 });

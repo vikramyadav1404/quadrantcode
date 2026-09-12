@@ -1,0 +1,2167 @@
+{
+  "schemaVersion": 1,
+  "batch": 2,
+  "reviewStatus": "needs_review",
+  "problems": [
+    {
+      "slug": "transit-tap-popularity",
+      "title": "Transit Tap Popularity",
+      "difficulty": "easy",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Transit Tap Popularity is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Transit Tap Popularity. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "cache-key-hotspot",
+      "title": "Cache Key Hotspot",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Cache Key Hotspot is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Cache Key Hotspot. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "festival-badge-frequency",
+      "title": "Festival Badge Frequency",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Festival Badge Frequency is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Festival Badge Frequency. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "library-borrowing-peak",
+      "title": "Library Borrowing Peak",
+      "difficulty": "hard",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Library Borrowing Peak is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Library Borrowing Peak. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "network-code-concentration",
+      "title": "Network Code Concentration",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Network Code Concentration is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Network Code Concentration. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "twin-gate-target-pairs",
+      "title": "Twin Gate Target Pairs",
+      "difficulty": "easy",
+      "primaryTopic": "two-pointers-sliding-window",
+      "topics": ["two-pointers-sliding-window", "pair-target-count"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Twin Gate Target Pairs is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise distinct target pairs result before the next decision can be made.",
+      "statement": "Implement the required function for Twin Gate Target Pairs. Interpret the supplied sequence exactly as described in the input contract, compute the distinct target pairs, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the target. The remaining elements form the collection to pair.",
+      "outputFormat": "Return the number of distinct unordered value pairs whose sum equals the target.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "-1000000000 <= every integer <= 1000000000",
+        "A pair uses two different positions; equal-value pairs need two copies."
+      ],
+      "examples": [
+        {
+          "input": "7 1 6 2 5 3 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "5 1 4 2 3",
+          "output": "2",
+          "explanation": "Example 2 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "7 1 6 2 5 3 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "5 1 4 2 3",
+          "expectedOutput": "2",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 2 2 2 2",
+          "expectedOutput": "1",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "20 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99",
+          "expectedOutput": "10",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 -3 3 -2 2 0 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Sort the collection and place one pointer at each end.",
+        "Move both pointers after a match and skip repeated values so a value pair is counted once."
+      ],
+      "editorial": {
+        "overview": "Sort the payload values, then converge two pointers according to whether their sum is below, above, or equal to the target.",
+        "bruteForceApproach": "Try every pair of positions and store matching value pairs in a set to remove duplicates.",
+        "optimalApproach": "A sorted two-pointer scan counts each distinct complement pair once while skipping equal neighbors.",
+        "correctnessProof": "At each step, a sum below target cannot be repaired by decreasing the right value, so advancing left loses no solution; the symmetric argument holds above target. A match is counted once and duplicate values are skipped, so every distinct pair appears exactly once.",
+        "timeComplexity": "O(n log n)",
+        "spaceComplexity": "O(n) for a sorted copy"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(n<3)return 0;long long*a=malloc(sizeof(long long)*(n-1));memcpy(a,v+1,sizeof(long long)*(n-1));qsort(a,n-1,sizeof(long long),cmp_ll);int l=0,r=n-2;long long c=0;while(l<r){long long s=a[l]+a[r];if(s==v[0]){c++;long long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}free(a);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;auto a=vector<long long>(v.begin()+1,v.end());sort(a.begin(),a.end());int l=0,r=(int)a.size()-1;long long c=0;while(l<r){auto s=a[l]+a[r];if(s==v[0]){c++;auto x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;long[]a=Arrays.copyOfRange(v,1,v.length);Arrays.sort(a);int l=0,r=a.length-1;long c=0;while(l<r){long s=a[l]+a[r];if(s==v[0]){c++;long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v: return 0\n    t,a=v[0],sorted(v[1:]);l,r,c=0,len(a)-1,0\n    while l<r:\n        s=a[l]+a[r]\n        if s==t:\n            c+=1;x,y=a[l],a[r]\n            while l<r and a[l]==x:l+=1\n            while l<r and a[r]==y:r-=1\n        elif s<t:l+=1\n        else:r-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],a=v.slice(1).sort((x,y)=>x-y);let l=0,r=a.length-1,c=0;while(l<r){const s=a[l]+a[r];if(s===t){c++;const x=a[l],y=a[r];while(l<r&&a[l]===x)l++;while(l<r&&a[r]===y)r--;}else if(s<t)l++;else r--;}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "harbor-weight-pairing",
+      "title": "Harbor Weight Pairing",
+      "difficulty": "medium",
+      "primaryTopic": "two-pointers-sliding-window",
+      "topics": ["two-pointers-sliding-window", "pair-target-count"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Harbor Weight Pairing is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise distinct target pairs result before the next decision can be made.",
+      "statement": "Implement the required function for Harbor Weight Pairing. Interpret the supplied sequence exactly as described in the input contract, compute the distinct target pairs, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the target. The remaining elements form the collection to pair.",
+      "outputFormat": "Return the number of distinct unordered value pairs whose sum equals the target.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "-1000000000 <= every integer <= 1000000000",
+        "A pair uses two different positions; equal-value pairs need two copies."
+      ],
+      "examples": [
+        {
+          "input": "7 1 6 2 5 3 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "5 1 4 2 3",
+          "output": "2",
+          "explanation": "Example 2 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "7 1 6 2 5 3 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "5 1 4 2 3",
+          "expectedOutput": "2",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 2 2 2 2",
+          "expectedOutput": "1",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "20 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99",
+          "expectedOutput": "10",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 -3 3 -2 2 0 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Sort the collection and place one pointer at each end.",
+        "Move both pointers after a match and skip repeated values so a value pair is counted once."
+      ],
+      "editorial": {
+        "overview": "Sort the payload values, then converge two pointers according to whether their sum is below, above, or equal to the target.",
+        "bruteForceApproach": "Try every pair of positions and store matching value pairs in a set to remove duplicates.",
+        "optimalApproach": "A sorted two-pointer scan counts each distinct complement pair once while skipping equal neighbors.",
+        "correctnessProof": "At each step, a sum below target cannot be repaired by decreasing the right value, so advancing left loses no solution; the symmetric argument holds above target. A match is counted once and duplicate values are skipped, so every distinct pair appears exactly once.",
+        "timeComplexity": "O(n log n)",
+        "spaceComplexity": "O(n) for a sorted copy"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(n<3)return 0;long long*a=malloc(sizeof(long long)*(n-1));memcpy(a,v+1,sizeof(long long)*(n-1));qsort(a,n-1,sizeof(long long),cmp_ll);int l=0,r=n-2;long long c=0;while(l<r){long long s=a[l]+a[r];if(s==v[0]){c++;long long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}free(a);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;auto a=vector<long long>(v.begin()+1,v.end());sort(a.begin(),a.end());int l=0,r=(int)a.size()-1;long long c=0;while(l<r){auto s=a[l]+a[r];if(s==v[0]){c++;auto x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;long[]a=Arrays.copyOfRange(v,1,v.length);Arrays.sort(a);int l=0,r=a.length-1;long c=0;while(l<r){long s=a[l]+a[r];if(s==v[0]){c++;long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v: return 0\n    t,a=v[0],sorted(v[1:]);l,r,c=0,len(a)-1,0\n    while l<r:\n        s=a[l]+a[r]\n        if s==t:\n            c+=1;x,y=a[l],a[r]\n            while l<r and a[l]==x:l+=1\n            while l<r and a[r]==y:r-=1\n        elif s<t:l+=1\n        else:r-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],a=v.slice(1).sort((x,y)=>x-y);let l=0,r=a.length-1,c=0;while(l<r){const s=a[l]+a[r];if(s===t){c++;const x=a[l],y=a[r];while(l<r&&a[l]===x)l++;while(l<r&&a[r]===y)r--;}else if(s<t)l++;else r--;}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "budget-match-counter",
+      "title": "Budget Match Counter",
+      "difficulty": "medium",
+      "primaryTopic": "two-pointers-sliding-window",
+      "topics": ["two-pointers-sliding-window", "pair-target-count"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Budget Match Counter is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise distinct target pairs result before the next decision can be made.",
+      "statement": "Implement the required function for Budget Match Counter. Interpret the supplied sequence exactly as described in the input contract, compute the distinct target pairs, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the target. The remaining elements form the collection to pair.",
+      "outputFormat": "Return the number of distinct unordered value pairs whose sum equals the target.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "-1000000000 <= every integer <= 1000000000",
+        "A pair uses two different positions; equal-value pairs need two copies."
+      ],
+      "examples": [
+        {
+          "input": "7 1 6 2 5 3 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "5 1 4 2 3",
+          "output": "2",
+          "explanation": "Example 2 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "7 1 6 2 5 3 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "5 1 4 2 3",
+          "expectedOutput": "2",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 2 2 2 2",
+          "expectedOutput": "1",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "20 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99",
+          "expectedOutput": "10",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 -3 3 -2 2 0 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Sort the collection and place one pointer at each end.",
+        "Move both pointers after a match and skip repeated values so a value pair is counted once."
+      ],
+      "editorial": {
+        "overview": "Sort the payload values, then converge two pointers according to whether their sum is below, above, or equal to the target.",
+        "bruteForceApproach": "Try every pair of positions and store matching value pairs in a set to remove duplicates.",
+        "optimalApproach": "A sorted two-pointer scan counts each distinct complement pair once while skipping equal neighbors.",
+        "correctnessProof": "At each step, a sum below target cannot be repaired by decreasing the right value, so advancing left loses no solution; the symmetric argument holds above target. A match is counted once and duplicate values are skipped, so every distinct pair appears exactly once.",
+        "timeComplexity": "O(n log n)",
+        "spaceComplexity": "O(n) for a sorted copy"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(n<3)return 0;long long*a=malloc(sizeof(long long)*(n-1));memcpy(a,v+1,sizeof(long long)*(n-1));qsort(a,n-1,sizeof(long long),cmp_ll);int l=0,r=n-2;long long c=0;while(l<r){long long s=a[l]+a[r];if(s==v[0]){c++;long long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}free(a);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;auto a=vector<long long>(v.begin()+1,v.end());sort(a.begin(),a.end());int l=0,r=(int)a.size()-1;long long c=0;while(l<r){auto s=a[l]+a[r];if(s==v[0]){c++;auto x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;long[]a=Arrays.copyOfRange(v,1,v.length);Arrays.sort(a);int l=0,r=a.length-1;long c=0;while(l<r){long s=a[l]+a[r];if(s==v[0]){c++;long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v: return 0\n    t,a=v[0],sorted(v[1:]);l,r,c=0,len(a)-1,0\n    while l<r:\n        s=a[l]+a[r]\n        if s==t:\n            c+=1;x,y=a[l],a[r]\n            while l<r and a[l]==x:l+=1\n            while l<r and a[r]==y:r-=1\n        elif s<t:l+=1\n        else:r-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],a=v.slice(1).sort((x,y)=>x-y);let l=0,r=a.length-1,c=0;while(l<r){const s=a[l]+a[r];if(s===t){c++;const x=a[l],y=a[r];while(l<r&&a[l]===x)l++;while(l<r&&a[r]===y)r--;}else if(s<t)l++;else r--;}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "workshop-rod-pairing",
+      "title": "Workshop Rod Pairing",
+      "difficulty": "hard",
+      "primaryTopic": "two-pointers-sliding-window",
+      "topics": ["two-pointers-sliding-window", "pair-target-count"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Workshop Rod Pairing is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise distinct target pairs result before the next decision can be made.",
+      "statement": "Implement the required function for Workshop Rod Pairing. Interpret the supplied sequence exactly as described in the input contract, compute the distinct target pairs, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the target. The remaining elements form the collection to pair.",
+      "outputFormat": "Return the number of distinct unordered value pairs whose sum equals the target.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "-1000000000 <= every integer <= 1000000000",
+        "A pair uses two different positions; equal-value pairs need two copies."
+      ],
+      "examples": [
+        {
+          "input": "7 1 6 2 5 3 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "5 1 4 2 3",
+          "output": "2",
+          "explanation": "Example 2 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "7 1 6 2 5 3 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "5 1 4 2 3",
+          "expectedOutput": "2",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 2 2 2 2",
+          "expectedOutput": "1",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "20 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99",
+          "expectedOutput": "10",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 -3 3 -2 2 0 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Sort the collection and place one pointer at each end.",
+        "Move both pointers after a match and skip repeated values so a value pair is counted once."
+      ],
+      "editorial": {
+        "overview": "Sort the payload values, then converge two pointers according to whether their sum is below, above, or equal to the target.",
+        "bruteForceApproach": "Try every pair of positions and store matching value pairs in a set to remove duplicates.",
+        "optimalApproach": "A sorted two-pointer scan counts each distinct complement pair once while skipping equal neighbors.",
+        "correctnessProof": "At each step, a sum below target cannot be repaired by decreasing the right value, so advancing left loses no solution; the symmetric argument holds above target. A match is counted once and duplicate values are skipped, so every distinct pair appears exactly once.",
+        "timeComplexity": "O(n log n)",
+        "spaceComplexity": "O(n) for a sorted copy"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(n<3)return 0;long long*a=malloc(sizeof(long long)*(n-1));memcpy(a,v+1,sizeof(long long)*(n-1));qsort(a,n-1,sizeof(long long),cmp_ll);int l=0,r=n-2;long long c=0;while(l<r){long long s=a[l]+a[r];if(s==v[0]){c++;long long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}free(a);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;auto a=vector<long long>(v.begin()+1,v.end());sort(a.begin(),a.end());int l=0,r=(int)a.size()-1;long long c=0;while(l<r){auto s=a[l]+a[r];if(s==v[0]){c++;auto x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;long[]a=Arrays.copyOfRange(v,1,v.length);Arrays.sort(a);int l=0,r=a.length-1;long c=0;while(l<r){long s=a[l]+a[r];if(s==v[0]){c++;long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v: return 0\n    t,a=v[0],sorted(v[1:]);l,r,c=0,len(a)-1,0\n    while l<r:\n        s=a[l]+a[r]\n        if s==t:\n            c+=1;x,y=a[l],a[r]\n            while l<r and a[l]==x:l+=1\n            while l<r and a[r]==y:r-=1\n        elif s<t:l+=1\n        else:r-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],a=v.slice(1).sort((x,y)=>x-y);let l=0,r=a.length-1,c=0;while(l<r){const s=a[l]+a[r];if(s===t){c++;const x=a[l],y=a[r];while(l<r&&a[l]===x)l++;while(l<r&&a[r]===y)r--;}else if(s<t)l++;else r--;}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "courier-load-complements",
+      "title": "Courier Load Complements",
+      "difficulty": "medium",
+      "primaryTopic": "two-pointers-sliding-window",
+      "topics": ["two-pointers-sliding-window", "pair-target-count"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Courier Load Complements is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise distinct target pairs result before the next decision can be made.",
+      "statement": "Implement the required function for Courier Load Complements. Interpret the supplied sequence exactly as described in the input contract, compute the distinct target pairs, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the target. The remaining elements form the collection to pair.",
+      "outputFormat": "Return the number of distinct unordered value pairs whose sum equals the target.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "-1000000000 <= every integer <= 1000000000",
+        "A pair uses two different positions; equal-value pairs need two copies."
+      ],
+      "examples": [
+        {
+          "input": "7 1 6 2 5 3 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "5 1 4 2 3",
+          "output": "2",
+          "explanation": "Example 2 follows the stated distinct target pairs process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "7 1 6 2 5 3 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "5 1 4 2 3",
+          "expectedOutput": "2",
+          "explanation": "Applying the distinct target pairs rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 2 2 2 2",
+          "expectedOutput": "1",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "20 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99",
+          "expectedOutput": "10",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 -3 3 -2 2 0 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Sort the collection and place one pointer at each end.",
+        "Move both pointers after a match and skip repeated values so a value pair is counted once."
+      ],
+      "editorial": {
+        "overview": "Sort the payload values, then converge two pointers according to whether their sum is below, above, or equal to the target.",
+        "bruteForceApproach": "Try every pair of positions and store matching value pairs in a set to remove duplicates.",
+        "optimalApproach": "A sorted two-pointer scan counts each distinct complement pair once while skipping equal neighbors.",
+        "correctnessProof": "At each step, a sum below target cannot be repaired by decreasing the right value, so advancing left loses no solution; the symmetric argument holds above target. A match is counted once and duplicate values are skipped, so every distinct pair appears exactly once.",
+        "timeComplexity": "O(n log n)",
+        "spaceComplexity": "O(n) for a sorted copy"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(n<3)return 0;long long*a=malloc(sizeof(long long)*(n-1));memcpy(a,v+1,sizeof(long long)*(n-1));qsort(a,n-1,sizeof(long long),cmp_ll);int l=0,r=n-2;long long c=0;while(l<r){long long s=a[l]+a[r];if(s==v[0]){c++;long long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}free(a);return c;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;auto a=vector<long long>(v.begin()+1,v.end());sort(a.begin(),a.end());int l=0,r=(int)a.size()-1;long long c=0;while(l<r){auto s=a[l]+a[r];if(s==v[0]){c++;auto x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;long[]a=Arrays.copyOfRange(v,1,v.length);Arrays.sort(a);int l=0,r=a.length-1;long c=0;while(l<r){long s=a[l]+a[r];if(s==v[0]){c++;long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v: return 0\n    t,a=v[0],sorted(v[1:]);l,r,c=0,len(a)-1,0\n    while l<r:\n        s=a[l]+a[r]\n        if s==t:\n            c+=1;x,y=a[l],a[r]\n            while l<r and a[l]==x:l+=1\n            while l<r and a[r]==y:r-=1\n        elif s<t:l+=1\n        else:r-=1\n    return c"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],a=v.slice(1).sort((x,y)=>x-y);let l=0,r=a.length-1,c=0;while(l<r){const s=a[l]+a[r];if(s===t){c++;const x=a[l],y=a[r];while(l<r&&a[l]===x)l++;while(l<r&&a[r]===y)r--;}else if(s<t)l++;else r--;}return c;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    }
+  ]
+}

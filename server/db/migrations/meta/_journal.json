@@ -36,6 +36,146 @@
       "when": 1786671788651,
       "tag": "0004_catalog_recent_index",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786673550099,
+      "tag": "0005_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786700737736,
+      "tag": "0006_verification_token_consumed",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786736898377,
+      "tag": "0007_import_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786743959054,
+      "tag": "0008_import_job_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786778054932,
+      "tag": "0009_streak_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787897409243,
+      "tag": "0010_solve_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787902022848,
+      "tag": "0011_reflection_capture",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787910548423,
+      "tag": "0012_analytics_rollups",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787918191270,
+      "tag": "0013_revision_schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787920840839,
+      "tag": "0014_execution_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1787934555350,
+      "tag": "0015_solve_timeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1787942921905,
+      "tag": "0016_snapshot_capture_toggle",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787944937950,
+      "tag": "0017_stuck_inference",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787948927369,
+      "tag": "0018_mistake_memory",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787951642636,
+      "tag": "0019_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788168832728,
+      "tag": "0020_pink_unus",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788169222794,
+      "tag": "0021_polite_sinister_six",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788180138806,
+      "tag": "0022_fantastic_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788183115554,
+      "tag": "0023_jazzy_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788867716815,
+      "tag": "0024_execution_queue_leases",
+      "breakpoints": true
     }
   ]
 }

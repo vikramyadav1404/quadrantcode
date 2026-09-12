@@ -1,0 +1,55 @@
+# Reviewed findings that are not leaks.
+#
+# One fingerprint per line: commit:file:rule:line. Gitleaks reads this file
+# automatically; the allowlist in .gitleaks.toml has no `fingerprints` key, and
+# the first attempt at this put one there and was silently ignored.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# F4.8 · server/services/execution/provider.ts:150
+#
+#     ...(env.JUDGE0_API_KEY ? { apiKey: env.JUDGE0_API_KEY } : {})
+#
+# `generic-api-key` matched the identifier beside `apiKey:` on entropy. There is
+# no secret VALUE here — the line reads from the environment, this repository
+# has never contained a Judge0 key, and there is no Judge0 instance to have one.
+#
+# WHY A FINGERPRINT AND NOT A RULE OR A PATH
+#
+# This pins the exemption to one commit, one file, one rule and one line. Change
+# that line to hold a real key and the fingerprint changes and the scan fires
+# again. Disabling `generic-api-key`, or allowlisting the file, would silence
+# every future finding in the place most likely to grow one.
+#
+# AND THE SCANNER WAS PROVED STILL ALIVE
+#
+# F0.1's canary "passed" against AWS's documentation key, which gitleaks
+# allowlists by default — a check that verified nothing. Re-verified here
+# against a freshly generated `sk_live_` token, which it caught. Anyone
+# changing this file should re-verify the same way, with a secret that is not
+# on somebody's known-example list.
+be8931d7605d18940d03f63b80c5c7b25a527635:server/services/execution/provider.ts:generic-api-key:150
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# F3.1b · the two places that QUOTE the line above
+#
+# The finding immediately above was documented — in this file's own comment, and
+# in the audit report that recorded it. `generic-api-key` then matched the
+# quoted text in both, so writing down the exemption created two more findings.
+# The scanner is not wrong — the matched bytes really are the key identifier.
+# They are prose about code, in a comment and in Markdown, and hold no value.
+#
+# This comment deliberately does NOT repeat the matched text, because doing so
+# is what produced the two findings it is explaining.
+#
+# BOTH PREDATE THIS BRANCH. They entered at e6e7a24 on 29 August, which is
+# already on `main`. CI did not catch them then because nothing was pushed
+# between 15 August and 11 September, so no run ever saw that commit — the
+# failure sat latent for two weeks and this branch is merely the first push to
+# surface it. It is not a regression from F3.1b or from the rename.
+#
+# Fingerprinted rather than allowlisting either path, for the reason given
+# above: `docs/security-audit.md` is exactly the file where a real key would be
+# most embarrassing to silence, and this file is where the next exemption gets
+# argued. Both must keep firing on anything new.
+e6e7a245218142f95b4af40003801c99cb4d9956:.gitleaksignore:generic-api-key:10
+e6e7a245218142f95b4af40003801c99cb4d9956:docs/security-audit.md:generic-api-key:47

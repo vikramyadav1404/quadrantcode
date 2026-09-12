@@ -32,20 +32,48 @@ describe('F0.1 · .env.example', () => {
     expect(names).toEqual([...new Set(names)]);
   });
 
-  it('documents every variable the server env schema knows about', async () => {
+  /**
+   * Every key the schema declares, including through intersections.
+   *
+   * `serverEnvSchema` is an intersection, so `.shape` is not on the top-level
+   * node — the keys live on each side. Walking it is what makes the test below
+   * actually enumerate rather than sample.
+   */
+  function collectSchemaKeys(node: unknown, out: Set<string>): void {
+    const def = (node as { def?: Record<string, unknown> } | undefined)?.def;
+    if (!def) return;
+
+    if (def['shape']) for (const key of Object.keys(def['shape'] as object)) out.add(key);
+    for (const side of ['left', 'right', 'in', 'out', 'innerType'] as const) {
+      if (def[side]) collectSchemaKeys(def[side], out);
+    }
+  }
+
+  it('documents EVERY variable the server env schema knows about', async () => {
+    /*
+     * This test used to check three hardcoded names while its comment claimed
+     * to "pull the key list out of the Zod schema so a new variable added in
+     * code but forgotten in .env.example fails here". It did not, and the
+     * comment was the reason nobody looked: GITHUB_ID, GITHUB_SECRET and
+     * ALLOW_IN_MEMORY_RATE_LIMIT were all in the schema and all undocumented,
+     * and this file was green the whole time.
+     *
+     * Now it enumerates. A variable added to `server/env.ts` and forgotten here
+     * fails, which is what the old comment promised.
+     */
     const { __testing } = await import('@/server/env');
     const documented = new Set(declarations.map((d) => d.name));
 
-    // Pull the key list out of the Zod schema so a new variable added in code
-    // but forgotten in .env.example fails here.
-    const parsed = __testing.serverEnvSchema.safeParse({
-      DATABASE_URL: 'postgresql://localhost:5432/x',
-    });
-    expect(parsed.success).toBe(true);
+    const schemaKeys = new Set<string>();
+    collectSchemaKeys(__testing.serverEnvSchema, schemaKeys);
 
-    for (const required of ['DATABASE_URL', 'NEXT_PUBLIC_APP_URL', 'NODE_ENV']) {
-      expect(documented, `${required} is missing from .env.example`).toContain(required);
-    }
+    // Proves the walker found the schema at all — an empty set would make the
+    // assertion below pass vacuously, which is the bug this test just had.
+    expect(schemaKeys.size).toBeGreaterThan(20);
+    expect(schemaKeys).toContain('DATABASE_URL');
+
+    const undocumented = [...schemaKeys].filter((key) => !documented.has(key)).sort();
+    expect(undocumented, 'in server/env.ts but not in .env.example').toEqual([]);
   });
 
   it('contains no real-looking secret value', () => {

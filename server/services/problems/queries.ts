@@ -231,6 +231,7 @@ export async function searchProblems(
 
 export type ProblemDetail = ProblemListItem & {
   statement: string | null;
+  currentVersion: number;
   history: Array<{
     status: string;
     totalAttempts: number;
@@ -294,6 +295,7 @@ export async function getProblemBySlug(
     status: row.status,
     createdAt: row.createdAt,
     statement: row.statement,
+    currentVersion: row.currentVersion,
     tags,
     userStatus: history[0]?.status ?? null,
     history,

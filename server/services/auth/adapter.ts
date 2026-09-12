@@ -19,7 +19,7 @@
  * data model than one asserted cast.
  */
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
 import type { Database } from '@/server/db';
 import {
@@ -30,7 +30,7 @@ import {
   users,
 } from '@/server/db/schema';
 
-export function createTraceLoopAdapter(db: Database): Adapter {
+export function createQuadrantcodeAdapter(db: Database): Adapter {
   const base = DrizzleAdapter(db, {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see header: adapter type demands name/image columns its runtime never reads
     usersTable: users as any,
@@ -69,6 +69,36 @@ export function createTraceLoopAdapter(db: Database): Adapter {
       }
 
       return updated;
+    },
+
+    /**
+     * Rule 4 — consuming a magic-link token MARKS it rather than deleting it.
+     *
+     * The stock adapter does `DELETE ... RETURNING`, which makes "already used"
+     * and "never existed" indistinguishable afterwards — /login/verify then has
+     * to show one generic error for two situations with different remedies.
+     *
+     * The `IS NULL` guard also makes single-use ATOMIC. A SELECT-then-DELETE
+     * has a window where two simultaneous clicks both read an unconsumed row;
+     * a single conditional UPDATE cannot, because Postgres serialises the two
+     * writes and only the first matches the predicate.
+     */
+    async useVerificationToken({ identifier, token }) {
+      const [row] = await db
+        .update(authVerificationTokens)
+        .set({ consumedAt: new Date() })
+        .where(
+          and(
+            eq(authVerificationTokens.identifier, identifier),
+            eq(authVerificationTokens.token, token),
+            isNull(authVerificationTokens.consumedAt),
+          ),
+        )
+        .returning();
+
+      // Auth.js reads `expires` off the returned row and decides expiry itself,
+      // so an expired-but-unconsumed token is returned here and rejected there.
+      return row ?? null;
     },
 
     /**

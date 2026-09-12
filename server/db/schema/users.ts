@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { userRoleEnum, verificationMethodEnum } from './enums';
+import { targetRoleEnum, userRoleEnum, verificationMethodEnum } from './enums';
 
 export const users = pgTable(
   'users',
@@ -68,23 +68,64 @@ export const users = pgTable(
   ],
 );
 
-export const userProfiles = pgTable('user_profiles', {
-  userId: uuid()
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  displayName: text(),
-  avatarUrl: text(),
-  bio: text(),
+export const userProfiles = pgTable(
+  'user_profiles',
+  {
+    userId: uuid()
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
 
-  /** F4.7: public profiles are OPT-IN and default OFF. */
-  publicProfileEnabled: boolean().notNull().default(false),
+    /** 2–40 chars, enforced here and in Zod (F0.5). */
+    displayName: text(),
 
-  /** Free text, e.g. "SDE-1 at a product company". Drives track suggestions. */
-  targetRole: text(),
+    /**
+     * PUBLIC URL, always constructed SERVER-SIDE from the storage key.
+     * The client never supplies this value — accepting one would be an SSRF
+     * and content-injection hole (F0.5 security requirement).
+     */
+    avatarUrl: text(),
 
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});
+    /** Plain text, max 280. Never markdown, never HTML, never auto-linked. */
+    bio: text(),
+
+    /** F4.7: public profiles are OPT-IN and default OFF. */
+    publicProfileEnabled: boolean().notNull().default(false),
+
+    /**
+     * F3.2 · whether code snapshots are captured during a solve.
+     *
+     * Default ON, unlike `publicProfileEnabled` above, and the difference is
+     * deliberate. A public profile shows the user's data to OTHER PEOPLE, so
+     * off is the only safe default. A snapshot is the user's own history shown
+     * back to them, and it is the entire input to the timeline, to F3.3's stuck
+     * inference and to F3.5's mistake memory — off by default would ship three
+     * features that are empty until someone finds a settings page.
+     *
+     * The privacy page states what is captured, how long it is kept, and how to
+     * erase it, which is what makes an on-by-default honest rather than sly.
+     */
+    snapshotCaptureEnabled: boolean().notNull().default(true),
+
+    /** What the user is preparing for. Drives F4.2 track suggestions. */
+    targetRole: targetRoleEnum(),
+
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Length limits doubled in the database for the same reason C1 and C3 are:
+    // Zod protects the endpoint, the CHECK protects the table.
+    check(
+      'user_profiles_bio_length',
+      sql`${table.bio} is null or char_length(${table.bio}) <= 280`,
+    ),
+    check(
+      'user_profiles_display_name_length',
+      sql`${table.displayName} is null
+          or char_length(${table.displayName}) between 2 and 40`,
+    ),
+  ],
+);
 
 export const verificationMethods = pgTable(
   'verification_methods',

@@ -1,0 +1,52 @@
+[
+  {
+    "slug": "amazon",
+    "name": "Amazon",
+    "overview": "Practice original data-structure and algorithm problems grouped around broad engineering interview patterns. Evidence labels distinguish generated practice from candidate reports and verified material."
+  },
+  {
+    "slug": "google",
+    "name": "Google",
+    "overview": "Build fluency with original problems that emphasize clear reasoning, complexity analysis, and careful handling of edge cases. No company association is implied without stored evidence."
+  },
+  {
+    "slug": "microsoft",
+    "name": "Microsoft",
+    "overview": "Use original practice sets spanning core data structures, algorithms, and implementation trade-offs. Filters expose the evidence level behind every association."
+  },
+  {
+    "slug": "meta",
+    "name": "Meta",
+    "overview": "Prepare with original timed and untimed exercises selected from common software-engineering problem patterns. Pattern labels are not claims about past interviews."
+  },
+  {
+    "slug": "adobe",
+    "name": "Adobe",
+    "overview": "Review original programming exercises across foundational and advanced DSA topics, with explicit provenance and evidence labels for every item."
+  },
+  {
+    "slug": "flipkart",
+    "name": "Flipkart",
+    "overview": "Practice original algorithmic problems and structured mock assessments designed around general product-engineering preparation patterns."
+  },
+  {
+    "slug": "atlassian",
+    "name": "Atlassian",
+    "overview": "Work through original reasoning-focused exercises and mocks. Candidate-reported material remains separate and moderated before it can be displayed."
+  },
+  {
+    "slug": "uber",
+    "name": "Uber",
+    "overview": "Explore original problems covering efficient data processing, graphs, scheduling, and other broadly useful interview-practice patterns."
+  },
+  {
+    "slug": "goldman-sachs",
+    "name": "Goldman Sachs",
+    "overview": "Prepare with original DSA exercises and pattern-based mocks. Verified, reported, and generated content are clearly separated."
+  },
+  {
+    "slug": "walmart",
+    "name": "Walmart",
+    "overview": "Use original practice problems across common engineering topics, backed by transparent content provenance and non-affiliation notices."
+  }
+]

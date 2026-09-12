@@ -1,5 +1,5 @@
 /*
- * TraceLoop design tokens (F0.4).
+ * Quadrantcode design tokens (F0.4).
  *
  * Dark is the default (`:root`). Light is opt-in via `[data-theme='light']`,
  * set on <html> before paint by the inline script in app/layout.tsx, so there
@@ -74,6 +74,26 @@
   --accent-foreground: #06101f;
   --success: #5ed6a4;
   --warning: #f0c36d;
+
+  /*
+   * F1.3 · the diagonal hatch on a streak-freeze heatmap cell.
+   *
+   * Lives here rather than in the component because `tests/design/tokens.test.ts`
+   * forbids rgb/hsl/oklch/color-mix anywhere under `components/` — colour values
+   * belong to the token layer, and a hard-coded overlay would not have adapted
+   * to the light theme either.
+   *
+   * The hatch is what makes a frozen day distinguishable from a solved one in
+   * greyscale, for a colourblind viewer, and in a screenshot. Colour alone fails
+   * all three.
+   */
+  --freeze-hatch: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgb(0 0 0 / 0.32) 2px,
+    rgb(0 0 0 / 0.32) 4px
+  );
   --danger: #ff8f8f;
   --focus-ring: #7fb3ff;
 
@@ -91,6 +111,15 @@
   --accent-foreground: #ffffff;
   --success: #0a6b4a;
   --warning: #6b4800;
+
+  /* Light theme: the hatch is a light overlay on a dark warning swatch. */
+  --freeze-hatch: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgb(255 255 255 / 0.38) 2px,
+    rgb(255 255 255 / 0.38) 4px
+  );
   --danger: #b3261e;
   --focus-ring: #1350b8;
 }
@@ -108,4 +137,53 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --radius-token: var(--radius);
+}
+
+/**
+ * F3.5 · printing the monthly report.
+ *
+ * This is what makes the "PDF matches the HTML" criterion true by
+ * construction rather than by test: there is no second renderer, so the PDF a
+ * user saves IS this page. What changes below is only what a sheet of paper
+ * cannot carry — the app shell, the navigation, and the button that started
+ * the print.
+ *
+ * Colours are forced to black on white rather than left to the theme. A dark
+ * theme printed as-is wastes a cartridge and reads badly, and the tokens are
+ * chosen for a screen.
+ */
+@media print {
+  /* The shell is navigation. Paper has none. */
+  nav,
+  header,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  :root {
+    --background: #ffffff;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --text-primary: #000000;
+    --text-muted: #333333;
+    --border: #999999;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* A report page should not break a mistake across two sheets. */
+  .report li,
+  .report section {
+    break-inside: avoid;
+  }
+
+  .report a[href^='http']::after {
+    /* A link in print is a dead end unless it says where it went. */
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+  }
 }
