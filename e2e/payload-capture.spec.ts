@@ -55,7 +55,7 @@ test('NEGATIVE — the session token never reaches the client payload', async ({
 
   const cookies = await context.cookies();
   const sessionValue = cookies.find((cookie) =>
-    cookie.name.includes('traceloop.session'),
+    cookie.name.includes('quadrantcode.session'),
   )!.value;
 
   const capture = capturePayload(page);

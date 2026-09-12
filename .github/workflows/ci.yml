@@ -25,7 +25,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: traceloop_test
+          POSTGRES_DB: quadrantcode_test
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
@@ -34,10 +34,11 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/traceloop_test
-      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/traceloop_test
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/traceloop_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      AUTH_SECRET: ci-build-secret-that-is-longer-than-thirty-two-characters
 
     steps:
       - uses: actions/checkout@v4
@@ -85,6 +86,18 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Deployment environment contract
+        run: npm run deploy:check
+        env:
+          NEXT_PUBLIC_APP_URL: https://ci.quadrantcode.example
+          GITHUB_ID: ci-client-id
+          GITHUB_SECRET: ci-client-secret
+          UPSTASH_REDIS_REST_URL: https://ci-rate-limit.example
+          UPSTASH_REDIS_REST_TOKEN: ci-rate-limit-token
+          SENTRY_DSN: https://public@errors.example/1
+          NEXT_PUBLIC_SENTRY_DSN: https://public@errors.example/1
+          NEXT_PUBLIC_SUPPORT_EMAIL: support@quadrantcode.example
+
       # Proves the server-only boundary: a client component importing server/
       # fails here even if someone disabled the ESLint rule.
       - name: Build
@@ -105,7 +118,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: traceloop_test
+          POSTGRES_DB: quadrantcode_test
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
@@ -114,9 +127,9 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/traceloop_test
-      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/traceloop_test
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/traceloop_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
       AUTH_SECRET: e2e-ci-secret-not-for-production
       NEXT_PUBLIC_APP_URL: http://localhost:3210
 

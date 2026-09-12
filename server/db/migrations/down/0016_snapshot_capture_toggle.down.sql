@@ -1,0 +1,11 @@
+-- Down migration for 0016_snapshot_capture_toggle.
+--
+-- Safe. The column is a preference, not a record: dropping it loses whoever had
+-- deliberately turned capture OFF, and the next `up` puts them back at the
+-- default of ON.
+--
+-- That is worth stating rather than calling it lossless. A rollback silently
+-- re-enables snapshot capture for a user who asked for it to stop, so if this
+-- is ever run against real data, tell those users rather than assuming the
+-- default speaks for them.
+ALTER TABLE "user_profiles" DROP COLUMN IF EXISTS "snapshot_capture_enabled";

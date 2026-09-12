@@ -38,7 +38,42 @@ export const RATE_LIMITS = {
   otpRequestPerIp: { limit: 10, windowSeconds: 3600, prefix: 'otp:req:ip' },
   otpVerifyPerUser: { limit: 10, windowSeconds: 900, prefix: 'otp:vfy:user' },
   otpVerifyPerIp: { limit: 30, windowSeconds: 900, prefix: 'otp:vfy:ip' },
+  /**
+   * F0.3b: phone SIGN-IN verify, keyed on the submitted number.
+   *
+   * `otpVerifyPerUser` cannot be used here. The caller is signed out, so there
+   * is no user id until the code is right — and looking one up to build the key
+   * would make the rate limit itself depend on whether the account exists,
+   * turning the 429 into the oracle the whole flow is built to avoid.
+   *
+   * Keyed on what the caller typed, so an existing number and a made-up one are
+   * throttled identically. Tighter than the signed-in rule (5 per 15 min rather
+   * than 10) because a wrong code here is an attempt on someone's account, not
+   * a typo by someone already holding their session.
+   */
+  phoneSignInVerifyPerPhone: { limit: 5, windowSeconds: 900, prefix: 'auth:phone:vfy' },
   magicLinkPerEmail: { limit: 5, windowSeconds: 3600, prefix: 'auth:link:email' },
+  /**
+   * F0.3: the 60-second resend cooldown.
+   *
+   * SERVER-SIDE on purpose. The countdown rendered on /login is UX — it resets
+   * on reload, and the resend offered by the EXPIRED-link page is a second
+   * entry point entirely. A cooldown that lives in component state is bypassed
+   * by both. This rule is the control; the countdown merely displays it.
+   */
+  magicLinkResendCooldown: { limit: 1, windowSeconds: 60, prefix: 'auth:link:cooldown' },
+  /** F0.5: 10 presign requests per user per hour. */
+  avatarPresignPerUser: { limit: 10, windowSeconds: 3600, prefix: 'avatar:presign:user' },
+  /**
+   * F1.2: 10 imports per user per hour.
+   *
+   * An import is the most expensive thing an authenticated user can ask for —
+   * up to 5,000 rows of parse plus insert — and the row and byte caps bound one
+   * request, not a sequence of them. Without this, the caps are a speed bump.
+   */
+  importPerUser: { limit: 10, windowSeconds: 3600, prefix: 'ingest:import:user' },
+  /** F1.2: exports are read-only but aggregate every tracked row. */
+  exportPerUser: { limit: 20, windowSeconds: 3600, prefix: 'ingest:export:user' },
 } as const satisfies Record<string, RateLimitRule>;
 
 // ── In-memory store (tests and local dev only) ──────────────────────────────
@@ -129,16 +164,35 @@ export function createUpstashRateLimiter(
 
 export function createRateLimiter(
   rule: RateLimitRule,
-  env: { UPSTASH_REDIS_REST_URL?: string; UPSTASH_REDIS_REST_TOKEN?: string; NODE_ENV: string },
+  env: {
+    UPSTASH_REDIS_REST_URL?: string;
+    UPSTASH_REDIS_REST_TOKEN?: string;
+    NODE_ENV: string;
+    ALLOW_IN_MEMORY_RATE_LIMIT?: string;
+  },
 ): RateLimiter {
   const { UPSTASH_REDIS_REST_URL: url, UPSTASH_REDIS_REST_TOKEN: token } = env;
 
   if (url && token) return createUpstashRateLimiter(rule, { url, token });
 
-  if (env.NODE_ENV === 'production') {
+  /*
+   * Fail closed in production — and note what that MEANS: without Upstash
+   * configured, /login throws rather than degrading, so the app cannot sign
+   * anyone in. That is deliberate (an unlimited auth endpoint is worse than an
+   * unavailable one) and it makes Upstash a hard deployment dependency, not an
+   * optimisation. Recorded in the README.
+   *
+   * The escape hatch exists because `next start` sets NODE_ENV=production, so
+   * the browser suite runs production semantics without a Redis. It is
+   * deliberately verbose and OFF by default: production without Upstash still
+   * refuses unless someone has explicitly written this variable, which is not
+   * something done by accident.
+   */
+  if (env.NODE_ENV === 'production' && env.ALLOW_IN_MEMORY_RATE_LIMIT !== '1') {
     throw new Error(
       'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production. ' +
-        'The in-memory rate limiter is per-process and would not limit anything on serverless.',
+        'The in-memory rate limiter is per-process and would not limit anything on ' +
+        'serverless. Set ALLOW_IN_MEMORY_RATE_LIMIT=1 only for a single-process test run.',
     );
   }
 

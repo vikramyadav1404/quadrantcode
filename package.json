@@ -1,13 +1,14 @@
 {
-  "name": "traceloop",
+  "name": "quadrantcode",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "next build",
+    "deploy:check": "tsx scripts/check-deployment-env.ts",
     "contrast": "tsx scripts/contrast.ts",
     "db:explain": "tsx scripts/explain-report.ts",
     "db:generate": "drizzle-kit generate",
@@ -29,7 +30,28 @@
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "worker": "tsx worker/index.ts"
+    "worker": "tsx worker/index.ts",
+    "db:backfill:urls": "tsx scripts/backfill-normalised-urls.ts",
+    "avatars:cleanup": "tsx scripts/cleanup-avatars.ts",
+    "sessions:sweep": "tsx scripts/sweep-sessions.ts",
+    "executions:sweep": "tsx scripts/sweep-executions.ts",
+    "execution:image:verify": "tsx scripts/verify-execution-image.ts",
+    "snapshots:purge": "tsx scripts/purge-snapshots.ts",
+    "snapshots:measure": "tsx scripts/measure-snapshot-storage.ts",
+    "mistakes:rollup": "tsx scripts/rollup-mistakes.ts",
+    "slo:measure": "tsx scripts/measure-slo.ts",
+    "loadtest": "tsx scripts/load-test.ts",
+    "demo:seed": "tsx scripts/demo-seed.ts",
+    "demo:walk": "tsx scripts/demo-walkthrough.ts",
+    "analytics:rollup": "tsx scripts/rollup-analytics.ts",
+    "library:verify": "tsx scripts/verify-library-urls.ts",
+    "native:validate": "tsx scripts/validate-native-problems.ts",
+    "native:validate-references": "tsx scripts/validate-native-references.ts",
+    "native:import": "tsx scripts/import-native-problems.ts",
+    "native:generate": "tsx scripts/generate-native-problem-library.ts",
+    "papers:generate": "tsx scripts/generate-assessment-papers.ts",
+    "papers:validate": "tsx scripts/validate-assessment-papers.ts",
+    "assessments:sweep": "tsx scripts/sweep-assessments.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -42,8 +64,17 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
+    "@aws-sdk/client-s3": "^3.1110.0",
+    "@aws-sdk/s3-request-presigner": "^3.1110.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@sentry/nextjs": "^10.72.0",
+    "@vercel/queue": "0.5.0",
+    "@vercel/sandbox": "3.2.1",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.44.2",
+    "csv-parse": "^7.0.2",
+    "csv-stringify": "^6.8.3",
+    "drizzle-orm": "^0.45.2",
+    "monaco-editor": "^0.56.0",
     "next": "^15.5.0",
     "next-auth": "^5.0.0-beta.32",
     "postgres": "^3.4.5",
@@ -61,6 +92,7 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@vercel/sandbox-mock": "3.2.1",
     "dotenv": "^17.0.0",
     "drizzle-kit": "^0.31.1",
     "embedded-postgres": "^18.4.0-beta.17",
@@ -75,5 +107,9 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.0",
     "vitest": "^3.2.0"
+  },
+  "overrides": {
+    "dompurify": "3.4.14",
+    "postcss": "8.5.26"
   }
 }

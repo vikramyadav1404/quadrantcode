@@ -7,7 +7,19 @@
  */
 import { and, eq, inArray } from 'drizzle-orm';
 import type { Database } from '@/server/db';
-import { problemTags, problems } from '@/server/db/schema';
+import {
+  contentLicenses,
+  editorials,
+  problemExamples,
+  problemLanguageTemplates,
+  problemTags,
+  problemTopics,
+  problemVersions,
+  problems,
+  testCases,
+  topics,
+} from '@/server/db/schema';
+import { normaliseProblemUrl } from '@/server/services/ingest/normalise-url';
 import {
   ContentPolicyError,
   type ContentPolicyViolation,
@@ -110,6 +122,13 @@ export async function createProblem(
         sourceType: input.sourceType,
         platform: input.platform ?? null,
         externalUrl: input.externalUrl ?? null,
+        /*
+         * F1.2 dedup key, derived here rather than by the database — see the
+         * column comment in schema/problems.ts for why it is not GENERATED.
+         * Deriving it on the write path is what makes the unique index able to
+         * enforce "one URL is one catalog row"; a caller cannot supply it.
+         */
+        externalUrlNormalised: normaliseProblemUrl(input.externalUrl ?? null),
         difficulty: input.difficulty,
         estimatedMinutes: input.estimatedMinutes,
         isPremium: input.isPremium,
@@ -133,8 +152,243 @@ export async function createProblem(
         .onConflictDoNothing();
     }
 
+    if (input.sourceType === 'original') {
+      const [license] = await tx
+        .insert(contentLicenses)
+        .values({
+          provenance: 'quadrantcode-original',
+          licenseName: 'Quadrantcode Original Draft Content License',
+          author: 'Quadrantcode editorial team',
+          independentlyCreated: true,
+          reviewNotes:
+            'Admin-created draft. All placeholder content must be reviewed before publishing.',
+        })
+        .onConflictDoUpdate({
+          target: [
+            contentLicenses.provenance,
+            contentLicenses.licenseName,
+            contentLicenses.author,
+          ],
+          set: { independentlyCreated: true },
+        })
+        .returning({ id: contentLicenses.id });
+      if (!license) throw new Error('createProblem: content license insert returned no row');
+
+      const draftStatement =
+        input.statement ?? 'Replace this original draft statement before review.';
+      const [version] = await tx
+        .insert(problemVersions)
+        .values({
+          problemId: row.id,
+          version: 1,
+          status: 'draft',
+          problemType: 'function',
+          story: draftStatement,
+          statement: draftStatement,
+          inputFormat: 'Define the complete function input contract before review.',
+          outputFormat: 'Define the exact serialized return value before review.',
+          functionContract: {
+            functionName: 'solve',
+            parameters: [
+              {
+                name: 'values',
+                type: 'integer[]',
+                description: 'Replace this draft parameter description.',
+              },
+            ],
+            returnType: '64-bit integer',
+          },
+          constraints: [
+            'Replace with a minimum boundary.',
+            'Replace with a maximum boundary.',
+            'Replace with a value-domain constraint.',
+          ],
+          hints: [
+            'Replace this draft hint with a useful first step.',
+            'Replace this draft hint with a stronger direction.',
+          ],
+          timeLimitMs: 1_500,
+          memoryLimitKb: 128_000,
+          contentLicenseId: license.id,
+          provenance: 'Admin-created Quadrantcode-original draft; requires editorial review.',
+          reviewNotes:
+            'Replace every placeholder, validate references on Judge0, then publish.',
+        })
+        .returning({ id: problemVersions.id });
+      if (!version) throw new Error('createProblem: problem version insert returned no row');
+
+      await tx.insert(problemExamples).values([
+        {
+          problemVersionId: version.id,
+          ordinal: 1,
+          input: '0',
+          output: '0',
+          explanation: 'Replace this placeholder with a fully explained original example.',
+        },
+        {
+          problemVersionId: version.id,
+          ordinal: 2,
+          input: '1',
+          output: '0',
+          explanation: 'Replace this second placeholder with a distinct explained example.',
+        },
+      ]);
+      await tx.insert(editorials).values({
+        problemVersionId: version.id,
+        overview: 'Replace this placeholder with an independently written editorial overview.',
+        bruteForceApproach:
+          'Describe the direct baseline approach and when it becomes too slow.',
+        optimalApproach:
+          'Replace this placeholder with the complete optimal algorithm and its invariants.',
+        correctnessProof:
+          'Replace this placeholder with a rigorous correctness argument covering every case.',
+        timeComplexity: 'TBD',
+        spaceComplexity: 'TBD',
+      });
+      await tx.insert(testCases).values([
+        {
+          problemVersionId: version.id,
+          ordinal: 1,
+          visibility: 'sample',
+          coverage: 'sample',
+          input: '0',
+          expectedOutput: '0',
+        },
+        {
+          problemVersionId: version.id,
+          ordinal: 2,
+          visibility: 'visible',
+          coverage: 'typical',
+          input: '1',
+          expectedOutput: '0',
+        },
+        {
+          problemVersionId: version.id,
+          ordinal: 3,
+          visibility: 'hidden',
+          coverage: 'minimum',
+          input: '0',
+          expectedOutput: '0',
+        },
+        {
+          problemVersionId: version.id,
+          ordinal: 4,
+          visibility: 'hidden',
+          coverage: 'duplicates',
+          input: '1 1',
+          expectedOutput: '0',
+        },
+        {
+          problemVersionId: version.id,
+          ordinal: 5,
+          visibility: 'hidden',
+          coverage: 'maximum',
+          input: '100',
+          expectedOutput: '0',
+          isPerformance: true,
+        },
+        {
+          problemVersionId: version.id,
+          ordinal: 6,
+          visibility: 'hidden',
+          coverage: 'adversarial',
+          input: '-1',
+          expectedOutput: '0',
+        },
+      ]);
+      await tx.insert(problemLanguageTemplates).values(draftLanguageTemplates(version.id));
+
+      for (const tag of input.tags.filter((entry) => entry.tagType === 'topic')) {
+        const [topic] = await tx
+          .insert(topics)
+          .values({
+            slug: tag.tagValue,
+            name: tag.tagValue.split('-').map(capitalize).join(' '),
+          })
+          .onConflictDoUpdate({ target: topics.slug, set: { slug: tag.tagValue } })
+          .returning({ id: topics.id });
+        if (topic) {
+          await tx
+            .insert(problemTopics)
+            .values({ problemId: row.id, topicId: topic.id, isPrimary: false })
+            .onConflictDoNothing();
+        }
+      }
+    }
+
     return row;
   });
+}
+
+function draftLanguageTemplates(problemVersionId: string) {
+  const serialization = {
+    input: 'Whitespace-separated signed integers read into values.',
+    output: 'One signed integer.',
+    equality: 'exact_json' as const,
+  };
+  return [
+    {
+      problemVersionId,
+      language: 'c11' as const,
+      displayName: 'C',
+      functionSignature: 'long long solve(const long long *values, int n)',
+      starterCode: 'long long solve(const long long *values, int n) {\n  return 0;\n}',
+      wrapperTemplate:
+        '#include <stdio.h>\n#include <stdlib.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16;long long*a=malloc(sizeof(long long)*cap),x;while(scanf("%lld",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;}printf("%lld",solve(a,n));free(a);}',
+      serialization,
+      referenceSolution:
+        'long long solve(const long long *values, int n) { (void)values; (void)n; return 0; }',
+    },
+    {
+      problemVersionId,
+      language: 'cpp17' as const,
+      displayName: 'C++',
+      functionSignature: 'long long solve(const vector<long long>& values)',
+      starterCode: 'long long solve(const vector<long long>& values) {\n  return 0;\n}',
+      wrapperTemplate:
+        '#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}',
+      serialization,
+      referenceSolution:
+        'long long solve(const vector<long long>& values) { (void)values; return 0; }',
+    },
+    {
+      problemVersionId,
+      language: 'java' as const,
+      displayName: 'Java',
+      functionSignature: 'static long solve(long[] values)',
+      starterCode: 'static long solve(long[] values) {\n  return 0L;\n}',
+      wrapperTemplate:
+        'import java.io.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[]args)throws Exception{String s=new String(System.in.readAllBytes()).trim();String[]p=s.isEmpty()?new String[0]:s.split("\\\\s+");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}',
+      serialization,
+      referenceSolution: 'static long solve(long[] values) { return 0L; }',
+    },
+    {
+      problemVersionId,
+      language: 'python3' as const,
+      displayName: 'Python',
+      functionSignature: 'def solve(values: list[int]) -> int',
+      starterCode: 'def solve(values: list[int]) -> int:\n    return 0',
+      wrapperTemplate:
+        '/*__USER_CODE__*/\nif __name__ == "__main__":\n    import sys\n    print(solve([int(x) for x in sys.stdin.read().split()]))',
+      serialization,
+      referenceSolution: 'def solve(values: list[int]) -> int:\n    return 0',
+    },
+    {
+      problemVersionId,
+      language: 'javascript' as const,
+      displayName: 'JavaScript',
+      functionSignature: 'function solve(values)',
+      starterCode: 'function solve(values) {\n  return 0;\n}',
+      wrapperTemplate:
+        'const fs=require("fs");\n/*__USER_CODE__*/\nconst s=fs.readFileSync(0,"utf8").trim();console.log(String(solve(s?s.split(/\\s+/).map(Number):[])));',
+      serialization,
+      referenceSolution: 'function solve(values) { return 0; }',
+    },
+  ];
+}
+
+function capitalize(value: string): string {
+  return value.length === 0 ? value : `${value[0]!.toUpperCase()}${value.slice(1)}`;
 }
 
 export async function updateProblem(db: Database, rawInput: unknown): Promise<void> {
@@ -171,7 +425,19 @@ export async function updateProblem(db: Database, rawInput: unknown): Promise<vo
         ...(input.isPremium !== undefined ? { isPremium: input.isPremium } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.platform !== undefined ? { platform: input.platform } : {}),
-        ...(input.externalUrl !== undefined ? { externalUrl: input.externalUrl } : {}),
+        /*
+         * The dedup key moves with the URL, in the SAME conditional so the two
+         * cannot be updated apart. Splitting them would let a URL change while
+         * the key kept pointing at the old one — dedup would then match the
+         * previous URL forever, which is a silent wrong answer rather than a
+         * visible failure.
+         */
+        ...(input.externalUrl !== undefined
+          ? {
+              externalUrl: input.externalUrl,
+              externalUrlNormalised: normaliseProblemUrl(input.externalUrl),
+            }
+          : {}),
         ...(current.sourceType === 'original'
           ? {
               ...(input.statement !== undefined ? { statement: input.statement } : {}),

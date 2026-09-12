@@ -10,13 +10,13 @@
 # so those are not leaks. The paths are excluded here so a working-tree scan is
 # also actionable rather than noisy.
 
-title = "TraceLoop"
+title = "Quadrantcode"
 
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Build output and lockfiles that cannot contain committed secrets"
+description = "Build output, lockfiles, and reviewed findings that are not leaks"
 paths = [
   '''^\.next/''',
   '''^node_modules/''',

@@ -17,18 +17,18 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { authSessions, userProfiles, users } from '@/server/db/schema';
-import { createTraceLoopAdapter } from '@/server/services/auth/adapter';
+import { createQuadrantcodeAdapter } from '@/server/services/auth/adapter';
 import { type TestContext, hasTestDatabase, setupTestDb, truncateAll } from '../helpers/db';
 
 const suite = hasTestDatabase ? describe : describe.skip;
 
 suite('F0.3 · Auth.js adapter (stock + three app rules)', () => {
   let ctx: TestContext;
-  let adapter: ReturnType<typeof createTraceLoopAdapter>;
+  let adapter: ReturnType<typeof createQuadrantcodeAdapter>;
 
   beforeAll(async () => {
     ctx = await setupTestDb();
-    adapter = createTraceLoopAdapter(ctx.db);
+    adapter = createQuadrantcodeAdapter(ctx.db);
   }, 60_000);
 
   afterAll(async () => {
@@ -155,25 +155,80 @@ suite('F0.3 · Auth.js adapter (stock + three app rules)', () => {
     });
   });
 
-  describe('verification tokens are single-use', () => {
+  describe('verification tokens: single-use, and the three states stay distinguishable', () => {
+    const issue = (token: string, expiresInMs = 900_000) =>
+      adapter.createVerificationToken!({
+        identifier: 'link@example.com',
+        token,
+        expires: new Date(Date.now() + expiresInMs),
+      });
+
+    const use = (token: string) =>
+      adapter.useVerificationToken!({ identifier: 'link@example.com', token });
+
     it('a replayed magic link finds nothing', async () => {
-      await adapter.createVerificationToken!({
-        identifier: 'link@example.com',
-        token: 'magic-token',
-        expires: new Date(Date.now() + 900_000),
-      });
+      await issue('magic-token');
 
-      const first = await adapter.useVerificationToken!({
-        identifier: 'link@example.com',
-        token: 'magic-token',
-      });
-      expect(first?.token).toBe('magic-token');
+      expect((await use('magic-token'))?.token).toBe('magic-token');
+      expect(await use('magic-token')).toBeNull();
+    });
 
-      const replay = await adapter.useVerificationToken!({
-        identifier: 'link@example.com',
-        token: 'magic-token',
+    it('marks the row consumed rather than deleting it', async () => {
+      // This is what lets /login/verify tell "already used" from "never
+      // existed". A DELETE destroys that distinction.
+      await issue('kept-token');
+      await use('kept-token');
+
+      const [row] = await ctx.sql`
+        SELECT consumed_at FROM auth_verification_tokens WHERE token = 'kept-token'
+      `;
+      expect(row, 'the row must survive consumption').toBeTruthy();
+      expect(row!.consumed_at).not.toBeNull();
+    });
+
+    it('leaves an unused token unconsumed', async () => {
+      await issue('untouched-token');
+
+      const [row] = await ctx.sql`
+        SELECT consumed_at FROM auth_verification_tokens WHERE token = 'untouched-token'
+      `;
+      expect(row!.consumed_at).toBeNull();
+    });
+
+    it('returns an EXPIRED but unconsumed token, leaving expiry to Auth.js', async () => {
+      // Auth.js reads `expires` off the returned row and decides. If the
+      // adapter swallowed expired tokens, Auth.js would see hasInvite=false and
+      // report "not valid" for a link that merely aged out.
+      await issue('stale-token', -60_000);
+
+      const row = await use('stale-token');
+      expect(row).not.toBeNull();
+      expect(row!.expires.getTime()).toBeLessThan(Date.now());
+    });
+
+    it('CONCURRENT redemption yields exactly one winner', async () => {
+      // The reason consumption is one conditional UPDATE rather than a SELECT
+      // followed by a DELETE: a read-then-write pair has a window where both
+      // callers see an unconsumed row.
+      await issue('raced-token');
+
+      const results = await Promise.all(Array.from({ length: 8 }, () => use('raced-token')));
+
+      expect(results.filter((row) => row !== null)).toHaveLength(1);
+      expect(results.filter((row) => row === null)).toHaveLength(7);
+    });
+
+    it('does not consume a token belonging to a different identifier', async () => {
+      await issue('shared-token');
+
+      const wrongIdentifier = await adapter.useVerificationToken!({
+        identifier: 'someone-else@example.com',
+        token: 'shared-token',
       });
-      expect(replay).toBeNull();
+      expect(wrongIdentifier).toBeNull();
+
+      // Still redeemable by its rightful owner.
+      expect((await use('shared-token'))?.token).toBe('shared-token');
     });
   });
 });

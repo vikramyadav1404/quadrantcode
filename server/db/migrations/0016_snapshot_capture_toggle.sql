@@ -1,0 +1,1 @@
+ALTER TABLE "user_profiles" ADD COLUMN "snapshot_capture_enabled" boolean DEFAULT true NOT NULL;

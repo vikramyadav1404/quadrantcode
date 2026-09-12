@@ -18,7 +18,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 const AUTH_SECRET = process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production';
 
 /** Production uses the __Secure- prefix; `next start` sets NODE_ENV=production. */
-export const SESSION_COOKIE = '__Secure-traceloop.session';
+export const SESSION_COOKIE = '__Secure-quadrantcode.session';
 
 export function db() {
   const url = process.env.TEST_DATABASE_URL;
@@ -72,17 +72,43 @@ export async function createMagicLink(
 export async function signInAs(
   context: BrowserContext,
   sql: ReturnType<typeof postgres>,
-  options: { email: string; role?: 'user' | 'admin'; baseUrl: string },
+  options: {
+    email: string;
+    role?: 'user' | 'admin';
+    baseUrl: string;
+    /**
+     * Whether the user has finished onboarding. Defaults to true, because the
+     * (app) layout now redirects an incomplete profile to /onboarding — so a
+     * spec about anything ELSE would otherwise be testing the onboarding gate
+     * by accident. Pass false when the gate IS the subject.
+     */
+    onboarded?: boolean;
+  },
 ): Promise<string> {
-  const { email, role = 'user', baseUrl } = options;
+  const { email, role = 'user', baseUrl, onboarded = true } = options;
 
-  await sql`DELETE FROM users WHERE email = ${email.toLowerCase()}`;
+  /*
+   * Recreating the user cascades into their sessions and then into the
+   * append-only `session_events` (F3.2a), so this delete needs the same
+   * declared-erasure transaction that `cleanup` does. Without it, any spec whose
+   * earlier tests recorded events fails on its NEXT `beforeEach` rather than on
+   * the assertion, which is a confusing way to learn about a cascade.
+   */
+  await sql.begin(async (tx) => {
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
+    await tx`DELETE FROM users WHERE email = ${email.toLowerCase()}`;
+  });
+
   const [user] = await sql`
     INSERT INTO users (email, role, email_verified_at)
     VALUES (${email.toLowerCase()}, ${role}, now())
     RETURNING id
   `;
-  await sql`INSERT INTO user_profiles (user_id) VALUES (${user!.id}) ON CONFLICT DO NOTHING`;
+  await sql`
+    INSERT INTO user_profiles (user_id, display_name)
+    VALUES (${user!.id}, ${onboarded ? 'E2E Tester' : null})
+    ON CONFLICT DO NOTHING
+  `;
 
   const sessionToken = randomBytes(32).toString('hex');
   await sql`
@@ -112,10 +138,46 @@ export async function signInAs(
   return String(user!.id);
 }
 
-/** Removes rows created by a spec, matched on the e2e email domain. */
+/**
+ * Removes rows created by a spec, matched on the e2e email domain.
+ *
+ * ## Why this needs a transaction and a flag
+ *
+ * F3.2 made `session_events` append-only with a trigger that refuses DELETE
+ * unless `quadrantcode.purging` is set. Deleting a user cascades into their
+ * sessions and then into that table, so a plain `DELETE FROM users` is refused
+ * — which is the trigger working, not a bug in it.
+ *
+ * That cost is real and it is not only a test cost: **account deletion in
+ * production has to do the same thing.** F4.8 owns that path, and it will set
+ * the same flag through `server/services/timeline/retention.ts`.
+ *
+ * `set_config(_, true)` is transaction-scoped, so `sql.begin` is not optional
+ * here: outside a transaction the flag would apply to one statement and the
+ * cascade would still be refused.
+ */
 export async function cleanup(sql: ReturnType<typeof postgres>): Promise<void> {
-  await sql`DELETE FROM users WHERE email LIKE '%@e2e.test'`;
-  await sql`DELETE FROM auth_verification_tokens WHERE identifier LIKE '%@e2e.test'`;
+  await sql.begin(async (tx) => {
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
+    await tx`DELETE FROM users WHERE email LIKE '%@e2e.test'`;
+    await tx`DELETE FROM auth_verification_tokens WHERE identifier LIKE '%@e2e.test'`;
+  });
+}
+
+/**
+ * Deletes fixture problems, which cascade into sessions and their events.
+ *
+ * Specs used to run a bare `DELETE FROM problems WHERE slug LIKE …`. Same story
+ * as `cleanup`: the cascade reaches the append-only log.
+ */
+export async function deleteProblems(
+  sql: ReturnType<typeof postgres>,
+  slugPattern: string,
+): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
+    await tx`DELETE FROM problems WHERE slug LIKE ${slugPattern}`;
+  });
 }
 
 /** Reads the theme actually applied to <html>. */

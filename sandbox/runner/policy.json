@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "compileWallMs": 8000,
+  "compileMemoryKb": 524288,
+  "maxRuntimeCpuMs": 2000,
+  "maxRuntimeWallMs": 5000,
+  "maxRuntimeMemoryKb": 256000,
+  "maxOutputBytes": 32768,
+  "maxProcesses": 32,
+  "maxOpenFiles": 64,
+  "temporaryFilesystemBytes": 67108864,
+  "network": "deny-all"
+}

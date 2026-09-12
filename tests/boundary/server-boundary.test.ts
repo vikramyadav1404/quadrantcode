@@ -29,9 +29,33 @@ const RULE = 'no-restricted-imports';
 
 let eslint: ESLint;
 
-beforeAll(() => {
+/**
+ * Warm ESLint here rather than letting the first test pay for it.
+ *
+ * `new ESLint()` is cheap; the first `lintText` is not. It resolves the flat
+ * config graph, `typescript-eslint` included, and that cold load is essentially
+ * the whole runtime of this file:
+ *
+ *   ✓ …importing the @/server/db barrel      2111ms   <- the cold load
+ *   ✓ …importing @/server/env (secrets)          7ms
+ *   ✓ …importing @/server/db/client              29ms
+ *
+ * Left in the first test, that cost has a long enough tail to cross the 30s
+ * `testTimeout` on a loaded machine — which is exactly what issue #3 turned out
+ * to be, after I had ruled out a timeout on the grounds that the file "only
+ * takes 3s". Typical duration says nothing about the tail.
+ *
+ * Doing it in the hook puts the cost somewhere named, with its own explicit
+ * budget, and leaves every case below at single-digit milliseconds. The lint
+ * target is deliberately trivial — this is a warm-up, and it asserts nothing.
+ */
+beforeAll(async () => {
   eslint = new ESLint({ cwd: process.cwd() });
-});
+  await eslint.lintText('export const warmUp = 1;\n', {
+    filePath: 'components/warm-up.ts',
+    warnIgnored: false,
+  });
+}, 120_000);
 
 async function violationsFor(source: string, filePath: string) {
   const results = await eslint.lintText(source, { filePath, warnIgnored: false });

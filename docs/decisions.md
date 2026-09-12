@@ -249,3 +249,1114 @@ equivalent, the guard fails loudly rather than passing vacuously.
 The general lesson, and the reason this is written down: an index that exists,
 is named correctly, and is listed in the schema can still be completely unused.
 The only way to know is to read the plan.
+
+---
+
+## D11 · Cloudflare R2 over Supabase Storage, because the fake was better than the vendor
+
+**Status:** active · supersedes the Supabase provider written in F0.5
+**Files:** `server/services/storage/s3.ts` (added), `supabase.ts` (deleted)
+
+### The finding
+
+F0.5 shipped with an in-memory `StorageProvider` implementing a faithful
+60-second presigned-upload expiry, tested with an injected clock. Review asked
+the right question: **is the fake more capable than the real thing?**
+
+It was. From `@supabase/storage-js` source:
+
+```ts
+async createSignedUploadUrl(path: string, options?: { upsert: boolean })
+// ...
+const data = await post(this.fetch, `${this.url}/object/upload/sign/${_path}`, {}, { headers })
+```
+
+There is **no expiry parameter**, and the request body is literally `{}`. Upload
+URL validity is fixed server-side. The asymmetry is easy to miss because the
+_download_ API does take one:
+
+| API                                                    | Expiry            |
+| ------------------------------------------------------ | ----------------- |
+| `createSignedUrl(path, **expiresIn**, …)` — download   | caller-controlled |
+| `createSignedUploadUrl(path, { upsert })` — **upload** | **not exposed**   |
+
+So the F0.5 criterion _"a presigned URL is unusable 90 seconds after issue"_
+was **unsatisfiable on Supabase** while passing in CI against a fake that
+implemented it perfectly. Green suite, false claim — the same shape as the AWS
+canary that "passed" because gitleaks allowlists it, and the gitleaks run that
+reported no leaks after reading zero bytes.
+
+### The decision
+
+Switch to **S3-compatible storage (Cloudflare R2)**. SigV4 presigning signs
+`X-Amz-Expires` **into** the URL, so expiry is caller-controlled and enforced by
+any conformant implementation — it is the protocol, not a vendor promise.
+Ranged reads (`GetObject` with `Range`) are likewise protocol-level, so the
+magic-byte check reads twelve bytes instead of downloading two megabytes.
+
+The `StorageProvider` seam did its job: the swap touched two files and no
+service or route logic. That is what the seam was for.
+
+### How the contract is now verified
+
+`tests/profile/storage-contract.test.ts` runs in two tiers.
+
+**Always** — protocol assertions needing no account. The presigned URL is
+inspected directly: `X-Amz-Expires=60` is present, and requesting a different
+expiry produces a **different signature**, proving the value is signed in rather
+than a decorative query parameter a server may ignore.
+
+**`STORAGE_INTEGRATION=1`** — the live round trip: presign, direct PUT, ranged
+magic-byte read (asserting exactly 12 bytes come back from a 512KB object, which
+a provider without Range support cannot do), a genuinely expired URL being
+rejected, and cross-user prefix rejection. Skipped without credentials so CI
+stays green and honest.
+
+### Still unverified
+
+**No live bucket has been exercised.** Creating a Cloudflare or Supabase account
+is not something this environment can do. The always-on tier proves the _client_
+signs correctly; the live tier proves the _server_ honours it, and it has never
+run. `docs/acceptance-status.md` records that rather than implying otherwise.
+
+### Known deployment dependency: R2 public reads
+
+R2 buckets are **not publicly readable by default**, and there is no equivalent
+of an S3 website endpoint. Serving avatars to browsers requires one of:
+
+| Option                            | Cost                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| `*.r2.dev` managed subdomain      | free, but **rate limited by Cloudflare** and explicitly not for production traffic |
+| Custom domain bound to the bucket | needs a zone on Cloudflare; no rate limit                                          |
+
+This is a **deploy-time dependency, not a code change**: the public origin is
+already behind `S3_PUBLIC_BASE_URL`, deliberately separate from `S3_ENDPOINT`.
+The signing endpoint carries credentials in its URLs and must never be handed to
+a browser; the public base is what `publicUrl()` builds from. Switching from
+`r2.dev` to a custom domain — or to a CDN in front of either — is an environment
+variable, and `tests/profile/storage-contract.test.ts` asserts the two hosts do
+not get conflated.
+
+Flagged now rather than discovered at deploy: on the free `r2.dev` subdomain,
+avatar loads will be throttled under load, and the symptom will look like broken
+images rather than like rate limiting.
+
+### Rejected alternative
+
+Keeping Supabase and enforcing the 60-second window at confirm time — reject a
+key whose presign is older than 60s. Rejected because it does not satisfy the
+criterion: the upload URL would still ACCEPT a PUT for the vendor's full
+validity window. The object would never be adopted and orphan cleanup would
+remove it, but "unusable" would be false. A weaker guarantee described in
+stronger words is exactly what this project keeps catching.
+
+---
+
+## D12 · STANDING RULE — verify an upstream constraint upstream
+
+**Status:** permanent · applies to every ticket
+
+Before attributing a limitation to a library, service or framework, **verify it
+in that thing's source or wire format, and say where you verified it.** A
+plausible-sounding constraint is not a constraint.
+
+This is written down because it has now happened five times, and each time the
+constraint lived in our own layer or the verification proved nothing:
+
+| #   | The claim                                                     | What was actually true                                                                                                                           | How it was caught                                                        |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| 1   | "The AWS key canary proves gitleaks works"                    | gitleaks **allowlists** that documented key by default, so the canary was indistinguishable from a broken scanner                                | second canary with a realistic token                                     |
+| 2   | "CI's secret scan is green"                                   | the action computed `<root>^..HEAD`, aborted, read **0 bytes**, and logged _"no leaks found in partial scan"_                                    | reading the step log rather than its colour                              |
+| 3   | "`@auth/drizzle-adapter` requires `name` and `image` columns" | its TYPE does; its RUNTIME never reads them — `.values(data)` drops unknown keys                                                                 | running the real adapter against a real database with the columns absent |
+| 4   | "Supabase Storage cannot do a 60-second presign"              | true, but our code was **posting `{ expiresIn }` into a body the API discards** — configured-looking and inert, green from both directions       | reading `createSignedUploadUrl` in storage-js                            |
+| 5   | "Auth.js cannot distinguish an expired link from a used one"  | Auth.js computes `hasInvite` and `expired` and puts both on the thrown error; **our adapter's `DELETE … RETURNING`** was discarding the evidence | reading `lib/actions/callback/index.js`                                  |
+
+The shape is constant: **a limitation attributed upstream that lives in our own
+layer, or a green result that verified nothing.** Both feel like findings. Both
+end the investigation early, which is exactly what makes them dangerous.
+
+### The rule, operationally
+
+1. **Read the upstream.** `node_modules` is on disk. The signature, the request
+   body, the branch that throws — look at it. Cite the file in a comment.
+2. **Name the layer.** State whether the constraint is in the vendor, the
+   protocol, or our code. If it is ours, it is a bug, not a constraint.
+3. **A parameter that might be ignored is not proof.** Presence of
+   `X-Amz-Expires` proves nothing; a **different signature for a different
+   value** proves it is signed in. Prefer an assertion that would fail if the
+   parameter were decorative.
+4. **Any "X is absent" result needs a positive control** proving the mechanism
+   can see X when X is present.
+
+Instances 3–5 were each found one review round late. The cost of following this
+rule is minutes; the cost of skipping it has been a wrong architecture decision
+(4), a hundred lines of unnecessary adapter (3), and a user-facing error page
+that would have said the wrong thing (5).
+
+---
+
+## D13 · Magic links expire in 15 minutes, overriding Auth.js's 24 hours
+
+**Status:** active · **File:** `server/services/auth/config.ts`
+
+`@auth/core/providers/resend.js` sets `maxAge: 24 * 60 * 60` — **verified in
+source**, per D12. We override it to **15 minutes**.
+
+A magic link is a **bearer credential sitting in an inbox**. Anyone holding the
+link is the account. Twenty-four hours is a long exposure for something that
+gets forwarded, synced to a shared or family device, indexed by a desktop search
+tool, or left in a mailbox that is compromised later that day. Fifteen minutes
+is comfortably enough to click a link you just asked for, and it bounds the
+window in which a leaked email body is worth anything.
+
+### The consequence, accepted deliberately
+
+At fifteen minutes **the expired state will genuinely happen** — people open
+email late. That is why `/login/verify` distinguishes expired from used from
+invalid (D12 #5) and offers a resend from the expired page rather than a dead
+end.
+
+That resend is the same server action `/login` uses, and therefore the same
+server-side cooldown. **A resend button on the expired page that skipped the
+cooldown would be a bypass of it** — the cooldown has to live on the server for
+exactly this reason: a per-component countdown resets on reload, so it is UX,
+never the control.
+
+---
+
+## D14 · `aria-disabled` for waiting states, `disabled` only for transient ones
+
+**Decision.** A control that is unavailable for a _duration the user is waiting
+out_ — a resend cooldown, a rate-limit window — uses `aria-disabled` and guards
+its own handler. A control that is unavailable _transiently while an action is
+in flight_ keeps the real `disabled` attribute.
+
+**Why.** `disabled` removes an element from the tab order entirely. A keyboard
+user who tabs to the resend button, finds it gone, and has no way to discover
+that it will return in 45 seconds is worse off than one who reaches it and hears
+"Resend in 45s". For a ~1s in-flight state the opposite is true: removing it
+prevents a double submit and nobody is navigating during it.
+
+**How it was found.** Not by review — by `e2e/keyboard.spec.ts` failing to reach
+the control at all. The traversal recorded `[{skip link}, {Use a different
+address}]` with the resend button simply absent. Three prior passes over this
+UI, including one specifically about the cooldown, did not notice.
+
+**The safety argument does not rest on the attribute.** `aria-disabled` is
+advisory — a determined client can press the button. That is fine here because
+the cooldown is enforced by the server action in `app/(auth)/login/actions.ts`,
+which both entry points call. A press inside the window is _answered_ with the
+remaining wait, not obeyed. Had the attribute been the enforcement, this would
+have been the wrong trade.
+
+**Rejected:** keeping `disabled` and adding an adjacent `aria-live` region
+announcing the countdown. It fixes announcement but not reachability, and it
+narrates a timer to a screen-reader user once per second.
+
+**Verified, not assumed.** Per D12, the Tailwind variant was checked in the
+built stylesheet rather than trusted to exist:
+
+```
+aria-disabled\:opacity-60[aria-disabled=true],.disabled\:opacity-60:disabled{opacity:.6}
+```
+
+A variant that silently compiled to nothing would have left the control looking
+enabled throughout its cooldown — configured-looking, inert, green from both
+directions.
+
+---
+
+## D15 · Middleware forwards the pathname; the layout re-validates it
+
+**Decision.** `middleware.ts` sets a request-only header
+(`x-quadrantcode-pathname`) on authenticated requests, and `app/(app)/layout.tsx`
+reads it to build the `returnTo` it hands to `/onboarding`.
+
+**Why it was needed.** The onboarding gate called `redirect('/onboarding')` with
+no destination, so a first-time user following a magic link to `/problems`
+finished onboarding on `/dashboard`. `/onboarding` already honoured `returnTo`;
+the gate simply had nothing to give it, because **a Next App Router layout is
+not passed the pathname** — only pages receive `params`/`searchParams`.
+
+**Rejected alternatives.** Doing the completeness check in middleware: it runs
+on the edge with no database connection, so it would need either a JWT claim
+(unrevokable when a profile changes) or a network hop per request — the same
+reasoning that keeps the role check out of middleware. Passing the path as a
+search param on the redirect: it is already lost by the time the layout runs.
+
+**The header is ours and is still not trusted.** The layout runs it through
+`validateReturnTo` like any other candidate. It is set on the inbound request
+via `NextResponse.next({ request: { headers } })`, so it never reaches the
+browser — but "we set it" is not a reason to skip validation, and if it ever
+becomes settable from outside, the allowlist is what holds.
+
+Pinned by _"the gate defers the destination rather than discarding it"_ in
+`e2e/auth-flow.spec.ts`, which fails if the `returnTo` is dropped again.
+
+---
+
+## D16 · STANDING RULE — an `ON CONFLICT` clause names the constraint it means
+
+**Decision.** Every `onConflictDoNothing` / `onConflictDoUpdate` specifies a
+`target`. A bare clause is only acceptable on a table with exactly one unique
+constraint, and even then the target is written out.
+
+**The bug that produced this rule.** F1.2's importer failed to import a URL it
+had every right to accept, and it took two mistakes stacked on each other:
+
+1. The slug for an imported problem was a **deterministic hash of the normalised
+   URL**. That looked tidy and quietly asserted "one URL, one row, forever".
+2. The partial unique index on `external_url_normalised` is scoped
+   `WHERE status <> 'archived'`, which **deliberately permits two rows to share
+   a URL** — one archived, one live — so a user who archived a problem can add
+   it back.
+
+Together: the second insert produced the same slug as the archived row and
+collided on `problems_slug_key`. And because the conflict clause was a bare
+`onConflictDoNothing()`, which covers **every unique constraint on the table**,
+that collision was absorbed exactly like a dedup race. The insert returned no
+row; the fallback lookup — scoped to non-archived rows, correctly — found
+nothing; and the service threw on a row that should have been created.
+
+**Why the bare clause is the load-bearing mistake.** The deterministic slug was
+wrong, but on its own it produces a _unique violation_, which is loud, points at
+`problems_slug_key`, and takes a minute to diagnose. The untargeted clause is
+what converted a named constraint violation into a silent nothing, and made the
+symptom appear one layer away from the cause. **An untargeted `ON CONFLICT` does
+not suppress an error; it suppresses the distinction between errors.**
+
+**The general shape.** `ON CONFLICT DO NOTHING` with no target means "any unique
+constraint". Almost every real use means one specific constraint and treats it
+as recoverable — a lost race, an idempotent re-insert. Every _other_ unique
+constraint on that table is a genuine bug, and the bare form silently reclassifies
+all of them as the expected case.
+
+### The audit
+
+Asked whether this pattern existed elsewhere. Every `onConflictDo*` in the tree
+was checked against the live schema's unique-index count (`pg_index`, rather
+than by reading the Drizzle definitions — the database is the authority on what
+can actually conflict):
+
+| Table           | Unique constraints                                              | Verdict                             |
+| --------------- | --------------------------------------------------------------- | ----------------------------------- |
+| `problems`      | **3** — pkey, `slug_key`, partial `external_url_normalised_key` | the bug above; now targeted         |
+| `user_problems` | **2** — pkey, `user_problem_key`                                | **latent instance, fixed**          |
+| `problem_tags`  | 1 — composite PK                                                | unambiguous; 4 call sites left bare |
+| `user_profiles` | 1 — pkey                                                        | unambiguous                         |
+
+The `user_problems` case is the one worth noting: `linkUserProblem`'s insert
+returns a row or not, and **that return value is the only thing distinguishing
+`duplicate` from `created`/`linked`** in the import counts. A primary-key
+collision on a random UUID is not a realistic worry, but the clause was one
+schema change away from mattering, and it is the same defect written by the same
+hands in the same week as the one above. Targeted.
+
+The four `problem_tags` sites are correct as written — a table with a single
+composite primary key has nothing to disambiguate. They are left bare rather
+than churned, and this entry is the reason a future reader will not "fix" them.
+
+**Consequence for partial indexes.** Targeting a partial unique index requires
+the index predicate as well as the columns, or Postgres cannot match the
+inference and rejects the statement:
+
+```ts
+.onConflictDoNothing({
+  target: problems.externalUrlNormalised,
+  where: sql`... is not null and ${problems.status} <> 'archived'`,
+})
+```
+
+Drizzle spells this `where` on `onConflictDoNothing` and `targetWhere` on
+`onConflictDoUpdate`. Verified against the emitted SQL, not assumed — per D12.
+
+**Rejected:** a lint rule banning the bare form. It would fire on the four
+correct `problem_tags` sites, and a rule with a 4-to-1 false-positive rate
+teaches people to disable it. The check belongs in review, and now in this entry.
+
+---
+
+## D17 · F2.3 is cut, so the in-process runner is permanent
+
+> **Historical decision, superseded for code execution by D26.** BullMQ, Redis
+> and the generic standalone worker remain cut. The managed Queue exception is
+> intentionally limited to untrusted execution; imports retain this decision.
+
+**Decision (Vikram, scope).** The target build is 11 more tickets, not 21. F2.3
+`job-runtime` — BullMQ, Upstash Redis, the standalone queue worker — is cut.
+
+This entry exists because the cut is not only a scheduling change. Roughly
+thirty comments across the codebase said "F2.3 replaces this", and every one of
+them was a promise that is no longer going to be kept. They were rewritten
+rather than left, because a comment describing a future that will not arrive is
+worse than no comment: it tells the next reader the limitation is temporary.
+
+### What the seam still buys
+
+The `JobRunner` seam was justified as "so F2.3 can swap the executor". That
+justification is gone and the design survives it — for a better reason than the
+original one.
+
+Job state and payload live in `import_jobs`. With a queue, that was tidiness:
+the queue could have carried the CSV. **Without a queue, the database is the
+only thing that can recover a job at all.** A runner holding parsed rows in
+memory loses the import outright when its process ends, and nothing re-delivers
+it. So the property that made the seam honest — `enqueue(jobId)` and nothing
+else — is now the property that makes recovery possible.
+
+### What is permanently missing, stated plainly
+
+| Gap                                  | Consequence                                          | Mitigation                                                                                                       |
+| ------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| No automatic retry                   | A job whose process dies is dead until a person acts | Re-uploading the same file re-enqueues it; content hash identifies it, the watermark makes the repeat idempotent |
+| No scheduled sweep                   | `sweepStalledJobs` runs only when called             | Called from the request path. A job can sit `running` until someone loads the page                               |
+| No scheduled avatar cleanup          | Orphaned uploads accumulate                          | `npm run avatars:cleanup`, on demand or from a host cron                                                         |
+| No queue-backed retries with backoff | A transient failure is a failed job                  | The user retries by re-uploading                                                                                 |
+
+**Cut scope has two surfaces, not one.** The obvious one is code that references
+the cut thing. The one that got missed is **user-facing copy promising the same
+future**: `/settings/import` already told users "re-upload the same file to
+continue from where it left off", and `startImport` already returned without
+re-enqueueing. Each was validating the other — the copy read as a description of
+the code, the code read as an implementation of the copy — and neither moved
+when the assumption underneath both disappeared. When something is cut, grep the
+strings a user reads, not only the comments a developer reads.
+
+**A tested function nothing can invoke looks handled.** `cleanupOrphanedAvatars`
+had tests, coverage, and a comment saying F2.3 would schedule it. With F2.3 cut
+it was unreachable code that passed every check we have — review sees a tested
+function, coverage sees exercised lines, and the acceptance record sees a
+criterion met. Nothing in the toolchain reports "this is never called in
+production". That is why it now has `npm run avatars:cleanup`: not because a
+manual script is good, but because an invocable-but-manual path is honest and an
+uninvocable one is a lie that passes review.
+
+**A found bug, from making this explicit.** `startImport` returned an existing
+job without re-enqueueing it, which was defensible only while F2.3 was going to
+add queue-level retries — and `/settings/import` already told the user
+"re-upload the same file to continue from where it left off". That promise was
+false. It now re-enqueues a job in `stalled`, `failed` or `pending`, and
+deliberately does not touch one that is genuinely `running` (that would double
+the work rather than resume it). The cut turned a deferred gap into a live bug,
+which is exactly the kind of thing a scope change hides.
+
+### The consequence for F3.1, flagged before reaching it
+
+**F3.1 `execution-pipeline` is specified as "Monaco Editor & Queued Judge0
+Execution".** It is in the target scope and its queue is not.
+
+Judge0 is submit-then-poll: a submission returns a token and the result arrives
+later. That is queue-shaped work, and the honest options are:
+
+1. **Reuse this pattern.** An `execution_jobs` table, the same `JobRunner` seam,
+   the same polling contract, the same in-process runner. It generalises
+   cleanly — this ticket already proved the shape — and inherits exactly the
+   gaps in the table above: an execution whose process dies needs the user to
+   re-run it.
+2. **Synchronous submit-and-wait** inside the request. Simpler, and wrong for
+   anything but the fastest submissions; a serverless timeout would strand
+   executions with no record.
+
+**Option 1 is APPROVED** (Vikram, 2026-08-15), for two reasons worth recording:
+the shape already exists and its gaps are documented, and synchronous
+submit-and-wait strands executions on a serverless timeout with no record — the
+failure mode hardest to diagnose. One consistent pattern with known limits beats
+two patterns.
+
+**Consequence for F3.1's acceptance record.** Its "queued state machine"
+criterion will be met by the in-process runner, not BullMQ. That must be written
+into the acceptance status as what was ACTUALLY built, with the same gaps this
+entry lists — no automatic retry, no scheduled sweep, user-driven recovery.
+Recording it as "queued execution: DONE" would be true of the words and false
+about the system.
+
+### Also cut, and their live consequences
+
+F2.4 `notification-engine` and F2.5 `contest-upsolve` are cut, so no scheduled
+reminders and no contest sync — both were queue-dependent. F4.3 `rewards-trust`
+is cut, which means **C8** (daily cap + cooldown + minimum active time on every
+reward-granting path) has no path to guard: the constraint stands, and nothing
+in the target scope grants rewards. F1.2's curated library is cut to a small
+verified subset with the rest BLOCKED on a real list.
+
+---
+
+## D18 · Streak: history is immutable, freeze balance is derived
+
+Two decisions F1.3's spec explicitly refuses to leave accidental. Both are
+invisible until they are wrong, which is why they are here before the code.
+
+### A recorded day never moves
+
+`daily_sessions.local_date` is resolved in the user's timezone **at activity
+time** and is never re-resolved. Changing timezone affects future activity only.
+
+**Rejected:** recomputing history in the new zone. It makes the whole record
+internally consistent with where the user is now, and the price is that solves
+migrate between days — silently breaking a streak someone earned, or inventing
+one they did not. It also makes recompute non-deterministic with respect to a
+mutable user field, so the same input produces different output depending on a
+setting changed months later.
+
+**The cost is bigger than "the days are further apart", and the settings page
+has to say so.** Moving IST → America/New_York (−9:30) can produce:
+
+- the **same local date twice** — a solve at 09:00 IST on the 2nd and another at
+  20:00 EST on the 1st both land on dates the user has already "had"
+- an **apparent skipped day** despite solving every calendar day they experienced
+
+Either reads as a broken streak rather than a policy, and a user who cannot tell
+those apart will report it as a bug. So `/settings/goals` states it in one line
+when the timezone changes — _past days stay as recorded; only future days use
+the new zone_ — and a test asserts that copy exists. Copy is the mitigation
+here, not a nicety; the behaviour is correct and unexplained behaviour is
+indistinguishable from a defect. (D17 already records the reverse of this: when
+scope changed, the stale thing that mattered most was user-facing copy.)
+
+### The freeze balance is computed, never stored
+
+`balance = 2 − (freezes consumed in the current local month)`.
+
+**Rejected:** a stored counter refilled monthly. A stored counter needs
+something to refill it, and **F2.3 is cut — no job is coming** (D17). A counter
+with no refiller is a number that silently stops being true. Deriving it makes
+the refill a property of the query: nothing to schedule, nothing to drift, and
+the month boundary is evaluated in the user's own timezone like every other day
+boundary in this module.
+
+The consumption log remains the source of truth and records the date each freeze
+covered, which is what the acceptance criterion asks to see.
+
+### Two test decisions worth recording
+
+**Node and Postgres must agree on the same instant.** The engine resolves days
+with `Intl.DateTimeFormat`; the database also has `AT TIME ZONE`, and the two
+can be compiled against **different tzdata versions**. If they ever disagreed,
+every stored `local_date` would be quietly wrong while both layers reported
+green — an assumption that differs across two layers with no test spanning them.
+A cross-check test spans them.
+
+**DST fall-back has an ambiguous hour.** 01:30 in America/New_York happens twice
+on the fall-back date. `Intl` resolves one of them, and in practice both
+occurrences carry the same local _date_, so day attribution is safe either way —
+but that safety is a property of the calendar, not of anything we wrote. It is
+asserted explicitly rather than left as an assumption inside a passing test.
+
+### D18 addenda — found while building
+
+**`today` is a parameter, never a clock read.** `computeStreak` and
+`recomputeStreak` take the local date rather than calling `new Date()`
+internally. A streak service that reads the clock cannot be tested across a DST
+boundary, a leap day or a year rollover without changing the machine's clock —
+which is to say it cannot be tested across exactly the boundaries that break
+streak engines. Every DST and leap-day test in `tests/streak/` exists because
+this is a parameter.
+
+**A freeze must not be spent on today.** Coverage is decided over days strictly
+before today. Today is not a missed day — the user has the rest of it — so
+offering it to the freeze logic burns one on every recompute, drains the monthly
+allowance in two days, and hands out protection nobody asked for. The symptom
+was a five-day run reading as six.
+
+**The heatmap distinguishes frozen from solved.** Both count toward the streak;
+only one is something the user did. Rendering them identically shows an unbroken
+wall of green across days with no activity, and the user believes it — worse
+than the confusion D18 describes for the timezone change, because they are not
+confused, they are confidently wrong about their own history. Frozen cells get a
+distinct hue **and** a diagonal hatch, so the distinction survives greyscale,
+colourblindness and a screenshot; colour alone fails all three.
+
+**A test asserted a bug that was not there.** "Yesterday being incomplete breaks
+the streak" used two settled misses and expected a break — but two is exactly
+the monthly freeze allowance, so the chain correctly survived at 7. Every
+previous finding in this project has been the code being wrong; this is the
+first where the expectation was wrong and the code was right, and had the
+implementation happened to match the bad expectation, correct behaviour would
+have been "fixed". The correction asserts `longestStreak === 7` so the freezes
+are visible in the result: a test that cannot distinguish 5-solved-plus-2-frozen
+from 7-solved is not testing what its name says.
+
+---
+
+## D19 · The shell recomputes the streak on read
+
+The streak badge and the goal ring sit on every authenticated page. F0.4 built
+both as pure props and left the layout passing `streakDays: 0`, with a standing
+note that F1.3 would supply the real values. It does, through one call —
+`summariseForShell` — so the components still never query.
+
+**The call recomputes rather than reading `user_streaks` as stored.**
+
+**Rejected:** trusting the stored row. It is one indexed read instead of four,
+and it is wrong at exactly the moment that matters. The stored number ages
+overnight with nothing to age it — a user who missed yesterday still carries
+last night's count, and whether a freeze covers that missed day is decided _by_
+the recompute, not by whoever reads the row afterwards. The badge would show a
+streak that has already broken, on the most-visited surface in the product,
+until something unrelated happened to rebuild it. F2.3 is cut, so "something
+unrelated" is not a scheduled job (D17); it is the user opening
+`/settings/goals`.
+
+The cost is bounded and stated rather than assumed: at most a year of narrow
+rows over `daily_sessions_user_date_idx`, and `recomputeStreak` compares before
+it writes, so an unchanged state performs **no writes at all**. A test asserts
+that directly — two calls in a row return the same value and leave the full
+`user_streaks` row byte-identical, `updated_at` included — because "safe to call
+on every page load" is a claim about writes, not about the return value.
+
+### The ring shows solves; `goalMet` says whether the day counted
+
+A day also completes at one solve alongside two revisions. So `goalCompleted`
+can sit below `goalTarget` on a day that is genuinely done, and the two obvious
+fixes are both bad: rounding the count up to the target lies about what the user
+did, and showing `1 of 2` alone contradicts the badge beside it, which has
+already counted the day.
+
+`ShellStreak` therefore carries both facts. The count stays honest and `goalMet`
+fills the arc. The component takes it as a prop and infers nothing — the rule
+stays in `evaluateDayCompletion`, which is the one place allowed to decide what
+a complete day is.
+
+**`atRisk` requires a streak to lose.** It is `currentStreak > 0 && !completed`,
+not `!completed`. The flag turns the badge warning-coloured, and on a zero
+streak that is an alarm about nothing — which is how a colour teaches people to
+stop reading it.
+
+### Three copies of "which target applied" became one
+
+`targetOn` and `DEFAULT_TARGET_PROBLEMS` now live in
+`server/services/streak/goals.ts`. The recompute, the heatmap and the shell each
+had their own copy of the effective-date walk and their own literal `2`. Nothing
+would have failed if one of them drifted; the symptom would have been the
+heatmap disagreeing with the streak drawn directly above it, which is precisely
+what `rules.ts` refuses to allow for the completion rule itself.
+
+---
+
+## D20 · The session record is its events, not a duration column
+
+F1.4's schema has no `active_duration_seconds`. The number is computed from
+`session_events` on every read.
+
+**Rejected:** a counter on the session, incremented as pause intervals close.
+One query instead of two, and wrong in a way nothing detects. A counter
+incremented twice is silently and permanently off; the events version answers
+the same for a duplicated `paused`, because a pause while already paused opens
+no new interval. That idempotence is the property a counter cannot have, and it
+is what makes the value safe to recompute rather than repair.
+
+It also removes the field a hostile client would aim at. There is nowhere in the
+schema to put a duration, so there is nothing to defend.
+
+### Two local dates, and the streak credits the later one
+
+A session begun 23:50 and solved 00:30 spans a day boundary. `started_local_date`
+and `ended_local_date` are each resolved in the user's timezone at the moment
+they are written and never re-resolved — D18's rule applied to sessions.
+
+The streak credits `ended_local_date`: the day the solve became a fact.
+
+**Rejected:** crediting the day the sitting began. It reads more naturally
+("I started this last night") and it hands out a way to game the streak — hold a
+session open across midnight and bank a solve for a day you did not finish. The
+version that cannot be gamed wins, and the cost is a session that occasionally
+counts for the day after the one it felt like.
+
+### The six-hour rule holds without anything scheduling it
+
+The ticket asks for "a background job" to auto-close abandoned sessions. F2.3 is
+cut (D17), so there is none. Instead:
+
+- the shell's own read closes the CURRENT user's stale session — free, because
+  it had already loaded that session to draw the timer
+- `npm run sessions:sweep` closes everyone else's, on demand
+
+**What that costs:** a session belonging to someone who never returns stays live
+until a human runs the script. It blocks nothing — the owner's next page load
+sweeps it first — and distorts nothing except a count of live sessions. That is
+a smaller cost than F1.2's dead import jobs, and it is the same shape: recovery
+is user-driven, not scheduled.
+
+**Both the autopause and the abandonment are stamped `last_heartbeat_at`**, not
+the moment the server noticed. A user who closed their laptop stopped working
+when their heartbeats stopped; stamping discovery time would have credited 86
+minutes of work to someone who had walked away, which a test asserts directly.
+
+### Abandonment is not an attempt
+
+`user_problems` is untouched when a session is abandoned, by the user or by the
+sweep. An attempt is something the user finished making a claim about — solved,
+or explicitly stuck. Counting abandonment would inflate `total_attempts` for
+everyone who ever closed a tab, and the sweep does it on their behalf, so the
+inflation would be automatic and invisible.
+
+The same instinct, from the other side: a later `stuck` sitting never un-solves a
+problem. Solving it is a fact about the past.
+
+### The client cannot forge a time because there is no field for one
+
+The adversarial requirement is met by the SHAPE of the contract rather than by a
+branch that ignores suspicious input. No schema in `server/services/session/input.ts`
+mentions a duration, an elapsed count or a timestamp, so Zod drops a forged one
+before any handler runs, and `now` is resolved inside the adapter.
+
+That distinction matters for the future: a defensive branch can be deleted by
+someone who believes it is dead code, whereas adding a `durationSeconds` field to
+a schema is an obvious and reviewable change.
+
+---
+
+## D21 · The taxonomy is declared once, and JSONB holds nothing anyone will query
+
+F1.5's storage rule is the ticket, and both halves of it are decisions with a
+cost.
+
+### One array, three consumers
+
+`lib/reflection/taxonomy.ts` declares the categories. `pgEnum` is built from it
+and the form's labels come from it, so the Postgres enum, the Zod schema and the
+checkboxes cannot disagree.
+
+**Rejected:** writing the list where each consumer needs it. It reads more
+directly at every single site and drifts at exactly one — and the symptom is a
+category the form offers, the user picks, and the database rejects on submit,
+after they have typed a paragraph. A test asserts
+`enum_range(NULL::mistake_category)` equals the array, so the generation is
+proved rather than assumed.
+
+It lives in `lib/` because `components/` may not import from `server/` (F0.1) —
+the same reason `lib/streak/heatmap-day.ts` and `lib/session/timer-bar-state.ts`
+do.
+
+### The rule for `extras`
+
+**If anything will ever filter, group or sort by it, it is a column.** Nothing
+else may go in the JSONB.
+
+That is why `extras` is empty in practice today: everything F1.6, F2.1 and F3.5
+read — mistake category, stuck category, confidence, source — is a column or a
+child row. `extras` exists so a future question can be captured without a
+migration, not as a place to put a taxonomy.
+
+Two tests hold the line. One runs the criterion's own sentence as SQL
+(`WHERE category = 'off_by_one'`), which is a query that could not be written if
+the values lived in JSON. The other reads `information_schema` and asserts
+`reflections.extras` is the only jsonb column across all four tables, so
+someone moving a category in there later to avoid a migration fails immediately
+rather than in F3.5, when a `GROUP BY` quietly becomes a full scan.
+
+CHECK constraints also cap every free-text field. Prose growing into the place
+structured data should have gone is the exact failure the ticket names, and the
+cap is in the database because a service-side limit is bypassed by every other
+write path.
+
+### A skipped question is not an answer
+
+No reflection row means the user skipped it. `mistakes: ['none']` means they
+said nothing went wrong. **These are different facts and nothing may merge
+them** — F3.5 counts recurrence, so conflating them turns every skipped question
+into evidence of a clean solve.
+
+The form says so in words, next to the field, for the same reason D18's timezone
+copy exists: behaviour that is correct and unexplained is indistinguishable from
+a defect.
+
+### Confidence keeps one home
+
+`solve_sessions.confidence` (F1.4), mirrored to `user_problems` for the catalog.
+The reflection writes both in one transaction rather than adding a
+`reflections.confidence`, because two columns holding one fact disagree the
+first time a write path forgets the other.
+
+### Abandoned sessions cannot be reflected on
+
+Same reason they are not attempts (D20): the sweep abandons sessions on the
+user's behalf, so a reflection attached to one would be a considered account of
+a solve that never concluded. An abandoned sitting still appears in the attempt
+timeline — it happened — but carries no attempt number, so the timeline and
+`user_problems.total_attempts` cannot disagree.
+
+### Postgres cannot remove an enum value
+
+Adding `stuck_marked` to `session_event_type` uses `ADD VALUE IF NOT EXISTS`,
+hand-added to the generated migration. There is no `ALTER TYPE ... DROP VALUE`,
+so a down migration cannot undo it, and without the clause a single-step
+rollback followed by a re-apply fails on "label already exists". The down
+migration records this, including that `db:generate` will not re-emit the clause
+if the file is ever regenerated.
+
+---
+
+## D22 · The dashboard is precomputed, and says so
+
+F1.6's performance rule is that heavy aggregates are rolled up rather than
+computed on a page load. Three decisions follow from taking that seriously.
+
+### Three rollup tables, not one
+
+A session belongs to a problem, a problem carries zero or more topic tags, and a
+stuck marker carries a category. Those are three different grains, and one table
+cannot hold them without lying about at least one:
+
+- summing a per-topic table to get a headline total **double-counts** a problem
+  tagged both `graphs` and `bfs`
+- and **loses entirely** a problem with no tags
+
+**Rejected:** one wide table with a nullable `topic` column and a grand-total
+row. It is one table instead of three, and it makes every read filter on
+`topic IS NULL` to avoid counting the same session twice — a condition that is
+easy to forget in exactly the query where forgetting it doubles a number.
+
+Sums are stored, never ratios or averages: an average of averages is not an
+average, and a ratio cannot be added across days. `confidence_sum` and
+`confidence_count` travel together, and the division happens once, at the end,
+over whatever range the page is showing.
+
+### Delete-and-rewrite, not upsert
+
+A day's rows are deleted and rewritten inside one transaction. That makes the
+acceptance criterion — "two runs for one day produce one row set" — true by
+construction rather than by care, and it is the only version that stays correct
+when a session is deleted or a topic tag is removed. An upsert leaves the old
+row behind, and the dashboard keeps reporting activity that no longer exists.
+
+Readers are unaffected: Postgres keeps the previous rows visible until the
+transaction commits, so a page loading mid-rollup sees the old numbers rather
+than none.
+
+**`computed_at` comes from the database clock, not from the `now` parameter.**
+It is compared against `solve_sessions.updated_at`, which Postgres writes.
+Comparing two clocks is how every day ends up permanently stale — which is
+precisely what three freshness tests reported before the column default took
+over. `now` is still a parameter, and still used for the arithmetic (D18); it is
+just not the thing being compared against a timestamp the database wrote.
+
+### Inline SVG instead of Recharts
+
+CLAUDE.md's stack names Recharts, and F1.6 is the first ticket that would use it.
+It is not installed, and this ticket needs two charts: a three-segment difficulty
+split and twelve trend bars.
+
+**Deviating, with the reason recorded rather than taken silently.** A charting
+library means a client-side dependency and client components on a page whose
+entire purpose is to be cheap — `/analytics` currently ships **163 B** of route
+JS because every part of it renders on the server. Adding ~100kb of runtime to
+draw fifteen rectangles inverts the thing the ticket is asking for.
+
+This is not a rule against Recharts. When a ticket needs interactive charts —
+tooltips, zoom, live series — the dependency earns its place and should be added
+then. Fifteen rectangles do not earn it.
+
+### The wording rule is guarded at two layers
+
+The ticket forbids calling the score AI or a prediction anywhere, and C4 forbids
+the product over-claiming certainty generally. A weak-topic panel is where that
+temptation lives, because the honest phrasing is longer than the dishonest one.
+
+`tests/analytics/wording.test.ts` greps the service, components, page and
+`docs/scoring.md`. `e2e/analytics.spec.ts` reads the **rendered** page, because a
+component could assemble a banned phrase from fragments the source grep would
+never match. Both carry positive controls — a guard that scans nothing passes
+every "this word is absent" assertion, which is the same failure shape as the
+0-byte gitleaks run (D4).
+
+---
+
+## D23 · The revision engine, and the page the cut ticket left behind
+
+### The simulation is the deliverable, not the ladder
+
+F2.1's most valuable output is not the scheduling code — it is
+`tests/revision/simulation.test.ts`, because a ladder cannot be checked by
+reading it. Every rung looks reasonable alone; whether the intervals a growing
+library generates stay inside one person's day is emergent.
+
+**It found something on the first run.** The assertion that overdue work "does
+not accumulate unboundedly" failed: mean queue depth climbed from 3.8 in the
+middle thirty days to 5.9 in the last thirty. Chasing it produced the finding
+that matters — the due count climbs because the LIBRARY climbs. Twice as many
+problems generate twice as many revisions; that is arithmetic about the user.
+
+A scheduler falling behind looks different: work that came due and was never
+reached. The assertion now counts **arrears** — items waiting more than a week —
+and they stay at zero.
+
+**The boundary is asserted, not assumed.** At one new problem a day, five
+revisions a day cannot drain the arrivals: arrears appear and depth passes 20.
+The default cap is therefore a statement about how many problems a user can take
+on, and that sentence is backed by a test rather than by reasoning.
+
+### Confidence picks the ladder; everything else picks the rung
+
+**Rejected:** treating low confidence as one more compression step. It reads as
+consistent — every signal moves one rung — and it is wrong about what the signal
+means. Low confidence is a statement about the whole solve, not about the next
+interval, so it should shorten every gap that follows rather than one.
+
+The two ladders are the same LENGTH so that a rung means the same thing on both,
+which keeps `ladder_index` comparable across problems and spares the outcome
+rules a special case.
+
+**Signals move a step rather than scaling the interval.** Multiplying produces
+intervals that are not on the ladder — 4.5 days, 21 on the standard ladder — and
+then "which rung are you on" stops meaning anything, which is the language the
+outcome rules are written in.
+
+### The floor is enforced three times
+
+Clamped index, floored interval, and a CHECK constraint on the column. The
+middle one is redundant while rung 0 is one day, and it stays because the spec's
+rule is about the INTERVAL: a future ladder starting elsewhere must not be able
+to break it quietly.
+
+### Scheduling happens inside the completion transaction
+
+Not afterwards, and not in the action. A completed solve whose revision was
+never scheduled is a problem that silently never comes back — and unlike the
+streak recompute (D19), nothing downstream would notice and repair it.
+
+Re-solving continues from the current rung rather than resetting, so revisiting
+a problem held for months is not punished for the revisit.
+
+### `/revision` exists although the ticket puts UI out of scope
+
+F2.1's OUT OF SCOPE names F2.2 for the revision UI. **F2.2 is cut**, and the
+sidebar has always linked to `/revision`.
+
+Following the letter would have shipped an engine nothing calls and a navigation
+item that 404s — the "dead code that looks handled" this project has refused
+twice before. So the smallest honest surface exists: the due list, in risk
+order, with the three outcomes. F2.2's four revision MODES stay cut and nothing
+here pretends otherwise.
+
+**The page deliberately does not revalidate after recording an outcome.** Doing
+so re-renders the queue without the row just answered, erasing the confirmation
+the click produced — the user sees their answer flash and vanish, and never
+learns when the problem comes back. Found by an e2e test that passed alone and
+failed in a full run, which is what that race looks like from outside.
+
+---
+
+## D24 · Execution is a table, a lock, and a provider seam — and never a sandbox
+
+> **Historical implementation, superseded by D26.** Its provider boundary,
+> polling shape and “outage is not a verdict” rule remain; dispatch, retry and
+> isolation are now implemented by Vercel Queue, Neon leases and Vercel Sandbox.
+
+**Context:** F3.1 specifies Monaco plus BullMQ-queued Judge0 execution. Two
+things are missing at once: F2.3 is cut (**D17**) so there is no queue, and
+there is no `JUDGE0_URL` so there is no judge.
+
+### The word "sandbox" does not appear, deliberately
+
+The ticket says it outright, and it is worth writing down why the rule is
+correct rather than merely obeyed.
+
+`EXECUTION_LIMITS` — 2 s CPU, 5 s wall, 256 MB, no network, 32 KB of captured
+output — is **what is submitted with each request**. Whether any of it is
+enforced depends on how the Judge0 instance was deployed: its Docker isolation,
+its cgroup limits, its network policy. None of that is in this repository.
+
+Calling it a sandbox would claim a property this project cannot observe, and the
+person misled is whoever later decides it is safe to run untrusted code. So the
+README, the UI and the code all say what is sent, never what is guaranteed.
+
+### The provider seam is what makes BLOCKED honest instead of vague
+
+`ExecutionProvider` has three implementations' worth of intent behind it: the
+real one, the fake, and the `executes: boolean` flag that lets any caller ask
+whether a result came from running code. `resolveProvider` returns the fake when
+there is no URL — so the feature works end to end, and nothing anywhere claims
+the results are real.
+
+`Judge0Provider` is written and **UNVERIFIED**, with that word in its header
+rather than only in the acceptance record. Supplying a URL is then a
+configuration change, not a development task — and the one part that can be
+checked without an instance is checked: the status-id mapping is pure and
+tested, including that an unknown id becomes `internal_error` rather than
+silently becoming `accepted` after a Judge0 upgrade.
+
+**Rejected:** stubbing the calls out with `throw new Error('not implemented')`.
+It makes the same BLOCKED honest but leaves nothing to review, and the mapping —
+the part most likely to be wrong and cheapest to get right — would not exist.
+
+### The cap is a lock, because the criterion is about parallelism
+
+Counting live rows and then inserting is not atomic. The criterion says the cap
+must hold _under a parallel-submit test_, which is precisely the case
+check-then-insert fails: six concurrent submissions each read four and each
+decide they are the fifth.
+
+`pg_advisory_xact_lock(hashtext(user_id))` inside the submit transaction
+serialises only a user racing themselves. Two users can collide on the hash; the
+cost is that one waits microseconds, which is not worth a wider key to avoid.
+
+The runner is enqueued **after** the transaction commits — a runner that starts
+first reads a row that is not there yet.
+
+**Rejected:** a unique partial index on "live jobs per user". Postgres has no
+count constraint; enforcing five would need five nullable slot columns or a
+trigger counting rows, both of which are heavier and less obvious than a lock
+held for two statements.
+
+### A failed job writes no result
+
+The distinction the whole ticket turns on. `execution_jobs.error` says why the
+job failed; `run_attempts` exists only for jobs that actually ran. Writing
+`internal_error` on an outage would put a claim about the user's program into
+the database that nothing observed — and it would then feed F3.5's mistake
+memory as if the user had made a mistake.
+
+Nothing retries, and the message says so. D17's cost, stated rather than
+implied.
+
+### Output is rendered, never sanitised
+
+Program output reaches the screen through `{value}` and nothing else. It is not
+filtered: `<script>` arrives intact and inert, because a program that prints a
+tag should see the tag it printed. A scratchpad that quietly rewrites your
+output is worse than one that shows it, and a sanitiser is one more thing that
+can have a bug.
+
+The claim is settled in Chromium — with a positive control that sets the same
+flag deliberately on the same page first, so a CSP could not make the test pass
+by making the payload impossible.
+
+### `expected_output` is unconditionally null, not a branch
+
+C1 means no external platform's tests are ever held, so an external-link problem
+can never have expected output. Original problems could — and arrive with F4.1,
+which is cut, so the catalog contains none.
+
+A conditional there would be a branch nothing can take, hiding that comparison
+is impossible behind code that looks like it handles both cases. Test counts are
+`null` rather than `0 / 0`, which reads as a failure rather than as "there was
+nothing to check".
+
+### Drafts are local; the server snapshot waits for F3.2
+
+The ticket asks for localStorage autosave **and** a 60-second server snapshot.
+localStorage is done, per problem and per language. The server half is deferred
+to F3.2, which owns code snapshots.
+
+Building a `code_drafts` table here would create a second home for the user's
+code alongside the one F3.2 is specified to build — two stores of the same thing
+is a drift with a date on it. Recorded as DEFERRED rather than done twice.
+
+---
+
+## D25 · The log is append-only with one declared exception, and elapsed is derived
+
+**Context:** F3.2 turns `session_events` into the full solve log. Its spec asks
+for an `elapsed_ms` column and for the table to reject UPDATE and DELETE, and it
+also asks for "delete my solve history" to leave no rows behind.
+
+### `elapsed_ms` is not a column
+
+**D20 already made this decision one level up.** F1.4 removed
+`solve_sessions.active_duration_seconds` on the grounds that events are the
+record. Storing elapsed on every event is that same column again — one row down,
+multiplied by the number of events.
+
+The argument that decides it, though, is specific to this table: **it cannot be
+corrected.** A derived value written into an append-only log is wrong forever
+the day the derivation is wrong, because the trigger refuses the fix. Derived on
+read, repairing `pausedIntervals` repairs every session that ever ran.
+
+A test writes a duplicate `paused` event and asserts the answer does not move.
+That idempotence is the property `duration.ts` was built for and the one a
+stored counter cannot have.
+
+**The cost, stated rather than buried:** no `WHERE elapsed_ms > …` in SQL. F3.3's
+signals read gaps between events, which is `occurred_at` arithmetic, so nothing
+planned needs it. The column goes in when something does.
+
+**Rejected:** computing it at write time. It would make the value depend on what
+had been written, while `duration.ts` is explicitly built to depend on when
+things happened — it sorts defensively because an idle autopause is stamped at
+the last heartbeat, deliberately earlier than its write time. I looked for a case
+where that produces a wrong number today and did not find one, so this is a
+divergence the code itself documents, not a bug being claimed.
+
+### DELETE is refused too, unless a transaction says otherwise
+
+The spec says "No UPDATE, no DELETE on this table". Criterion #4 says deletion
+must work. Account deletion cascades through `solve_sessions` into this table.
+All three are real.
+
+So the trigger refuses unless `quadrantcode.purging` is set, and one module sets it
+— `server/services/timeline/retention.ts`. This is not enforcement by
+convention: without the flag, no code path, no psql session and no cascade
+removes a row. Setting it is a deliberate statement inside a transaction whose
+purpose is erasure.
+
+`set_config(_, true)` is transaction-scoped, so the flag cannot leak onto a
+pooled connection. A test asserts the log is **still append-only after** a
+deletion, because that leak is the failure that would otherwise rot silently.
+
+**This cost is real and it was measured:** ten browser tests failed when the
+trigger landed, all of them cascading deletes in fixture teardown. The same
+cascade is what account deletion runs, so the failures were the price arriving a
+day early rather than in production.
+
+**Rejected:** a trigger on UPDATE only. It satisfies the written criterion and
+abandons the sentence beside it, and it leaves a log where a stray `DELETE` in a
+migration silently drops a user's history with nothing objecting.
+
+### The diff engine is written, not installed
+
+`diff`'s `applyPatch` is deliberately fuzzy — it searches nearby lines when
+context no longer matches, because it exists to apply human patches to files
+that have drifted. For a criterion that says **byte-identical**, that tolerance
+is the whole problem: a near miss returns code the user never wrote, with
+nothing to indicate it.
+
+These operations carry no context, so there is nothing to match fuzzily.
+`applyDiff` walks them exactly or throws — including on a diff that leaves the
+source half-consumed, which is the dangerous case, since dropping a tail yields
+plausible code.
+
+Newlines are content: `"a\nb"` and `"a\nb\n"` are different files and round-trip
+differently. Nothing trims, normalises CRLF, or adds a final newline, because a
+diff engine that tidies its input cannot rebuild its input.
+
+**Rejected:** storing every version whole. Simpler and correct, and it is what
+the code falls back to when a diff would be larger than the file it describes —
+which happens on genuinely small sources and is why a later snapshot is allowed
+to be full. Storing every version that way is what the ticket's storage
+projection exists to rule out.
+
+### Drafts and snapshots are different things, not two copies of one
+
+D24 deferred F3.1's "server snapshot every 60s" to this ticket rather than
+building a second home for the user's code. That resolves here: localStorage
+holds the **draft** — latest text, per browser, so a reload loses nothing —
+while `code_snapshots` holds the **history**, server-side and immutable. One is
+overwritten constantly and belongs to a device; the other belongs to a sitting.
+
+---
+
+## D26 · Vercel Queue dispatches IDs; Neon owns execution truth
+
+**Context:** In-process execution cannot survive a serverless suspend. Automatic
+provider failover can execute the same untrusted submission twice, while a queue
+and a relational transaction cannot atomically commit together.
+
+Vercel Queue push mode carries only a version and execution job UUID. The Neon
+row is also a transactional outbox: it is committed before publishing, the UUID
+is the Queue idempotency key, and a daily authenticated reconciler republishes
+undispatched rows. At-least-once delivery is fenced by an atomic row claim,
+75-second renewable lease and unique `run_attempts.job_id`; learning effects and
+terminal completion share the attempt transaction.
+
+Vercel Sandbox is the explicit production backend. A submission gets one
+ephemeral, network-denied VM and is compiled once. Cases get separate temporary
+workspaces, while expected output stays in the consumer. Judge0 remains an
+explicit optional selection, never automatic fallback. Fake execution is local
+only and cannot pass production configuration validation.
+
+**Cost:** a crash after Neon commit but before Queue publish can wait for the
+Hobby plan's daily cron, and a crash after Sandbox execution but before database
+finalization can spend duplicate CPU. Database effects remain exactly once.
+Keep the feature disabled until the digest-pinned image proves its cgroup,
+namespace, egress and cleanup contracts in a controlled preview.

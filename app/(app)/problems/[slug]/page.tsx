@@ -11,6 +11,10 @@ import { StatCard } from '@/components/ui/StatCard';
 import { getDb } from '@/server/db';
 import { ProblemNotFoundError, getProblemBySlug } from '@/server/services/problems';
 import { getCurrentUser } from '@/server/services/auth/session';
+import { StartSolvingButton } from '@/components/session/StartSolvingButton';
+import { AttemptHistory, LastAttemptPanel } from '@/components/session/AttemptHistory';
+import { getAttemptHistory } from '@/server/services/reflection';
+import { startSessionAction } from '../../sessions/actions';
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '—';
@@ -38,14 +42,26 @@ export default async function ProblemDetailPage({
 
   const attempt = problem.history[0];
 
+  /*
+   * Every finished session on this problem (F1.5). Empty for a signed-out
+   * visitor, who has no history to show and no session to have started.
+   */
+  const history = user
+    ? await getAttemptHistory(getDb(), {
+        userId: user.id,
+        problemId: problem.id,
+        now: new Date(),
+      })
+    : [];
+
   return (
     <>
       <PageHeader
         title={problem.title}
         description={
           problem.sourceType === 'external_link'
-            ? `Hosted on ${problem.platform ?? 'an external platform'} — TraceLoop tracks how you solve it.`
-            : 'An original TraceLoop problem.'
+            ? `Hosted on ${problem.platform ?? 'an external platform'} — Quadrantcode tracks how you solve it.`
+            : 'An original Quadrantcode problem.'
         }
         actions={
           problem.externalUrl ? (
@@ -96,47 +112,33 @@ export default async function ProblemDetailPage({
         )}
       </section>
 
+      {/*
+        F1.5 · the panel first, then the timeline.
+        Reopening a solved problem should answer "what did I do last time?"
+        before it offers the whole history — that is the question someone coming
+        back to a problem is actually asking.
+      */}
+      {history[0] ? <LastAttemptPanel attempt={history[0]} /> : null}
+
       <section className="mb-8">
-        <h2 className="mb-2 text-lg font-semibold">Your history</h2>
-        {attempt ? (
-          <dl className="grid gap-2 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-[var(--text-muted)]">Status</dt>
-              <dd>{attempt.status}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--text-muted)]">Last attempted</dt>
-              <dd>{attempt.lastAttemptedAt?.toLocaleDateString() ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--text-muted)]">First solved</dt>
-              <dd>{attempt.firstSolvedAt?.toLocaleDateString() ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--text-muted)]">Confidence</dt>
-              <dd>{attempt.confidence ?? '—'}</dd>
-            </div>
-          </dl>
-        ) : (
-          <p className="text-sm text-[var(--text-muted)]">
-            You haven&apos;t attempted this problem yet.
-          </p>
-        )}
+        <h2 className="mb-3 text-lg font-semibold">Your attempts</h2>
+        <AttemptHistory attempts={history} />
       </section>
 
-      {/*
-        The solve-session CTA is wired in F1.4 (session-timer). Rendering a
-        disabled control now, rather than a working-looking one, keeps the page
-        honest about what exists.
-      */}
-      <button
-        className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-muted)]"
-        disabled
-        title="Timed solve sessions arrive with F1.4"
-        type="button"
-      >
-        Start solving (coming in F1.4)
-      </button>
+      {/* F1.4 · the timer itself lives in the layout, on every screen. */}
+      <div className="flex flex-wrap items-center gap-4">
+        <StartSolvingButton onStart={startSessionAction} problemId={problem.id} />
+
+        {/*
+          A separate door from the timer on purpose. Starting a session is a
+          commitment; opening a scratchpad to try one idea is not, and making
+          the editor reachable only through the timer would turn the timer into
+          a toll booth.
+        */}
+        <Link className="text-sm underline" href={`/problems/${problem.slug}/solve`}>
+          Open the editor
+        </Link>
+      </div>
 
       <p className="mt-8 text-xs text-[var(--text-muted)]">
         <Link className="underline" href="/problems">

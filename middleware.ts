@@ -15,12 +15,34 @@
  * that carries a session; it lets it through and the layout answers 403.
  */
 import { type NextRequest, NextResponse } from 'next/server';
+import { REQUEST_ID_HEADER, resolveRequestId } from '@/server/lib/observability/request-id';
+import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
 
-const SESSION_COOKIES = ['__Secure-traceloop.session', 'traceloop.session'];
+const SESSION_COOKIES = ['__Secure-quadrantcode.session', 'quadrantcode.session'];
 
+/**
+ * Every signed-in-only page prefix.
+ *
+ * **`/analytics` and `/mistakes` were missing** — added by F1.6 and F3.5, never
+ * added here. Neither leaked data: both pages call `requireCurrentUser()`,
+ * which throws before any query runs. But an anonymous visitor got a 500 error
+ * page instead of a redirect to login, and the first layer of defence was
+ * absent on two routes.
+ *
+ * Found by F4.8's route enumeration, which is exactly the kind of drift a
+ * hand-maintained list acquires. `tests/security/routes.test.ts` now compares
+ * this array against the routes that exist on disk, so the next omission fails
+ * a test rather than waiting for an audit.
+ */
 const PROTECTED_PREFIXES = [
   '/admin',
+  // /onboarding is signed-in-only despite living in the (auth) group.
+  '/onboarding',
+  '/analytics',
+  '/assessments',
+  '/companies',
   '/dashboard',
+  '/mistakes',
   '/problems',
   '/sessions',
   '/revision',
@@ -30,17 +52,64 @@ const PROTECTED_PREFIXES = [
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
+  /*
+   * F4.6 · every request gets an id, before anything else happens.
+   *
+   * Here rather than in each route handler for the same reason redaction is in
+   * the logger: a rule applied per handler holds until somebody adds a handler.
+   * Middleware runs first and runs for everything.
+   *
+   * An id supplied upstream is honoured so a trace can start before us, and
+   * `resolveRequestId` caps and strips it — the value lands in every log line
+   * for the request, so an unbounded one is a way to write megabytes into a log
+   * file with a single call.
+   */
+  const requestId = resolveRequestId(request.headers.get(REQUEST_ID_HEADER));
+
+  /** Attach the id to a response, so a caller can quote it in a bug report. */
+  const withId = (response: NextResponse): NextResponse => {
+    response.headers.set(REQUEST_ID_HEADER, requestId);
+    return response;
+  };
+
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
-  if (!isProtected) return NextResponse.next();
+  if (!isProtected) {
+    const headers = new Headers(request.headers);
+    headers.set(REQUEST_ID_HEADER, requestId);
+    return withId(NextResponse.next({ request: { headers } }));
+  }
 
   const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
-  if (hasSession) return NextResponse.next();
+  if (hasSession) {
+    /*
+     * Hand the requested path down to the (app) layout.
+     *
+     * That layout redirects an un-onboarded user to /onboarding, and
+     * /onboarding honours `returnTo` — but a Next layout is not given the
+     * pathname, so without this header the gate could only ever send everyone
+     * to the default destination. A first-time user clicking a magic link to
+     * /problems would silently land on /dashboard instead.
+     *
+     * It is a REQUEST header, so it is not observable by the browser, and the
+     * layout re-validates it through lib/auth/return-to.ts regardless — same
+     * rule as the returnTo below: middleware attaches, it is not trusted.
+     */
+    const headers = new Headers(request.headers);
+    headers.set(PATHNAME_HEADER, `${pathname}${request.nextUrl.search}`);
+    headers.set(REQUEST_ID_HEADER, requestId);
+    return withId(NextResponse.next({ request: { headers } }));
+  }
 
-  const signIn = new URL('/sign-in', request.url);
-  signIn.searchParams.set('callbackUrl', pathname);
-  return NextResponse.redirect(signIn);
+  /*
+   * `returnTo` carries only the PATH, and it is re-validated server-side by
+   * lib/auth/return-to.ts before any redirect uses it. Middleware attaches it;
+   * middleware does not get to be trusted about it.
+   */
+  const login = new URL('/login', request.url);
+  login.searchParams.set('returnTo', `${pathname}${request.nextUrl.search}`);
+  return withId(NextResponse.redirect(login));
 }
 
 export const config = {

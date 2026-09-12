@@ -10,9 +10,14 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+  const url =
+    process.env.DIRECT_DATABASE_URL ??
+    process.env.DATABASE_URL_UNPOOLED ??
+    process.env.DATABASE_URL;
   if (!url) {
-    throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL must be set to run migrations.');
+    throw new Error(
+      'DIRECT_DATABASE_URL, DATABASE_URL_UNPOOLED or DATABASE_URL must be set to run migrations.',
+    );
   }
 
   const client = postgres(url, { max: 1 });

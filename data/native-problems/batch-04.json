@@ -1,0 +1,2167 @@
+{
+  "schemaVersion": 1,
+  "batch": 4,
+  "reviewStatus": "needs_review",
+  "problems": [
+    {
+      "slug": "warehouse-rank-gateway",
+      "title": "Warehouse Rank Gateway",
+      "difficulty": "easy",
+      "primaryTopic": "binary-search",
+      "topics": ["binary-search", "lower-bound"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Warehouse Rank Gateway is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise first valid sorted position result before the next decision can be made.",
+      "statement": "Implement the required function for Warehouse Rank Gateway. Interpret the supplied sequence exactly as described in the input contract, compute the first valid sorted position, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the query target. values[1..] is a nondecreasing sorted sequence.",
+      "outputFormat": "Return the zero-based position inside the sorted sequence where target first could appear.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "values[1..] is sorted in nondecreasing order",
+        "The answer may equal the sequence length."
+      ],
+      "examples": [
+        {
+          "input": "5 1 3 5 5 8",
+          "output": "2",
+          "explanation": "Example 1 follows the stated first valid sorted position process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "4 1 3 5 7",
+          "output": "2",
+          "explanation": "Example 2 follows the stated first valid sorted position process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 1 3 5 5 8",
+          "expectedOutput": "2",
+          "explanation": "Applying the first valid sorted position rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "4 1 3 5 7",
+          "expectedOutput": "2",
+          "explanation": "Applying the first valid sorted position rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 2 2",
+          "expectedOutput": "0",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "199 0 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 92 94 96 98 100 102 104 106 108 110 112 114 116 118 120 122 124 126 128 130 132 134 136 138 140 142 144 146 148 150 152 154 156 158 160 162 164 166 168 170 172 174 176 178 180 182 184 186 188 190 192 194 196 198 200 202 204 206 208 210 212 214 216 218 220 222 224 226 228 230 232 234 236 238 240 242 244 246 248 250 252 254 256 258 260 262 264 266 268 270 272 274 276 278 280 282 284 286 288 290 292 294 296 298 300 302 304 306 308 310 312 314 316 318 320 322 324 326 328 330 332 334 336 338 340 342 344 346 348 350 352 354 356 358 360 362 364 366 368 370 372 374 376 378 380 382 384 386 388 390 392 394 396 398",
+          "expectedOutput": "100",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-5 -4 -3 0 9",
+          "expectedOutput": "0",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Maintain a half-open search interval [low, high).",
+        "When the middle value is at least the target, keep the middle position in the candidate interval."
+      ],
+      "editorial": {
+        "overview": "Binary search for the first element that is not smaller than the target, using the sequence after the first input cell.",
+        "bruteForceApproach": "Scan from the beginning until an element is at least the target.",
+        "optimalApproach": "Repeatedly halve a half-open interval. Move high to mid when the middle is large enough; otherwise move low past mid.",
+        "correctnessProof": "All indices below low are known smaller than target and every valid answer remains below high. Each update preserves these invariants and shrinks the interval. At low = high, that index is the first possible insertion position.",
+        "timeComplexity": "O(log n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){if(!n)return 0;int l=1,r=n;while(l<r){int m=l+(r-l)/2;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;return lower_bound(v.begin()+1,v.end(),v[0])-(v.begin()+1);}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;int l=1,r=v.length;while(l<r){int m=(l+r)>>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    import bisect\n    return bisect.bisect_left(v[1:],v[0])"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;let l=1,r=v.length;while(l<r){const m=(l+r)>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "library-call-number-slot",
+      "title": "Library Call Number Slot",
+      "difficulty": "medium",
+      "primaryTopic": "binary-search",
+      "topics": ["binary-search", "lower-bound"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Library Call Number Slot is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise first valid sorted position result before the next decision can be made.",
+      "statement": "Implement the required function for Library Call Number Slot. Interpret the supplied sequence exactly as described in the input contract, compute the first valid sorted position, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the query target. values[1..] is a nondecreasing sorted sequence.",
+      "outputFormat": "Return the zero-based position inside the sorted sequence where target first could appear.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "values[1..] is sorted in nondecreasing order",
+        "The answer may equal the sequence length."
+      ],
+      "examples": [
+        {
+          "input": "5 1 3 5 5 8",
+          "output": "2",
+          "explanation": "Example 1 follows the stated first valid sorted position process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "4 1 3 5 7",
+          "output": "2",
+          "explanation": "Example 2 follows the stated first valid sorted position process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 1 3 5 5 8",
+          "expectedOutput": "2",
+          "explanation": "Applying the first valid sorted position rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "4 1 3 5 7",
+          "expectedOutput": "2",
+          "explanation": "Applying the first valid sorted position rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 2 2",
+          "expectedOutput": "0",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "199 0 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 92 94 96 98 100 102 104 106 108 110 112 114 116 118 120 122 124 126 128 130 132 134 136 138 140 142 144 146 148 150 152 154 156 158 160 162 164 166 168 170 172 174 176 178 180 182 184 186 188 190 192 194 196 198 200 202 204 206 208 210 212 214 216 218 220 222 224 226 228 230 232 234 236 238 240 242 244 246 248 250 252 254 256 258 260 262 264 266 268 270 272 274 276 278 280 282 284 286 288 290 292 294 296 298 300 302 304 306 308 310 312 314 316 318 320 322 324 326 328 330 332 334 336 338 340 342 344 346 348 350 352 354 356 358 360 362 364 366 368 370 372 374 376 378 380 382 384 386 388 390 392 394 396 398",
+          "expectedOutput": "100",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-5 -4 -3 0 9",
+          "expectedOutput": "0",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Maintain a half-open search interval [low, high).",
+        "When the middle value is at least the target, keep the middle position in the candidate interval."
+      ],
+      "editorial": {
+        "overview": "Binary search for the first element that is not smaller than the target, using the sequence after the first input cell.",
+        "bruteForceApproach": "Scan from the beginning until an element is at least the target.",
+        "optimalApproach": "Repeatedly halve a half-open interval. Move high to mid when the middle is large enough; otherwise move low past mid.",
+        "correctnessProof": "All indices below low are known smaller than target and every valid answer remains below high. Each update preserves these invariants and shrinks the interval. At low = high, that index is the first possible insertion position.",
+        "timeComplexity": "O(log n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){if(!n)return 0;int l=1,r=n;while(l<r){int m=l+(r-l)/2;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;return lower_bound(v.begin()+1,v.end(),v[0])-(v.begin()+1);}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;int l=1,r=v.length;while(l<r){int m=(l+r)>>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    import bisect\n    return bisect.bisect_left(v[1:],v[0])"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;let l=1,r=v.length;while(l<r){const m=(l+r)>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "production-limit-position",
+      "title": "Production Limit Position",
+      "difficulty": "easy",
+      "primaryTopic": "binary-search",
+      "topics": ["binary-search", "lower-bound"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Production Limit Position is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise first valid sorted position result before the next decision can be made.",
+      "statement": "Implement the required function for Production Limit Position. Interpret the supplied sequence exactly as described in the input contract, compute the first valid sorted position, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "values[0] is the query target. values[1..] is a nondecreasing sorted sequence.",
+      "outputFormat": "Return the zero-based position inside the sorted sequence where target first could appear.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= values.length <= 200001",
+        "values[1..] is sorted in nondecreasing order",
+        "The answer may equal the sequence length."
+      ],
+      "examples": [
+        {
+          "input": "5 1 3 5 5 8",
+          "output": "2",
+          "explanation": "Example 1 follows the stated first valid sorted position process. Every contributing value is visible in the input, and the computed result is 2."
+        },
+        {
+          "input": "4 1 3 5 7",
+          "output": "2",
+          "explanation": "Example 2 follows the stated first valid sorted position process. Every contributing value is visible in the input, and the computed result is 2."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 1 3 5 5 8",
+          "expectedOutput": "2",
+          "explanation": "Applying the first valid sorted position rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "4 1 3 5 7",
+          "expectedOutput": "2",
+          "explanation": "Applying the first valid sorted position rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 2 2",
+          "expectedOutput": "0",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "199 0 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 92 94 96 98 100 102 104 106 108 110 112 114 116 118 120 122 124 126 128 130 132 134 136 138 140 142 144 146 148 150 152 154 156 158 160 162 164 166 168 170 172 174 176 178 180 182 184 186 188 190 192 194 196 198 200 202 204 206 208 210 212 214 216 218 220 222 224 226 228 230 232 234 236 238 240 242 244 246 248 250 252 254 256 258 260 262 264 266 268 270 272 274 276 278 280 282 284 286 288 290 292 294 296 298 300 302 304 306 308 310 312 314 316 318 320 322 324 326 328 330 332 334 336 338 340 342 344 346 348 350 352 354 356 358 360 362 364 366 368 370 372 374 376 378 380 382 384 386 388 390 392 394 396 398",
+          "expectedOutput": "100",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-5 -4 -3 0 9",
+          "expectedOutput": "0",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Maintain a half-open search interval [low, high).",
+        "When the middle value is at least the target, keep the middle position in the candidate interval."
+      ],
+      "editorial": {
+        "overview": "Binary search for the first element that is not smaller than the target, using the sequence after the first input cell.",
+        "bruteForceApproach": "Scan from the beginning until an element is at least the target.",
+        "optimalApproach": "Repeatedly halve a half-open interval. Move high to mid when the middle is large enough; otherwise move low past mid.",
+        "correctnessProof": "All indices below low are known smaller than target and every valid answer remains below high. Each update preserves these invariants and shrinks the interval. At low = high, that index is the first possible insertion position.",
+        "timeComplexity": "O(log n)",
+        "spaceComplexity": "O(1)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){if(!n)return 0;int l=1,r=n;while(l<r){int m=l+(r-l)/2;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;return lower_bound(v.begin()+1,v.end(),v[0])-(v.begin()+1);}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;int l=1,r=v.length;while(l<r){int m=(l+r)>>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    import bisect\n    return bisect.bisect_left(v[1:],v[0])"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){if(!v.length)return 0;let l=1,r=v.length;while(l<r){const m=(l+r)>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "skyline-banner-area",
+      "title": "Skyline Banner Area",
+      "difficulty": "hard",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Skyline Banner Area is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Skyline Banner Area. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "warehouse-stack-footprint",
+      "title": "Warehouse Stack Footprint",
+      "difficulty": "medium",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Warehouse Stack Footprint is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Warehouse Stack Footprint. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "histogram-signal-block",
+      "title": "Histogram Signal Block",
+      "difficulty": "easy",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Histogram Signal Block is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Histogram Signal Block. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "festival-stall-rectangle",
+      "title": "Festival Stall Rectangle",
+      "difficulty": "medium",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Festival Stall Rectangle is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Festival Stall Rectangle. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "server-load-plateau",
+      "title": "Server Load Plateau",
+      "difficulty": "easy",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Server Load Plateau is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Server Load Plateau. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "terrain-profile-rectangle",
+      "title": "Terrain Profile Rectangle",
+      "difficulty": "hard",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Terrain Profile Rectangle is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Terrain Profile Rectangle. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "factory-bar-span",
+      "title": "Factory Bar Span",
+      "difficulty": "medium",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "largest-rectangle"],
+      "problemType": "function",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Factory Bar Span is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
+      "statement": "Implement the required function for Factory Bar Span. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
+      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "0 <= values[i] <= 1000000000",
+        "The result fits in a signed 64-bit integer."
+      ],
+      "examples": [
+        {
+          "input": "2 1 5 6 2 3",
+          "output": "10",
+          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+        },
+        {
+          "input": "2 4",
+          "output": "4",
+          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 1 5 6 2 3",
+          "expectedOutput": "10",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 4",
+          "expectedOutput": "4",
+          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "",
+          "expectedOutput": "0",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3",
+          "expectedOutput": "9",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
+          "expectedOutput": "150",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 4 3 2 1",
+          "expectedOutput": "9",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "A bar can extend until the first smaller bar on each side.",
+        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+      ],
+      "editorial": {
+        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
+        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
+        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
+        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
+        "timeComplexity": "O(n)",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "displayName": "C",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const long long *values, int n)",
+          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+        },
+        "cpp17": {
+          "displayName": "C++",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "long long solve(const vector<long long>& values)",
+          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+        },
+        "java": {
+          "displayName": "Java",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "static long solve(long[] values)",
+          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
+          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+        },
+        "python3": {
+          "displayName": "Python",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "def solve(values: list[int]) -> int",
+          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
+          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+        },
+        "javascript": {
+          "displayName": "JavaScript",
+          "runtimeVersion": null,
+          "judge0LanguageId": null,
+          "functionSignature": "function solve(values)",
+          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
+          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
+          "serialization": {
+            "input": "Whitespace-separated signed integers read into values.",
+            "output": "One signed integer.",
+            "equality": "exact_json"
+          },
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { problemTags, problems } from '@/server/db/schema';
+import { normaliseProblemUrl } from '@/server/services/ingest/normalise-url';
 import { SEED_PROBLEMS } from './seed-problems';
 
 export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<number> {
@@ -23,6 +24,15 @@ export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<numb
         sourceType: 'external_link',
         platform: problem.platform,
         externalUrl: problem.externalUrl,
+        /*
+         * F1.2 dedup key. This script writes to `problems` DIRECTLY rather than
+         * through `createProblem`, so it does not inherit the derivation on that
+         * path and has to do it here. Same function, so the two cannot disagree
+         * — and `tests/ingest/dedup.test.ts` asserts every stored row matches
+         * `normaliseProblemUrl(external_url)`, which is what catches a third
+         * write path being added without this line.
+         */
+        externalUrlNormalised: normaliseProblemUrl(problem.externalUrl),
         difficulty: problem.difficulty,
         estimatedMinutes: problem.estimatedMinutes,
         isPremium: false,
@@ -36,6 +46,7 @@ export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<numb
           title: problem.title,
           platform: problem.platform,
           externalUrl: problem.externalUrl,
+          externalUrlNormalised: normaliseProblemUrl(problem.externalUrl),
           difficulty: problem.difficulty,
           estimatedMinutes: problem.estimatedMinutes,
           status: 'published',
