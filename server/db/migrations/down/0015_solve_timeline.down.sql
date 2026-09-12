@@ -23,7 +23,7 @@
 
 DROP TRIGGER IF EXISTS session_events_append_only ON session_events;
 --> statement-breakpoint
-DROP FUNCTION IF EXISTS traceloop_reject_event_mutation();
+DROP FUNCTION IF EXISTS quadrantcode_reject_event_mutation();
 --> statement-breakpoint
 DROP TABLE IF EXISTS "code_snapshots";
 --> statement-breakpoint

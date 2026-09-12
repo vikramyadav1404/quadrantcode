@@ -30,7 +30,7 @@ async function hit(path: string, token?: string) {
   const response = await fetch(`${BASE}${path}`, {
     redirect: 'manual',
     headers: token
-      ? { cookie: `${process.env.COOKIE_NAME ?? 'traceloop.session'}=${token}` }
+      ? { cookie: `${process.env.COOKIE_NAME ?? 'quadrantcode.session'}=${token}` }
       : {},
   });
   return { status: response.status, location: response.headers.get('location') };

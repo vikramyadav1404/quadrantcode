@@ -18,7 +18,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 const AUTH_SECRET = process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production';
 
 /** Production uses the __Secure- prefix; `next start` sets NODE_ENV=production. */
-export const SESSION_COOKIE = '__Secure-traceloop.session';
+export const SESSION_COOKIE = '__Secure-quadrantcode.session';
 
 export function db() {
   const url = process.env.TEST_DATABASE_URL;
@@ -95,7 +95,7 @@ export async function signInAs(
    * the assertion, which is a confusing way to learn about a cascade.
    */
   await sql.begin(async (tx) => {
-    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
     await tx`DELETE FROM users WHERE email = ${email.toLowerCase()}`;
   });
 
@@ -144,7 +144,7 @@ export async function signInAs(
  * ## Why this needs a transaction and a flag
  *
  * F3.2 made `session_events` append-only with a trigger that refuses DELETE
- * unless `traceloop.purging` is set. Deleting a user cascades into their
+ * unless `quadrantcode.purging` is set. Deleting a user cascades into their
  * sessions and then into that table, so a plain `DELETE FROM users` is refused
  * — which is the trigger working, not a bug in it.
  *
@@ -158,7 +158,7 @@ export async function signInAs(
  */
 export async function cleanup(sql: ReturnType<typeof postgres>): Promise<void> {
   await sql.begin(async (tx) => {
-    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
     await tx`DELETE FROM users WHERE email LIKE '%@e2e.test'`;
     await tx`DELETE FROM auth_verification_tokens WHERE identifier LIKE '%@e2e.test'`;
   });
@@ -175,7 +175,7 @@ export async function deleteProblems(
   slugPattern: string,
 ): Promise<void> {
   await sql.begin(async (tx) => {
-    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
     await tx`DELETE FROM problems WHERE slug LIKE ${slugPattern}`;
   });
 }

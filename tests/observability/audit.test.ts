@@ -89,7 +89,7 @@ suite('F4.6 · the audit log', () => {
 
   it("THE EVENT LOG'S PURGE FLAG DOES NOT UNLOCK THIS TABLE", async () => {
     /*
-     * `session_events` allows deletion when `traceloop.purging` is set, because
+     * `session_events` allows deletion when `quadrantcode.purging` is set, because
      * a user may erase their own solve history. An audit log exists so that the
      * people with power over other people's data cannot quietly erase what they
      * did — handing them the same flag would hand them the eraser.
@@ -98,7 +98,7 @@ suite('F4.6 · the audit log', () => {
 
     await expectDbRejection(
       ctx.db.transaction(async (tx) => {
-        await tx.execute(sql`select set_config('traceloop.purging', 'on', true)`);
+        await tx.execute(sql`select set_config('quadrantcode.purging', 'on', true)`);
         await tx.execute(sql`delete from audit_logs`);
       }),
       /append-only/,

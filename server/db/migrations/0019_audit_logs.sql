@@ -23,7 +23,7 @@ CREATE INDEX "audit_logs_target_idx" ON "audit_logs" USING btree ("target");--> 
 -- them the eraser. `actor_id` deliberately has no foreign key for the same
 -- reason: deleting an admin account must not cascade away everything that
 -- admin ever did.
-CREATE OR REPLACE FUNCTION traceloop_reject_audit_mutation()
+CREATE OR REPLACE FUNCTION quadrantcode_reject_audit_mutation()
 RETURNS TRIGGER AS $$
 BEGIN
   RAISE EXCEPTION 'audit_logs is append-only (attempted %)', TG_OP
@@ -34,4 +34,4 @@ $$ LANGUAGE plpgsql;
 --> statement-breakpoint
 CREATE TRIGGER audit_logs_append_only
 BEFORE UPDATE OR DELETE ON audit_logs
-FOR EACH ROW EXECUTE FUNCTION traceloop_reject_audit_mutation();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_reject_audit_mutation();

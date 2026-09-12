@@ -74,7 +74,7 @@ async function main(): Promise<void> {
    */
   await db.execute(sql`
     insert into users (email, timezone, email_verified_at)
-    values ('loadtest@traceloop.local', 'Asia/Kolkata', now())
+    values ('loadtest@quadrantcode.local', 'Asia/Kolkata', now())
     on conflict (email) do nothing
   `);
 

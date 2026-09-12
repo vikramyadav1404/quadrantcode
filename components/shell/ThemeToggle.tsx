@@ -22,7 +22,7 @@ export function ThemeToggle() {
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
     try {
-      localStorage.setItem('traceloop-theme', next);
+      localStorage.setItem('quadrantcode-theme', next);
     } catch {
       // Private mode or blocked storage — the toggle still works for this page.
     }

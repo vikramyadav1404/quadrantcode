@@ -132,7 +132,7 @@ build-, test- or client-side values outside the server schema.
 | Var                                                              | Why it is absent                                                     |
 | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `VERCEL`, `VERCEL_ENV`, `NEXT_PUBLIC_VERCEL_ENV`, `NEXT_RUNTIME` | Injected by the platform; you never set them                         |
-| `TRACELOOP_ROLE`                                                 | The app sets it itself (`worker/index.ts:23`)                        |
+| `QUADRANTCODE_ROLE`                                              | The app sets it itself (`worker/index.ts:23`)                        |
 | `E2E_EMAIL_CAPTURE`                                              | Test harness; `check-deployment-env.ts:9` refuses it in a deployment |
 | `BASE_URL`, `COOKIE_NAME`                                        | `scripts/verify-admin-403.ts`, local only, both defaulted            |
 | `DEMO_BASE_URL`                                                  | `scripts/demo-walkthrough.ts`, local only, defaulted                 |

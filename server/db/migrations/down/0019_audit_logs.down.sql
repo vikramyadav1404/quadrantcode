@@ -10,6 +10,6 @@
 -- infrastructure section covers. Dump this table before rolling back.
 DROP TRIGGER IF EXISTS audit_logs_append_only ON audit_logs;
 --> statement-breakpoint
-DROP FUNCTION IF EXISTS traceloop_reject_audit_mutation();
+DROP FUNCTION IF EXISTS quadrantcode_reject_audit_mutation();
 --> statement-breakpoint
 DROP TABLE IF EXISTS "audit_logs";

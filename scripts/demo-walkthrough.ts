@@ -28,8 +28,8 @@ const outDir = (width: number) => join(process.cwd(), '.playwright', 'demo', Str
 /**
  * The cookie Auth.js reads — and its name depends on `NODE_ENV`.
  *
- * `server/services/auth/config.ts` uses `__Secure-traceloop.session` in
- * production and `traceloop.session` otherwise. Rather than guess which one the
+ * `server/services/auth/config.ts` uses `__Secure-quadrantcode.session` in
+ * production and `quadrantcode.session` otherwise. Rather than guess which one the
  * running server chose, this sets both: the wrong one is ignored, and a
  * walkthrough script that fails because it picked the wrong environment tells
  * you nothing about the app.
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
 
   await context.addCookies([
     {
-      name: '__Secure-traceloop.session',
+      name: '__Secure-quadrantcode.session',
       value: token,
       domain: hostname,
       path: '/',
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
       sameSite: 'Lax',
     },
     {
-      name: 'traceloop.session',
+      name: 'quadrantcode.session',
       value: token,
       domain: hostname,
       path: '/',

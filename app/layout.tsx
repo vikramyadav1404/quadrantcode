@@ -30,7 +30,7 @@ export const metadata: Metadata = {
  * light preference.
  */
 const THEME_BOOTSTRAP = `
-(function(){try{var t=localStorage.getItem('traceloop-theme');
+(function(){try{var t=localStorage.getItem('quadrantcode-theme');
 if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 `;
 

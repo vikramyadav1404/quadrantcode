@@ -20,7 +20,7 @@ import { getServerEnv } from '@/server/env';
 import { allFeatureFlags } from '@/lib/flags';
 import { closeDb } from '@/server/db/client';
 
-process.env.TRACELOOP_ROLE = 'worker';
+process.env.QUADRANTCODE_ROLE = 'worker';
 
 /** Run in order on shutdown. */
 const shutdownHooks: Array<() => Promise<void>> = [];

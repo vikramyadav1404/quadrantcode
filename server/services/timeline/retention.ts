@@ -23,7 +23,7 @@ import { codeSnapshots, sessionEvents, solveSessions } from '@/server/db/schema'
 import { SNAPSHOT_RETENTION_DAYS } from '@/lib/timeline/events';
 
 /** The flag the append-only trigger checks. Named once, here. */
-export const PURGE_FLAG = 'traceloop.purging';
+export const PURGE_FLAG = 'quadrantcode.purging';
 
 /**
  * Permit deletion for the rest of this transaction.
