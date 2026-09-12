@@ -87,7 +87,7 @@ test.describe('F3.1b · /api/cron/executions/reconcile', () => {
     });
 
     expect(response.status()).toBe(200);
-    expect(response.headers()['set-cookie'] ?? '').not.toContain('traceloop.session');
+    expect(response.headers()['set-cookie'] ?? '').not.toContain('quadrantcode.session');
   });
 });
 

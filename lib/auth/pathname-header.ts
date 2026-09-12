@@ -11,4 +11,4 @@
  * browser and is never something a client can forge on a normal navigation.
  * Consumers re-validate it anyway.
  */
-export const PATHNAME_HEADER = 'x-traceloop-pathname';
+export const PATHNAME_HEADER = 'x-quadrantcode-pathname';

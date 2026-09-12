@@ -56,10 +56,10 @@ CREATE INDEX "code_snapshots_user_created_idx" ON "code_snapshots" USING btree (
 --
 -- `current_setting(..., true)` returns NULL rather than raising when the flag
 -- was never set, which is the normal case on every other transaction.
-CREATE OR REPLACE FUNCTION traceloop_reject_event_mutation()
+CREATE OR REPLACE FUNCTION quadrantcode_reject_event_mutation()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF coalesce(current_setting('traceloop.purging', true), '') = 'on' THEN
+  IF coalesce(current_setting('quadrantcode.purging', true), '') = 'on' THEN
     RETURN OLD;
   END IF;
 
@@ -71,4 +71,4 @@ $$ LANGUAGE plpgsql;
 --> statement-breakpoint
 CREATE TRIGGER session_events_append_only
 BEFORE UPDATE OR DELETE ON session_events
-FOR EACH ROW EXECUTE FUNCTION traceloop_reject_event_mutation();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_reject_event_mutation();

@@ -46,7 +46,7 @@ export type ExecutionResultView = {
 
 /** Where localStorage keeps a draft. Per problem AND per language, as the ticket asks. */
 export function draftKey(problemId: string, language: ExecutionLanguage): string {
-  return `traceloop:draft:${problemId}:${language}`;
+  return `quadrantcode:draft:${problemId}:${language}`;
 }
 
 /** `120 ms` / `1.4 s`. Em dash when the provider reported nothing. */

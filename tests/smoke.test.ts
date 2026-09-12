@@ -16,7 +16,7 @@ import {
 
 const validEnv = {
   NODE_ENV: 'test',
-  DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/traceloop',
+  DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/quadrantcode',
   NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
 };
 
@@ -37,7 +37,7 @@ describe('server/env + lib/env', () => {
 
   it('rejects a malformed variable rather than passing it through', () => {
     expect(() =>
-      serverEnv.parseServerEnv({ ...validEnv, DATABASE_URL: 'mysql://localhost/traceloop' }),
+      serverEnv.parseServerEnv({ ...validEnv, DATABASE_URL: 'mysql://localhost/quadrantcode' }),
     ).toThrowError(/postgres:\/\/ or postgresql:\/\//);
   });
 

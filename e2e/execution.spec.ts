@@ -30,8 +30,8 @@ const EMAIL = 'execution@e2e.test';
 const SLUG = 'exec-two-sum-style';
 
 /** Both payloads the criterion names, in one stdin. */
-const SCRIPT_PAYLOAD = '<script>window.__traceloopPwned = true;</script>';
-const IMG_PAYLOAD = '<img src=x onerror="window.__traceloopPwned = true">';
+const SCRIPT_PAYLOAD = '<script>window.__quadrantcodePwned = true;</script>';
+const IMG_PAYLOAD = '<img src=x onerror="window.__quadrantcodePwned = true">';
 
 test.beforeAll(async () => {
   sql = db();
@@ -69,14 +69,14 @@ test('program output containing script tags renders as text and does not run', a
    */
   await page.evaluate(() => {
     const script = document.createElement('script');
-    script.textContent = 'window.__traceloopPwned = true;';
+    script.textContent = 'window.__quadrantcodePwned = true;';
     document.body.appendChild(script);
   });
   expect(
-    await page.evaluate(() => (window as never as Record<string, unknown>).__traceloopPwned),
+    await page.evaluate(() => (window as never as Record<string, unknown>).__quadrantcodePwned),
   ).toBe(true);
   await page.evaluate(() => {
-    delete (window as never as Record<string, unknown>).__traceloopPwned;
+    delete (window as never as Record<string, unknown>).__quadrantcodePwned;
   });
 
   const stdin = page.getByLabel('Input (stdin)');
@@ -91,7 +91,7 @@ test('program output containing script tags renders as text and does not run', a
 
   // The payload is on screen. Nothing executed it.
   expect(
-    await page.evaluate(() => (window as never as Record<string, unknown>).__traceloopPwned),
+    await page.evaluate(() => (window as never as Record<string, unknown>).__quadrantcodePwned),
   ).toBeUndefined();
 
   // And it is text, not elements: no parser ever saw it as markup.

@@ -848,7 +848,7 @@ a plain `DELETE FROM users` is refused.
 their account — a path F4.8 owns and one that has to work. The failures were the
 design reporting its true price a day before production would have: every path
 that legitimately erases history must now declare itself, in a transaction, by
-setting `traceloop.purging`.
+setting `quadrantcode.purging`.
 
 The fix was not to relax the trigger to UPDATE-only. The criterion names UPDATE,
 but the spec sentence beside it says "No UPDATE, no DELETE on this table", and a

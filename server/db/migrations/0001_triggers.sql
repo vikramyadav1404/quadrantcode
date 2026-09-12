@@ -7,7 +7,7 @@
 -- 2. `updated_at` is maintained by the database, so no service can forget it.
 
 --> statement-breakpoint
-CREATE OR REPLACE FUNCTION traceloop_assert_iana_timezone()
+CREATE OR REPLACE FUNCTION quadrantcode_assert_iana_timezone()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name = NEW.timezone) THEN
@@ -22,10 +22,10 @@ $$ LANGUAGE plpgsql;
 --> statement-breakpoint
 CREATE TRIGGER users_timezone_valid
 BEFORE INSERT OR UPDATE OF timezone ON users
-FOR EACH ROW EXECUTE FUNCTION traceloop_assert_iana_timezone();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_assert_iana_timezone();
 
 --> statement-breakpoint
-CREATE OR REPLACE FUNCTION traceloop_touch_updated_at()
+CREATE OR REPLACE FUNCTION quadrantcode_touch_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
@@ -36,24 +36,24 @@ $$ LANGUAGE plpgsql;
 --> statement-breakpoint
 CREATE TRIGGER users_touch_updated_at
 BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 
 --> statement-breakpoint
 CREATE TRIGGER user_profiles_touch_updated_at
 BEFORE UPDATE ON user_profiles
-FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 
 --> statement-breakpoint
 CREATE TRIGGER problems_touch_updated_at
 BEFORE UPDATE ON problems
-FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 
 --> statement-breakpoint
 CREATE TRIGGER user_problems_touch_updated_at
 BEFORE UPDATE ON user_problems
-FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 
 --> statement-breakpoint
 CREATE TRIGGER daily_sessions_touch_updated_at
 BEFORE UPDATE ON daily_sessions
-FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();

@@ -138,7 +138,7 @@ suite('F0.2 · migrations run up and down cleanly', () => {
     const leftoverFunctions = await client`
       SELECT proname FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public' AND proname LIKE 'traceloop%'
+      WHERE n.nspname = 'public' AND proname LIKE 'quadrantcode%'
     `;
     expect(leftoverFunctions).toHaveLength(0);
 

@@ -52,7 +52,7 @@ test.afterAll(async () => {
 /** A user with a VERIFIED phone — the only kind that can sign in this way. */
 async function seedUserWithVerifiedPhone(): Promise<string> {
   await sql.begin(async (tx) => {
-    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
     await tx`DELETE FROM users WHERE email = ${EMAIL}`;
   });
 

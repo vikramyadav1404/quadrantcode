@@ -36,7 +36,7 @@ import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
 import postgres from 'postgres';
 
-const DEMO_EMAIL = 'demo@traceloop.local';
+const DEMO_EMAIL = 'demo@quadrantcode.local';
 
 const PROBLEMS = [
   ['demo-two-sum-style', 'Two Sum', 'easy', 'arrays'],
@@ -111,7 +111,7 @@ async function main(): Promise<void> {
    * with this script.
    */
   await sql.begin(async (tx) => {
-    await tx`SELECT set_config('traceloop.purging', 'on', true)`;
+    await tx`SELECT set_config('quadrantcode.purging', 'on', true)`;
     await tx`DELETE FROM users WHERE email = ${DEMO_EMAIL}`;
     await tx`DELETE FROM problems WHERE slug LIKE 'demo-%'`;
   });

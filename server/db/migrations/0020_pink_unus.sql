@@ -374,35 +374,35 @@ ALTER TABLE "run_attempts" ADD CONSTRAINT "run_attempts_server_verification_cohe
           or (not "run_attempts"."server_verified" and "run_attempts"."server_verified_at" is null));
 --> statement-breakpoint
 -- Keep updated_at database-authoritative for every mutable table introduced here.
-CREATE TRIGGER assessment_answers_touch_updated_at BEFORE UPDATE ON assessment_answers FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER assessment_answers_touch_updated_at BEFORE UPDATE ON assessment_answers FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER assessment_attempts_touch_updated_at BEFORE UPDATE ON assessment_attempts FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER assessment_attempts_touch_updated_at BEFORE UPDATE ON assessment_attempts FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER assessment_paper_questions_touch_updated_at BEFORE UPDATE ON assessment_paper_questions FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER assessment_paper_questions_touch_updated_at BEFORE UPDATE ON assessment_paper_questions FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER assessment_papers_touch_updated_at BEFORE UPDATE ON assessment_papers FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER assessment_papers_touch_updated_at BEFORE UPDATE ON assessment_papers FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER companies_touch_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER companies_touch_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER content_licenses_touch_updated_at BEFORE UPDATE ON content_licenses FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER content_licenses_touch_updated_at BEFORE UPDATE ON content_licenses FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER editorials_touch_updated_at BEFORE UPDATE ON editorials FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER editorials_touch_updated_at BEFORE UPDATE ON editorials FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER interview_report_questions_touch_updated_at BEFORE UPDATE ON interview_report_questions FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER interview_report_questions_touch_updated_at BEFORE UPDATE ON interview_report_questions FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER interview_reports_touch_updated_at BEFORE UPDATE ON interview_reports FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER interview_reports_touch_updated_at BEFORE UPDATE ON interview_reports FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER problem_company_evidence_touch_updated_at BEFORE UPDATE ON problem_company_evidence FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER problem_company_evidence_touch_updated_at BEFORE UPDATE ON problem_company_evidence FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER problem_examples_touch_updated_at BEFORE UPDATE ON problem_examples FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER problem_examples_touch_updated_at BEFORE UPDATE ON problem_examples FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER problem_language_templates_touch_updated_at BEFORE UPDATE ON problem_language_templates FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER problem_language_templates_touch_updated_at BEFORE UPDATE ON problem_language_templates FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER problem_versions_touch_updated_at BEFORE UPDATE ON problem_versions FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER problem_versions_touch_updated_at BEFORE UPDATE ON problem_versions FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER test_cases_touch_updated_at BEFORE UPDATE ON test_cases FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER test_cases_touch_updated_at BEFORE UPDATE ON test_cases FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
-CREATE TRIGGER topics_touch_updated_at BEFORE UPDATE ON topics FOR EACH ROW EXECUTE FUNCTION traceloop_touch_updated_at();
+CREATE TRIGGER topics_touch_updated_at BEFORE UPDATE ON topics FOR EACH ROW EXECUTE FUNCTION quadrantcode_touch_updated_at();
 --> statement-breakpoint
 -- Moderation history is append-only; corrections are represented by a new decision.
-CREATE TRIGGER moderation_decisions_append_only BEFORE UPDATE OR DELETE ON moderation_decisions FOR EACH ROW EXECUTE FUNCTION traceloop_reject_audit_mutation();
+CREATE TRIGGER moderation_decisions_append_only BEFORE UPDATE OR DELETE ON moderation_decisions FOR EACH ROW EXECUTE FUNCTION quadrantcode_reject_audit_mutation();

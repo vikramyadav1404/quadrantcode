@@ -469,7 +469,7 @@ directions.
 ## D15 · Middleware forwards the pathname; the layout re-validates it
 
 **Decision.** `middleware.ts` sets a request-only header
-(`x-traceloop-pathname`) on authenticated requests, and `app/(app)/layout.tsx`
+(`x-quadrantcode-pathname`) on authenticated requests, and `app/(app)/layout.tsx`
 reads it to build the `returnTo` it hands to `/onboarding`.
 
 **Why it was needed.** The onboarding gate called `redirect('/onboarding')` with
@@ -1284,7 +1284,7 @@ The spec says "No UPDATE, no DELETE on this table". Criterion #4 says deletion
 must work. Account deletion cascades through `solve_sessions` into this table.
 All three are real.
 
-So the trigger refuses unless `traceloop.purging` is set, and one module sets it
+So the trigger refuses unless `quadrantcode.purging` is set, and one module sets it
 — `server/services/timeline/retention.ts`. This is not enforcement by
 convention: without the flag, no code path, no psql session and no cascade
 removes a row. Setting it is a deliberate statement inside a transaction whose

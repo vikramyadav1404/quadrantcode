@@ -35,7 +35,7 @@ export function sessionCookie(nodeEnv: string): {
   const production = nodeEnv === 'production';
 
   return {
-    name: production ? '__Secure-traceloop.session' : 'traceloop.session',
+    name: production ? '__Secure-quadrantcode.session' : 'quadrantcode.session',
     options: {
       httpOnly: true, // unreadable from JavaScript, so XSS cannot lift it
       sameSite: 'lax', // magic links are a top-level GET; 'strict' would break them

@@ -39,7 +39,7 @@ let database: Database | undefined;
  * URL. The worker is long-lived and may hold more.
  */
 function createClient(url: string) {
-  const isWorker = process.env.TRACELOOP_ROLE === 'worker';
+  const isWorker = process.env.QUADRANTCODE_ROLE === 'worker';
   return postgres(url, {
     max: isWorker ? 10 : 3,
     idle_timeout: 20,

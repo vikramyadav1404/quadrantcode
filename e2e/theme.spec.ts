@@ -40,7 +40,7 @@ test.describe('no flash of wrong theme', () => {
 
     // Seed the preference, then reload cold.
     await page.goto('/sign-in');
-    await page.evaluate(() => localStorage.setItem('traceloop-theme', 'light'));
+    await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'light'));
 
     /*
      * The decisive assertion. `document.documentElement.dataset.theme` is read
@@ -67,7 +67,7 @@ test.describe('no flash of wrong theme', () => {
 
     const script = await page.evaluate(() => {
       const scripts = Array.from(document.head.querySelectorAll('script'));
-      const boot = scripts.find((s) => s.textContent?.includes('traceloop-theme'));
+      const boot = scripts.find((s) => s.textContent?.includes('quadrantcode-theme'));
       if (!boot) return null;
       return {
         inHead: boot.parentElement?.tagName === 'HEAD',
@@ -92,11 +92,11 @@ test.describe('no flash of wrong theme', () => {
     const page = await context.newPage();
 
     await page.goto('/sign-in');
-    await page.evaluate(() => localStorage.setItem('traceloop-theme', 'light'));
+    await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'light'));
     await page.reload({ waitUntil: 'commit' });
     expect(await appliedTheme(page)).toBe('light');
 
-    await page.evaluate(() => localStorage.setItem('traceloop-theme', 'dark'));
+    await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'dark'));
     await page.reload({ waitUntil: 'commit' });
     expect(await appliedTheme(page)).toBe('dark');
 
@@ -110,7 +110,7 @@ test.describe('no flash of wrong theme', () => {
     const page = await context.newPage();
 
     await page.goto('/sign-in');
-    await page.evaluate(() => localStorage.setItem('traceloop-theme', 'chartreuse'));
+    await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'chartreuse'));
 
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));

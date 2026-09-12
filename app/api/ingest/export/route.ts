@@ -37,8 +37,8 @@ export async function GET(): Promise<Response> {
       'content-disposition': `attachment; filename="quadrantcode-problems-${stamp}.csv"`,
       // Surfaced as headers so the UI can tell the user what was left out
       // rather than the omission being silent. See export.ts.
-      'x-traceloop-rows': String(rowCount),
-      'x-traceloop-omitted-archived': String(omittedArchived),
+      'x-quadrantcode-rows': String(rowCount),
+      'x-quadrantcode-omitted-archived': String(omittedArchived),
       'cache-control': 'no-store',
     },
   });

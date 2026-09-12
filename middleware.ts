@@ -18,7 +18,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { REQUEST_ID_HEADER, resolveRequestId } from '@/server/lib/observability/request-id';
 import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
 
-const SESSION_COOKIES = ['__Secure-traceloop.session', 'traceloop.session'];
+const SESSION_COOKIES = ['__Secure-quadrantcode.session', 'quadrantcode.session'];
 
 /**
  * Every signed-in-only page prefix.

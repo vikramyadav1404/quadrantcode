@@ -259,7 +259,7 @@ output proving each one is actually used.
 
 ```bash
 npm run test:db:start                  # embedded Postgres on :55432
-TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/traceloop_test npm test
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/quadrantcode_test npm test
 npm run test:db:stop
 ```
 
@@ -507,7 +507,7 @@ was nothing to check". The page says it is a scratchpad and links out.
 
 **`session_events` is append-only, enforced by a database trigger.** UPDATE is
 always refused. DELETE is refused too, _unless_ a transaction has set
-`traceloop.purging` — and one module may set it,
+`quadrantcode.purging` — and one module may set it,
 `server/services/timeline/retention.ts`.
 
 That exception exists because deletion is also a requirement: "delete my solve
