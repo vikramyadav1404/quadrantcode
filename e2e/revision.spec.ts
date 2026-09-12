@@ -34,10 +34,25 @@ async function seedDue(userId: string, slug: string, overdueDays: number) {
     RETURNING id
   `;
 
+  /*
+   * Counted back from the USER'S local date, not the database's.
+   *
+   * `due_local_date` is a local date, and the page computes how overdue it is
+   * with `localDateFor(new Date(), user.timezone)`. Seeding from `now()::date`
+   * used the session timezone instead — UTC — so the two disagreed whenever
+   * UTC and the user's zone were on different days, and "9 days overdue"
+   * rendered as 10. It passed locally at 15:00 UTC and failed in CI at 19:03,
+   * which is 00:33 the next day in Asia/Kolkata.
+   *
+   * Reading the timezone from the user row rather than hardcoding it keeps this
+   * correct if the fixture's timezone ever changes.
+   */
   await sql`
     INSERT INTO revision_schedule (user_id, problem_id, interval_days, due_local_date)
-    VALUES (${userId}, ${String(problem!.id)}, 3,
-            (now() - (${overdueDays} || ' days')::interval)::date)
+    SELECT ${userId}, ${String(problem!.id)}, 3,
+           timezone(u.timezone, now())::date - ${overdueDays}::int
+    FROM users u
+    WHERE u.id = ${userId}
   `;
 
   return String(problem!.id);

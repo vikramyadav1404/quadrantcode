@@ -191,10 +191,56 @@ for (const viewport of [
     await page.getByRole('button', { name: 'Editorial' }).click();
     await expect(page.getByText(/return values\[0\] directly/i)).toBeVisible();
     expect(await page.locator('body').innerText()).not.toContain(HIDDEN_SENTINEL);
+    /*
+     * The page must not scroll sideways. When it does, the number alone is
+     * useless — "2" says nothing about which element is 2px too wide, and this
+     * one reproduces on Linux and not on Windows, where font metrics differ by
+     * a hair. So the failure names the culprits.
+     *
+     * An element is reported only if it crosses the viewport edge itself.
+     * Children inside an `overflow-auto` pane scroll within it and do not widen
+     * the document, so listing them would bury the real one.
+     */
+    const overflow = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const past = doc.clientWidth;
+      const culprits: string[] = [];
+
+      /** True when an ancestor clips horizontally, so `el` cannot widen the page. */
+      const clippedByAncestor = (el: HTMLElement): boolean => {
+        for (let p = el.parentElement; p && p !== doc; p = p.parentElement) {
+          const x = getComputedStyle(p).overflowX;
+          if (x === 'auto' || x === 'scroll' || x === 'hidden') return true;
+        }
+        return false;
+      };
+
+      for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.right <= past + 0.5) continue;
+        if (clippedByAncestor(el)) continue;
+
+        const id = [
+          el.tagName.toLowerCase(),
+          el.id ? `#${el.id}` : '',
+          typeof el.className === 'string' && el.className
+            ? `.${el.className.split(/\s+/)[0]}`
+            : '',
+        ].join('');
+        culprits.push(`${id} right=${Math.round(rect.right)}`);
+      }
+
+      return {
+        px: doc.scrollWidth - doc.clientWidth,
+        viewport: past,
+        culprits: culprits.slice(0, 6),
+      };
+    });
+
     expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      ),
+      overflow.px,
+      `page scrolls sideways by ${overflow.px}px at ${overflow.viewport}px wide. ` +
+        `Elements past the edge: ${overflow.culprits.join(' | ') || '(none identified)'}`,
     ).toBeLessThanOrEqual(0);
   });
 }
