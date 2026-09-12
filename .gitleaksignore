@@ -28,3 +28,28 @@
 # changing this file should re-verify the same way, with a secret that is not
 # on somebody's known-example list.
 be8931d7605d18940d03f63b80c5c7b25a527635:server/services/execution/provider.ts:generic-api-key:150
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# F3.1b · the two places that QUOTE the line above
+#
+# The finding immediately above was documented — in this file's own comment, and
+# in the audit report that recorded it. `generic-api-key` then matched the
+# quoted text in both, so writing down the exemption created two more findings.
+# The scanner is not wrong — the matched bytes really are the key identifier.
+# They are prose about code, in a comment and in Markdown, and hold no value.
+#
+# This comment deliberately does NOT repeat the matched text, because doing so
+# is what produced the two findings it is explaining.
+#
+# BOTH PREDATE THIS BRANCH. They entered at e6e7a24 on 29 August, which is
+# already on `main`. CI did not catch them then because nothing was pushed
+# between 15 August and 11 September, so no run ever saw that commit — the
+# failure sat latent for two weeks and this branch is merely the first push to
+# surface it. It is not a regression from F3.1b or from the rename.
+#
+# Fingerprinted rather than allowlisting either path, for the reason given
+# above: `docs/security-audit.md` is exactly the file where a real key would be
+# most embarrassing to silence, and this file is where the next exemption gets
+# argued. Both must keep firing on anything new.
+e6e7a245218142f95b4af40003801c99cb4d9956:.gitleaksignore:generic-api-key:10
+e6e7a245218142f95b4af40003801c99cb4d9956:docs/security-audit.md:generic-api-key:47
