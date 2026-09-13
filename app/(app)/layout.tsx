@@ -10,6 +10,7 @@ import { redirect, unauthorized } from 'next/navigation';
 import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
 import { validateReturnTo } from '@/lib/auth/return-to';
 import { getServerEnv } from '@/server/env';
+import { timed } from '@/server/lib/observability/logger';
 import { BottomNav } from '@/components/shell/BottomNav';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
@@ -77,7 +78,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
    * confirmed one.
    */
   const now = new Date();
-  const shellState = await summariseForShell(db, user.id, localDateFor(now, user.timezone));
+  // TEMPORARY INSTRUMENTATION — see the note in app/(app)/problems/page.tsx.
+  // This one runs on EVERY signed-in page, so it is the layout's share of the
+  // cost rather than anything /problems does.
+  const shellState = await timed('shell.summary', () =>
+    summariseForShell(db, user.id, localDateFor(now, user.timezone)),
+  );
 
   /*
    * The live session, if there is one (F1.4). This read is also what closes a
