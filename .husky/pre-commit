@@ -1,4 +1,44 @@
 #!/usr/bin/env sh
+# No .env file may be committed, with .env.example as the only exception.
+#
+# WHY THIS IS HERE AND NOT LEFT TO GITLEAKS
+#
+# gitleaks runs in CI, which is AFTER the push. By the time it reports, the
+# secret is already on GitHub and in history, and cleaning up means rewriting
+# history AND rotating whatever leaked — a real key must be treated as exposed
+# the moment it reaches a remote. This refuses the commit instead, while there
+# is still nothing to undo.
+#
+# It checks NAMES, not contents, and deliberately does not try to be gitleaks.
+# The accident it stops is the likely one: `git add -f .env.local`, or a
+# `git add .` from somewhere the ignore rule does not reach.
+#
+# `git diff --cached` lists staged paths; -z plus tr survives spaces in names.
+#
+# The trailing `|| true` is REQUIRED, not defensive noise. Husky runs this file
+# as `sh -e` (see .husky/_/h), and grep exits 1 when it matches nothing — which
+# is the normal case. Without it, every ordinary commit dies here with no
+# message at all. It fails closed rather than open, so it is not dangerous, but
+# it does block all work until someone notices.
+staged_env=$(git diff --cached --name-only --diff-filter=ACMR -z |
+  tr '\0' '\n' |
+  grep -E '(^|/)\.env' |
+  grep -vE '(^|/)\.env\.example$' || true)
+
+if [ -n "$staged_env" ]; then
+  echo "pre-commit: refusing to commit an environment file." >&2
+  echo "" >&2
+  echo "$staged_env" | sed 's/^/  /' >&2
+  echo "" >&2
+  echo "These hold live credentials. Anything pushed must be treated as leaked," >&2
+  echo "so this blocks the commit rather than letting CI find it after the push." >&2
+  echo "" >&2
+  echo "  git restore --staged <file>    unstage it (the file itself is untouched)" >&2
+  echo "" >&2
+  echo "Only .env.example belongs in the repository, and only with placeholders." >&2
+  exit 1
+fi
+
 # F0.1: block the commit on lint or typecheck failure.
 # lint-staged runs ESLint (--max-warnings=0) and Prettier over staged files;
 # typecheck runs project-wide because a staged file can break an unstaged one.
