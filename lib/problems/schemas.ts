@@ -139,16 +139,40 @@ export const updateProblemSchema = z.object({
 
 export type UpdateProblemInput = z.infer<typeof updateProblemSchema>;
 
+/**
+ * An absent filter, as an HTML form actually sends it.
+ *
+ * A GET form submits every named field, empty ones included — `?search=` and
+ * `?difficulty=` arrive as `''`, not as nothing. `.optional()` accepts
+ * `undefined` and rejects `''`, so the unfiltered case — the common one — threw
+ * a ZodError and the catalog rendered the root error boundary. The response was
+ * still 200, because the shell had already started streaming, which is why this
+ * looked healthy from the outside while every `Apply` click was broken.
+ *
+ * Normalised here rather than at the call site so that every caller inherits it:
+ * the page today, and whatever route reuses these filters next. Same shape as
+ * `optionalString` in `server/env.ts`, for the same reason.
+ *
+ * This is deliberately narrow. Only `''` becomes absent — a wrong enum member, an
+ * oversized search or a malformed cursor still fails loudly, because those are
+ * real bad input rather than an empty box.
+ */
+const blankToAbsent = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    schema.optional(),
+  );
+
 /** List filters. Every one is server-applied; none are honoured client-side. */
 export const listFiltersSchema = z.object({
-  difficulty: z.enum(DIFFICULTIES).optional(),
-  topic: tagValue.optional(),
-  pattern: tagValue.optional(),
-  platform: z.string().min(1).max(64).optional(),
+  difficulty: blankToAbsent(z.enum(DIFFICULTIES)),
+  topic: blankToAbsent(tagValue),
+  pattern: blankToAbsent(tagValue),
+  platform: blankToAbsent(z.string().min(1).max(64)),
   /** The signed-in user's own solve status. Ignored when anonymous. */
-  userStatus: z.enum(USER_PROBLEM_STATUSES).optional(),
-  search: z.string().trim().min(1).max(200).optional(),
-  cursor: z.string().max(512).optional(),
+  userStatus: blankToAbsent(z.enum(USER_PROBLEM_STATUSES)),
+  search: blankToAbsent(z.string().trim().min(1).max(200)),
+  cursor: blankToAbsent(z.string().max(512)),
   limit: z.number().int().min(1).max(100).default(25),
   /** Admin-only: include archived and unpublished rows. */
   includeHidden: z.boolean().default(false),
