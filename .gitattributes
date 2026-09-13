@@ -1,0 +1,24 @@
+# Line endings, settled in the repository rather than per machine.
+#
+# Prettier is configured `endOfLine: lf` (.prettierrc.json), so a CRLF working
+# tree fails `npm run format:check` on every file at once. That is exactly what
+# happened on a Windows clone: `core.autocrlf=true` rewrote 323 files to CRLF on
+# checkout, and format:check went from clean to 254 failures without a single
+# line of code changing. CI never saw it, because CI checks out on Linux.
+#
+# `text=auto eol=lf` normalises to LF in the repository AND checks out LF
+# everywhere, so the setting travels with the clone instead of depending on each
+# developer's `core.autocrlf`. Binary files are detected automatically and left
+# alone; the explicit list below is belt and braces for the ones already in the
+# tree, since a corrupted PNG is a slow thing to notice.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
