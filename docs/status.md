@@ -1,7 +1,9 @@
 # Quadrantcode status
 
-_Updated 11 September 2026 on `feat/F3.1b-execution-queue` (F3.1b · durable
-execution queue). Previous revision: 1 September 2026, native-platform pass._
+_Updated 13 September 2026 on `main`, after the first real deployment: Neon
+migrated and seeded, GitHub sign-in working, and a `/problems` diagnosis that
+found the filter bug recorded below. Previous revisions: 11 September
+(F3.1b · durable execution queue), 1 September (native-platform pass)._
 
 ## Current outcome
 
@@ -190,6 +192,99 @@ attacker and the contents of a job.
 collide, but **two runs against the same database will**, with failures like
 `relation "users" does not exist` that look like code faults and are not. Run
 one suite at a time against `:55432`.
+
+### A forgotten session keeps writing
+
+`components/session/TimerBar.tsx:81` posts to `/api/session/heartbeat` every 30
+seconds while a session is `active`. There is **no `visibilitychange` handler** —
+grepped, zero. A backgrounded tab, a minimised window or a session the user
+simply forgot keeps posting.
+
+Each tick is one single-row `UPDATE solve_sessions SET last_heartbeat_at, …`, so
+it costs nothing in lock terms — Postgres readers and writers do not block each
+other. What it does cost is a connection out of a pool of three, and a Neon
+compute that never gets to suspend, which burns free-tier CU-hours for as long
+as the tab is open.
+
+It is also why cold-start latency cannot be measured while any session is open:
+the heartbeat keeps the function warm.
+
+## Proposed optimisations, not implemented
+
+Written down from a diagnosis session. **None of these are applied.** The
+numbers they trade against are not measured yet — `problems.page`,
+`problems.list` and `shell.summary` spans exist in the code for exactly that,
+and the decision waits on them.
+
+### Skip `recomputeStreak` when the streak cannot have broken
+
+`summariseForShell` calls `recomputeStreak` on **every signed-in page render**.
+That is four queries: a 400-day window of `daily_sessions`, `daily_goals`,
+`streak_freezes`, plus the stored `user_streaks` row.
+
+The proposal: `user_streaks.lastCompletedLocalDate` is already read in that
+`Promise.all`. If it is **today or yesterday** in the user's zone, the streak
+cannot have broken, so skip the other three queries and serve the stored row.
+
+**It holds against the streak rules.** Checked, rather than assumed:
+
+- **Freezes are not a hole.** `streak_freezes` is written _only by
+  `recomputeStreak` itself_ (`recompute.ts:237`, `:248`) — it is a derived
+  projection, never granted by a user action. And `lastCompletedLocalDate`
+  already means "the last day that counted, **whether completed or frozen**",
+  so a freeze-covered day is inside the gate by construction.
+- **Goal changes recompute.** `settings/goals/actions.ts:79`.
+- **Timezone changes recompute, in the right order.** The same action updates
+  the zone first, derives `today` in the _new_ zone, then recomputes.
+- **Both `daily_sessions` writers recompute after writing** —
+  `submission-effects.ts` via `pipeline.ts:392`, and `lifecycle.ts:578/607` via
+  `lifecycle.ts:358`.
+
+So every input has a writer that recomputes behind it. Between writes, only the
+passage of time can change the answer — which is exactly what the gate detects.
+
+**Two things to get right if it is implemented:**
+
+1. The comparison must be `=== today || === yesterday`, **not `>= yesterday`**.
+   A backward timezone change can move `today` earlier than
+   `lastCompletedLocalDate`; a future-dated value must fall through to a
+   recompute, not be skipped.
+2. **It trades a self-healing read for an unenforced invariant.** Today, a row
+   written straight into `daily_sessions` by anything is repaired on the next
+   page load. With the gate it is not, until the date moves. Such a writer
+   already exists: **`scripts/demo-seed.ts:212`** inserts into `daily_sessions`
+   directly without recomputing. It is a dev script, but nothing stops the next
+   one being a backfill or an admin tool.
+
+**The win is smaller than it looks.** The four queries already run in
+`Promise.all`, so the saving is roughly **one round trip, not four** — plus
+three fewer connections, which matters more than it sounds given `max: 3`
+below. The cold path gets one round trip _worse_: read the stored row, decide,
+then run the rest.
+
+### The connection pool is sized for a database this project no longer uses
+
+`server/db/client.ts` sets `max: isWorker ? 10 : 3`, and its comment explains
+the three as keeping "a small pool per instance" while relying on "the
+**Supabase** pooled URL". The stack is Neon now; the premise is stale. Git
+history puts the number in `6e3fd68`, arriving with the client/index split
+rather than as a separately reasoned choice.
+
+The pool is a module-level singleton, so it is **per lambda instance**, not per
+request. Meanwhile the layout's `Promise.all` groups ask for four to five
+concurrent queries — at `max: 3` they queue.
+
+Neon is nowhere near binding. Measured on the live compute:
+
+```
+max_connections     901        in use at the time    16
+pooled endpoint     max_client_conn = 10000   (Neon docs)
+```
+
+Raising the non-worker pool to 8–10 would let the existing parallelism actually
+run. **Estimate, not measurement:** the saving is one round trip per affected
+group, so its value scales with the per-round-trip Neon latency that has not
+been measured yet.
 
 ## Deliberately not claimed
 
