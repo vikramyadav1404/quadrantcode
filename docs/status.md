@@ -246,6 +246,32 @@ Tailwind opacity modifier. `npm run contrast` measures the pairs listed in
 invisible to the gate — it would pass by not being looked at, which is the same
 vacuous-pass failure the verification standard in CLAUDE.md exists to stop.
 
+### The contrast gate only measures pairs that are declared
+
+`npm run contrast` and `tests/design/contrast.test.ts` read the `TEXT_PAIRS`
+and `NON_TEXT_PAIRS` tables in `lib/design-tokens.ts`. **They never touch the
+DOM.** A foreground/background combination that no one has added to those
+tables is not measured, not reported, and not failed — it passes by not being
+looked at.
+
+That is not hypothetical. Declaring `border on surface-raised` during the
+solve-screen redesign measured it for the first time at **2.78:1 against a 3:1
+non-text minimum** — a failure that had been shipping **since F0.4**, in
+`TopicChips`, `ConfirmDialog` and the stuck dialog, all of which draw
+`--border` on `--surface-raised`. Nothing regressed; the pairing had simply
+never been declared.
+
+Fixed the way this project requires — the token changed rather than the
+threshold being waived. Dark `--border` went `#5f656f` → `#6a707b`. `#646a75`
+would have cleared it at exactly 3.00; the value with real margin (3.28) was
+taken instead, because a hairline pass is one rounding change from a fail.
+
+**The rule that follows:** when a component introduces a colour combination the
+tables do not already list, add it to `lib/design-tokens.ts` in the same change.
+`lib/design-tokens.ts:58` says so, and this is what it costs when it is missed.
+The tables went from 19 pairs to 27 in that one pass, which is a measure of how
+much of the app had never been checked rather than of how much was added.
+
 ## Proposed optimisations, not implemented
 
 Written down from a diagnosis session. **None of these are applied.** The
