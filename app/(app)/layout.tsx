@@ -128,7 +128,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <div className="flex flex-1">
           <Sidebar />
-          <main className="min-w-0 flex-1 px-4 pt-6 pb-20 md:px-6 md:pb-6" id="main">
+          {/*
+            `flex flex-col` so a page can ask for "the rest of the height" with
+            `flex-1 min-h-0` instead of guessing it.
+
+            The solve screen used to hard-code `calc(100vh-8rem)`, which assumed
+            the top bar, the timer bar and this padding. But the timer bar only
+            renders while a session is live, so that number was wrong in one of
+            the two states — the pane came up short and the problem panel
+            bottomed out into empty space. A flex chain is correct in both.
+          */}
+          <main
+            className="flex min-w-0 flex-1 flex-col px-4 pt-6 pb-20 md:px-6 md:pb-6"
+            id="main"
+          >
             {children}
           </main>
         </div>

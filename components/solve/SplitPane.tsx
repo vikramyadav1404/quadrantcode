@@ -11,6 +11,16 @@
  * `diff` (**D25**) — and the reasoning is the same: a dependency that F4.8 has
  * to audit should earn its place.
  *
+ * ## Its height comes from the layout, not from a guess
+ *
+ * This was `h-[calc(100vh-8rem)]`. That 8rem stood for the top bar, the timer
+ * bar and the main padding — but the timer bar only renders while a session is
+ * live, so the number was wrong whenever one was not, and the pane came up
+ * short of the space it sat in. `app/(app)/layout.tsx` now makes `main` a flex
+ * column, so `flex-1 min-h-0` here is exactly the room that is left, in both
+ * states. Anything that depends on a definite height — Monaco especially —
+ * depends on that chain staying intact.
+ *
  * ## Below the breakpoint there is no split
  *
  * Two panes at 375px means two unusable panes. Under `md` the children stack
@@ -83,14 +93,24 @@ export function SplitPane({
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col md:grid md:h-[calc(100vh-8rem)]"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius)] border border-[var(--border)] md:grid"
       ref={container}
       style={{
         // Only the md+ grid uses the ratio; below it the flex column ignores it.
         gridTemplateColumns: `${split}% 0.5rem 1fr`,
       }}
     >
-      <div className="min-h-0 overflow-auto" data-pane="left">
+      {/*
+        The left pane carries `--surface` and the right keeps `--background`.
+        Those two are the only pair distinct in BOTH themes — in light,
+        `--surface-raised` and `--background` are the same white, so an
+        elevation built on it would simply vanish there.
+
+        The fill is also what stops the panel reading as a void: content shorter
+        than the column now ends inside a surface rather than trailing off into
+        the page.
+      */}
+      <div className="min-h-0 overflow-auto bg-[var(--surface)]" data-pane="left">
         {left}
       </div>
 
