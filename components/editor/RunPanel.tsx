@@ -235,12 +235,20 @@ export function RunPanel({
    */
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] px-3 py-2">
+      {/*
+        One control height (h-7) and one border language across the row.
+
+        This was a `py-1` bordered select, a `py-1.5` borderless ghost and a
+        `py-1.5` bordered button — three different vertical rhythms and three
+        different treatments sitting on one line, which is what made the header
+        read as assembled rather than designed.
+      */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-3 py-2">
         <label className="sr-only" htmlFor="run-language">
           Language
         </label>
         <select
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
+          className="h-7 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 text-[0.8125rem] transition-colors hover:border-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
           id="run-language"
           onChange={(event) => {
             const next = event.target.value;
@@ -256,7 +264,7 @@ export function RunPanel({
         </select>
 
         <button
-          className="rounded-[var(--radius)] px-3 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
+          className="h-7 rounded-[var(--radius)] px-2.5 text-[0.8125rem] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
           onClick={() => setSource(starters?.[language] ?? LANGUAGE_STARTERS[language])}
           type="button"
         >
@@ -264,7 +272,7 @@ export function RunPanel({
         </button>
 
         <button
-          className="ml-auto rounded-[var(--radius)] border border-[var(--border)] px-4 py-1.5 text-sm font-medium disabled:opacity-60"
+          className="ml-auto h-7 rounded-[var(--radius)] border border-[var(--border)] px-3 text-[0.8125rem] font-medium transition-colors hover:border-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
           disabled={busy || source.trim().length === 0}
           onClick={() => execute('run')}
           type="button"
@@ -278,7 +286,7 @@ export function RunPanel({
         </button>
         {allowSubmit ? (
           <button
-            className="rounded-[var(--radius)] bg-[var(--accent)] px-4 py-1.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
+            className="h-7 rounded-[var(--radius)] bg-[var(--accent)] px-3 text-[0.8125rem] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
             disabled={busy || source.trim().length === 0}
             onClick={() => execute('submit')}
             type="button"
@@ -296,8 +304,8 @@ export function RunPanel({
         `min-h-[45vh]` below the breakpoint, released at `md`.
 
         Without it the editor is FOUR PIXELS TALL on a phone. Above `md` the
-        split pane has a definite height (`h-[calc(100vh-8rem)]`) and `flex-1`
-        divides it; below `md` the panes stack in a column with no definite
+        split pane has a definite height (inherited from the layout's flex
+        column) and `flex-1` divides it; below `md` the panes stack with no
         height, so `flex-1` has nothing to be a fraction OF and Monaco's
         `height="100%"` resolves against zero.
 
