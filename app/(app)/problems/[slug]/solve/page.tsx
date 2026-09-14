@@ -118,6 +118,11 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
             topics: problem.tags
               .filter((tag) => tag.tagType === 'topic')
               .map((tag) => tag.tagValue),
+            // Fetched by the same query since F1.1 and rendered nowhere until
+            // now. Company tags stay out for the C3 reason given above.
+            patterns: problem.tags
+              .filter((tag) => tag.tagType === 'pattern')
+              .map((tag) => tag.tagValue),
             // Null for every external problem — see the header.
             statement: problem.statement ?? null,
             externalUrl: problem.externalUrl,
