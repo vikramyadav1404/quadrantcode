@@ -28,7 +28,14 @@ export const TOKENS: Record<ThemeName, Record<TokenName, string>> = {
     background: '#0b0d10',
     surface: '#14171c',
     'surface-raised': '#1c2027',
-    border: '#5f656f',
+    /*
+     * Lightened from #5f656f, which measured 2.78:1 against `surface-raised`
+     * and so failed the 3:1 non-text minimum. Nothing new caused that — chips,
+     * the confirm dialog and the stuck dialog have all drawn this border on
+     * that surface since F0.4. The pairing simply was not declared here, so
+     * `npm run contrast` never looked at it.
+     */
+    border: '#6a707b',
     'text-primary': '#e9edf3',
     'text-muted': '#a7b0be',
     accent: '#7fb3ff',
@@ -75,12 +82,45 @@ export const TEXT_PAIRS: Array<{
   { foreground: 'accent', background: 'background', usage: 'links and active nav' },
   { foreground: 'accent', background: 'surface', usage: 'links inside a card' },
   { foreground: 'accent-foreground', background: 'accent', usage: 'primary button label' },
+  /*
+   * Solid fills other than `accent`, added when the solve screen needed a
+   * success-coloured primary and a measured destructive confirm.
+   *
+   * Before this, `accent-foreground on accent` was the ONLY fill with a
+   * measured foreground, which is why every solid button in the app was blue —
+   * including ones that meant "finished" and "discard". `ConfirmDialog` was
+   * already painting `--background` on `--danger` with nothing checking it.
+   */
+  { foreground: 'accent-foreground', background: 'success', usage: 'Solved button label' },
+  { foreground: 'background', background: 'danger', usage: 'destructive confirm label' },
   { foreground: 'success', background: 'background', usage: 'success message' },
   { foreground: 'success', background: 'surface', usage: 'success stat on a card' },
   { foreground: 'warning', background: 'background', usage: 'warning message' },
   { foreground: 'warning', background: 'surface', usage: 'warning stat on a card' },
   { foreground: 'danger', background: 'background', usage: 'error message' },
   { foreground: 'danger', background: 'surface', usage: 'error text on a card' },
+  /*
+   * The timer bar sits on `--surface-raised` and carries a danger-toned
+   * Abandon and its error line. Only the `text-primary` and `text-muted`
+   * pairings on that surface were declared, so these rendered unmeasured.
+   */
+  {
+    foreground: 'danger',
+    background: 'surface-raised',
+    usage: 'destructive action in the timer bar',
+  },
+  { foreground: 'accent', background: 'surface-raised', usage: 'link on a raised surface' },
+  /* StatusMark renders its word in these on the raised "Your record" card. */
+  {
+    foreground: 'success',
+    background: 'surface-raised',
+    usage: 'solved status on a raised card',
+  },
+  {
+    foreground: 'warning',
+    background: 'surface-raised',
+    usage: 'attempted status on a raised card',
+  },
 ];
 
 /** Non-text pairs held to WCAG 1.4.11 (3:1): borders, focus rings, chart strokes. */
@@ -93,4 +133,10 @@ export const NON_TEXT_PAIRS: Array<{
   { foreground: 'border', background: 'surface', usage: 'divider inside a card' },
   { foreground: 'focus-ring', background: 'background', usage: 'focus ring on the page' },
   { foreground: 'focus-ring', background: 'surface', usage: 'focus ring on a card' },
+  { foreground: 'border', background: 'surface-raised', usage: 'divider on a raised surface' },
+  {
+    foreground: 'focus-ring',
+    background: 'surface-raised',
+    usage: 'focus ring in the timer bar',
+  },
 ];
