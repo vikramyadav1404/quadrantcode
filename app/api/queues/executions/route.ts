@@ -12,7 +12,22 @@ import {
 } from '@/server/services/execution';
 
 export const runtime = 'nodejs';
-export const maxDuration = 90;
+/*
+ * 60, not 90: the Hobby plan caps a function at 60 seconds and rejects the
+ * deployment outright above it. Keep this in step with vercel.json — the two
+ * are independent settings and a disagreement between them is silent.
+ *
+ * The budget inside it is tight. `SANDBOX_TIMEOUT_MS` is 50s, leaving ~10s for
+ * provisioning the microVM and finalising the attempt. A submission that uses
+ * its full sandbox allowance will be close to the ceiling, and the plan's
+ * 30-minute maximum is not available here.
+ *
+ * Overrunning is survivable rather than corrupting: the function dies, the
+ * 75-second Neon lease expires, the reconciler reclaims the job, and the
+ * message is redelivered after its 120-second visibility timeout. Nothing is
+ * double-counted — `run_attempts.job_id` is unique and the claim is fenced.
+ */
+export const maxDuration = 60;
 
 const callback = handleCallback<unknown>(
   async (message, metadata) => {

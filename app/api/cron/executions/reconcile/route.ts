@@ -10,7 +10,11 @@ import {
 } from '@/server/services/execution';
 
 export const runtime = 'nodejs';
-export const maxDuration = 90;
+// 60, not 90: the Hobby plan caps a function there and rejects the deployment
+// above it. Ample for this route — it runs once a day and does three bounded
+// sweeps (expired leases, undispatched rows, pending sandbox cleanup), each of
+// which is a no-op while FEATURE_EXECUTION is off and there are no jobs.
+export const maxDuration = 60;
 
 export async function GET(request: Request): Promise<Response> {
   const env = getServerEnv();

@@ -2,9 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npm run deploy:check && npm run build",
+  "regions": ["sin1"],
   "functions": {
     "app/api/queues/executions/route.ts": {
-      "maxDuration": 90,
+      "maxDuration": 60,
       "experimentalTriggers": [
         {
           "type": "queue/v2beta",
