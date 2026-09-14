@@ -28,6 +28,7 @@ import { ProblemNotFoundError, getProblemBySlug } from '@/server/services/proble
 import { EXECUTION_LIMITS } from '@/server/services/execution';
 import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
+import { formatElapsed } from '@/lib/session/timer-bar-state';
 import { submitRunAction } from './actions';
 import { getPublicNativeProblem } from '@/server/services/native-content';
 
@@ -75,6 +76,30 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
       })
     : [];
 
+  /*
+   * The aggregate record, formatted HERE rather than inside the panel.
+   *
+   * `ProblemPanel` is a client component. A Date formatted during its render
+   * would use the server's locale and timezone under SSR and the browser's on
+   * hydration — a mismatch, and the wrong day for anyone whose stored timezone
+   * is not the server's. This is the only place that knows `user.timezone`.
+   *
+   * Nothing here is a new query: `getProblemBySlug` already returned all of it.
+   */
+  const record = user
+    ? {
+        status: problem.userStatus,
+        totalAttempts: problem.history[0]?.totalAttempts ?? 0,
+        bestTime:
+          problem.history[0]?.bestTimeSeconds != null
+            ? formatElapsed(problem.history[0].bestTimeSeconds)
+            : null,
+        firstSolved: formatDay(problem.history[0]?.firstSolvedAt, user.timezone),
+        lastAttempted: formatDay(problem.history[0]?.lastAttemptedAt, user.timezone),
+        confidence: problem.history[0]?.confidence ?? null,
+      }
+    : null;
+
   return (
     <SplitPane
       leftLabel="the problem"
@@ -97,6 +122,9 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
             statement: problem.statement ?? null,
             externalUrl: problem.externalUrl,
             platform: problem.platform,
+            estimatedMinutes: problem.estimatedMinutes,
+            isPremium: problem.isPremium,
+            record,
             native,
           }}
           submissions={<AttemptHistory attempts={history} />}
@@ -138,4 +166,23 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
       }
     />
   );
+}
+
+/**
+ * One date, in the reader's own timezone.
+ *
+ * The timezone argument is the whole reason this exists rather than a bare
+ * `toLocaleDateString()`: a session finished at 11pm in Asia/Kolkata is the
+ * previous day in UTC, and a "last attempted" that disagrees with the streak
+ * calendar by a day is the kind of thing users notice and never trust again.
+ */
+function formatDay(value: Date | null | undefined, timeZone: string): string | null {
+  if (!value) return null;
+
+  return value.toLocaleDateString(undefined, {
+    timeZone,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
