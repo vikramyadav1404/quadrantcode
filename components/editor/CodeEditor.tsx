@@ -14,6 +14,7 @@
  */
 import dynamic from 'next/dynamic';
 import { MONACO_LANGUAGE_IDS, type ExecutionLanguage } from '@/lib/execution/languages';
+import { useThemeName } from '@/lib/theme/use-theme-name';
 
 const Monaco = dynamic(() => import('./MonacoEditor'), {
   ssr: false,
@@ -34,11 +35,20 @@ export function CodeEditor({
   onChange: (next: string) => void;
 }) {
   /*
+   * Monaco takes a theme NAME, not CSS variables, so it is the one thing on
+   * the screen that cannot inherit the tokens. Hard-coded to 'vs-dark' until
+   * now, which meant a light-theme user got a dark rectangle in the middle of
+   * a light page.
+   */
+  const theme = useThemeName();
+
+  /*
    * `height="100%"`, over a wrapper whose height is DEFINITE at every width.
    *
-   * Above `md` that is `h-full`: the split pane is `h-[calc(100vh-8rem)]`, so
-   * the chain down to here has a real number and dragging the divider gives the
-   * extra room to the code rather than to empty space.
+   * Above `md` that is `h-full`: the split pane takes its height from the
+   * layout's flex column (`flex-1 min-h-0` under a `flex flex-col` main), so
+   * the chain down to here resolves to a real number and dragging the divider
+   * gives the extra room to the code rather than to empty space.
    *
    * Below `md` the panes stack in a column with no definite height, and `h-full`
    * — `height: 100%` — resolves against `auto`. Monaco then measures its
@@ -64,7 +74,7 @@ export function CodeEditor({
           // long line is readable rather than scrolled off the right edge.
           wordWrap: 'on',
         }}
-        theme="vs-dark"
+        theme={theme === 'light' ? 'vs' : 'vs-dark'}
         value={value}
       />
     </div>
