@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StuckButton } from '@/components/session/StuckButton';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
 
@@ -59,6 +60,7 @@ export function TimerBar({
   const [elapsed, setElapsed] = useState(() => seedElapsed(state));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingAbandon, setConfirmingAbandon] = useState(false);
 
   // Re-seed whenever the server sends a new state (a pause, a resume, a
   // navigation): the prop is the authority, not the last thing we counted to.
@@ -129,7 +131,7 @@ export function TimerBar({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-2 text-sm"
+      className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-1.5 text-sm"
       role="region"
       aria-label="Solve session timer"
     >
@@ -152,11 +154,11 @@ export function TimerBar({
         {formatElapsed(elapsed)}
       </span>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5">
         {status === 'active' ? (
           <button
             aria-disabled={busy}
-            className={buttonClass}
+            className={outlineButton}
             onClick={() => run(() => onPause({ sessionId }))}
             type="button"
           >
@@ -165,7 +167,7 @@ export function TimerBar({
         ) : (
           <button
             aria-disabled={busy}
-            className={buttonClass}
+            className={outlineButton}
             onClick={() => run(() => onResume({ sessionId }))}
             type="button"
           >
@@ -176,33 +178,74 @@ export function TimerBar({
         {/* Available for as long as the session is live, paused included. */}
         <StuckButton onMark={onMarkStuck} sessionId={sessionId} />
 
+        {/*
+          The one solid fill on the bar, and it is `--success` rather than
+          `--accent` now that `accent-foreground on success` is a measured pair.
+          Before this every filled button in the app was the same blue — the
+          one that means "finish successfully" looked identical to the one that
+          means "discard this sitting".
+        */}
         <button
           aria-disabled={busy}
-          className={buttonClass}
+          className="rounded-[var(--radius)] bg-[var(--success)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60"
           onClick={() => void finish('solved')}
           type="button"
         >
           Solved
         </button>
 
+        {/*
+          "Give up", not "Stuck". The old label sat beside "I'm stuck" and did
+          something almost opposite: "I'm stuck" records a marker and the
+          session carries on, this ENDS the session. Two adjacent buttons whose
+          names differ by an apostrophe, one of them terminal, is a trap rather
+          than a vocabulary.
+        */}
         <button
           aria-disabled={busy}
-          className={buttonClass}
+          className={quietButton}
           onClick={() => void finish('stuck')}
           type="button"
         >
-          Stuck
+          Give up
         </button>
+
+        {/* A rule, because what follows destroys the sitting rather than ending it. */}
+        <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-[var(--border)]" />
 
         <button
           aria-disabled={busy}
-          className={buttonClass}
-          onClick={() => run(() => onAbandon({ sessionId }))}
+          className="rounded-[var(--radius)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60"
+          onClick={() => setConfirmingAbandon(true)}
           type="button"
         >
           Abandon
         </button>
       </div>
+
+      {/*
+        Abandon is the only one of the five that DISCARDS. A solved or
+        given-up sitting is kept, numbered and shown on the reflection page, so
+        a mis-click there is visible and costs nothing; an abandoned one is not
+        even numbered as an attempt. It fired on a single click, from a button
+        identical to Pause, until now.
+
+        Solved and Give up are deliberately left unconfirmed: a dialog in front
+        of the ordinary success path is the thing that teaches people to dismiss
+        dialogs without reading them, which would blunt this one.
+      */}
+      <ConfirmDialog
+        confirmLabel="Abandon it"
+        description="This sitting is discarded. It will not be counted as an attempt, and the time on it is not kept."
+        destructive
+        onCancel={() => setConfirmingAbandon(false)}
+        onConfirm={() => {
+          setConfirmingAbandon(false);
+          void run(() => onAbandon({ sessionId }));
+        }}
+        open={confirmingAbandon}
+        title="Abandon this session?"
+      />
 
       {error ? (
         <p className="w-full text-[var(--danger)]" role="status">
@@ -213,8 +256,20 @@ export function TimerBar({
   );
 }
 
-const buttonClass =
-  'rounded-[var(--radius)] border border-[var(--border)] px-2 py-1 text-xs font-medium aria-disabled:opacity-60';
+/*
+ * Three weights, not one.
+ *
+ * Every button on this bar used to share `buttonClass`, so Pause (reversible),
+ * Solved (terminal, success) and Abandon (terminal, destructive) were the same
+ * pill. The weight now matches the consequence: solid for the one that
+ * finishes, outline for the reversible pair, text-only for the two that end or
+ * discard.
+ */
+const outlineButton =
+  'rounded-[var(--radius)] border border-[var(--border)] px-2.5 py-1 text-xs font-medium transition-colors hover:border-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60';
+
+const quietButton =
+  'rounded-[var(--radius)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60';
 
 /**
  * The server's count plus however long ago it was true.
