@@ -3,12 +3,22 @@
 /**
  * The left pane: what the problem is, and how you have done on it.
  *
- * ## Why the Description tab is thin for most problems
+ * ## What the Description tab shows when there is no statement
  *
  * Every problem in the catalog today is `external_link`, and **C1 means we hold
  * metadata and a link, never a statement** — enforced by the database, not just
- * by intent. So this pane shows what actually exists: difficulty, topics, your
- * own history, and a prominent way out to the platform that does have the text.
+ * by intent. There is no statement to render for any of them, and there never
+ * will be.
+ *
+ * So the pane shows what actually exists and what the product is actually for:
+ * difficulty, topics, the estimate, a prominent way out to the platform that
+ * does hold the text, and **the reader's own record on this problem**. The last
+ * one is the point — "we record how you solved it, not what it says" is the
+ * thesis, and a pane with three sentences on it was not saying that.
+ *
+ * None of that needed a new query. `getProblemBySlug` already returned the
+ * history, the estimate and the premium flag; the page simply was not passing
+ * them.
  *
  * The statement branch below is not dead code waiting hopefully: `problems`
  * already carries `statement` for `source_type = 'original'`, and F4.1 is the
@@ -22,9 +32,10 @@
  * goes through a text node. Paragraph splitting only, no HTML parsing, no
  * `dangerouslySetInnerHTML`.
  */
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { DifficultyPill } from './DifficultyPill';
+import { StatusMark } from './StatusMark';
 import { TopicChips } from './TopicChips';
 import { EVIDENCE_TYPE_LABELS, type EvidenceType } from '@/lib/native/constants';
 
@@ -52,6 +63,25 @@ type NativeProblemPanelView = {
   } | null;
 };
 
+/**
+ * The reader's own standing on this problem.
+ *
+ * Dates arrive PREFORMATTED. This is a client component, so a `Date` formatted
+ * during render would use the server's locale and timezone during SSR and the
+ * browser's on hydration — a mismatch, and a wrong date for anyone whose stored
+ * timezone is not the server's. The page formats them once, on the server,
+ * where `user.timezone` is known.
+ */
+export type ProblemRecordView = {
+  status: string | null;
+  totalAttempts: number;
+  /** Already through `formatElapsed`; locale-independent, so it is safe either side. */
+  bestTime: string | null;
+  firstSolved: string | null;
+  lastAttempted: string | null;
+  confidence: string | null;
+};
+
 export type ProblemPanelView = {
   title: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -60,6 +90,13 @@ export type ProblemPanelView = {
   statement: string | null;
   externalUrl: string | null;
   platform: string | null;
+  estimatedMinutes: number;
+  isPremium: boolean;
+  /**
+   * Null when nobody is signed in — which is not the same as "no attempts yet",
+   * and the panel renders the two differently.
+   */
+  record: ProblemRecordView | null;
   native: NativeProblemPanelView | null;
 };
 
@@ -107,6 +144,19 @@ export function ProblemPanel({
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <DifficultyPill difficulty={problem.difficulty} />
                 <TopicChips interactive topics={problem.topics} />
+                {problem.isPremium ? (
+                  <span className="rounded-full border border-[var(--accent)] px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
+                    Premium
+                  </span>
+                ) : null}
+                {/*
+                  An estimate, and it says so. A bare "20m" beside a difficulty
+                  pill reads as a limit, which is the opposite of the point —
+                  nothing on this screen is timed against it.
+                */}
+                <span className="text-xs text-[var(--text-muted)]">
+                  ~{problem.estimatedMinutes}m estimated
+                </span>
               </div>
               {problem.native?.companies.length ? (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -211,36 +261,40 @@ export function ProblemPanel({
                 ) : null}
               </div>
             ) : (
-              <div className="flex flex-col gap-3 text-sm text-[var(--text-muted)]">
-                <p>
-                  This problem is hosted on {problem.platform ?? 'another platform'}, so its
-                  statement lives there. Quadrantcode records how you solve it, not what it
-                  says.
-                </p>
-
-                {problem.externalUrl ? (
+              <div className="flex flex-col gap-5 text-sm">
+                <div className="flex flex-col gap-3 text-[var(--text-muted)]">
                   <p>
-                    <Link
-                      className="inline-block rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 font-medium text-[var(--accent-foreground)]"
-                      href={problem.externalUrl}
-                      rel="noreferrer noopener"
-                      target="_blank"
-                    >
-                      Read it on {problem.platform ?? 'the original site'} ↗
-                    </Link>
+                    This problem is hosted on {problem.platform ?? 'another platform'}, so its
+                    statement lives there. Quadrantcode records how you solve it, not what it
+                    says.
                   </p>
-                ) : null}
 
-                {/*
-                  No "on the right". Below `md` the panes stack and the editor
-                  is underneath this paragraph, so a direction is simply wrong
-                  on a phone — and directional copy is the kind of thing that
-                  survives a layout change unnoticed because nothing asserts it.
-                */}
-                <p className="text-xs">
-                  The editor is a scratchpad — nothing you run here is checked against that
-                  platform&rsquo;s tests.
-                </p>
+                  {problem.externalUrl ? (
+                    <p>
+                      <Link
+                        className="inline-block rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 font-medium text-[var(--accent-foreground)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                        href={problem.externalUrl}
+                        rel="noreferrer noopener"
+                        target="_blank"
+                      >
+                        Read it on {problem.platform ?? 'the original site'} ↗
+                      </Link>
+                    </p>
+                  ) : null}
+
+                  {/*
+                    No "on the right". Below `md` the panes stack and the editor
+                    is underneath this paragraph, so a direction is simply wrong
+                    on a phone — and directional copy is the kind of thing that
+                    survives a layout change unnoticed because nothing asserts it.
+                  */}
+                  <p className="text-xs">
+                    The editor is a scratchpad — nothing you run here is checked against that
+                    platform&rsquo;s tests.
+                  </p>
+                </div>
+
+                <ProblemRecord record={problem.record} />
               </div>
             )}
           </div>
@@ -287,6 +341,72 @@ export function ProblemPanel({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The reader's own standing on this problem.
+ *
+ * ## A summary, not a second timeline
+ *
+ * The Submissions tab already renders every sitting through `AttemptHistory`.
+ * This reads the aggregate `user_problems` row instead — one line per fact
+ * rather than one per attempt. Restating the timeline here would make that tab
+ * redundant and this pane endless.
+ *
+ * ## Three states, not two
+ *
+ * Signed out is not the same as "no attempts yet". A signed-out reader gets
+ * nothing at all, because there is no record and inviting them to start one
+ * they cannot save would be a lie. A signed-in reader with no history gets an
+ * invitation — never a table of dashes, which reads as broken rather than new.
+ *
+ * Rows are omitted when empty rather than shown as "—": a problem you have
+ * attempted but never solved has no "first solved" date, and printing the
+ * label with a dash draws the eye to an absence that is completely normal.
+ */
+function ProblemRecord({ record }: { record: ProblemRecordView | null }) {
+  if (!record) return null;
+
+  if (record.totalAttempts === 0 && !record.lastAttempted) {
+    return (
+      <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4">
+        <h2 className="text-base font-semibold">Your record</h2>
+        <p className="mt-2 text-[var(--text-muted)]">
+          You haven&apos;t started a sitting on this one yet. Start the timer before you read
+          the statement — the first minutes are the ones worth measuring.
+        </p>
+      </section>
+    );
+  }
+
+  const rows: Array<{ label: string; value: React.ReactNode }> = [
+    { label: 'Status', value: <StatusMark showLabel status={record.status} /> },
+    { label: 'Attempts', value: <span className="tabular-nums">{record.totalAttempts}</span> },
+  ];
+
+  if (record.bestTime) {
+    rows.push({
+      label: 'Best time',
+      value: <span className="font-mono tabular-nums">{record.bestTime}</span>,
+    });
+  }
+  if (record.firstSolved) rows.push({ label: 'First solved', value: record.firstSolved });
+  if (record.lastAttempted) rows.push({ label: 'Last attempted', value: record.lastAttempted });
+  if (record.confidence) rows.push({ label: 'Confidence', value: record.confidence });
+
+  return (
+    <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4">
+      <h2 className="text-base font-semibold">Your record</h2>
+      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
+        {rows.map((row) => (
+          <Fragment key={row.label}>
+            <dt className="text-[var(--text-muted)]">{row.label}</dt>
+            <dd>{row.value}</dd>
+          </Fragment>
+        ))}
+      </dl>
+    </section>
   );
 }
 

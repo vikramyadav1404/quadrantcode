@@ -209,6 +209,43 @@ as the tab is open.
 It is also why cold-start latency cannot be measured while any session is open:
 the heartbeat keeps the function warm.
 
+## Known UI limitations — read before retrying either
+
+Two pieces of catalog polish were attempted, understood, and deliberately left
+out during the solve-screen polish pass. Both look like oversights. Neither is.
+
+### The catalog header cannot be sticky without changing the scroll model
+
+`app/(app)/problems/page.tsx` wraps the table in `overflow-x-auto` so it scrolls
+sideways at 375px instead of reflowing, which `e2e/viewports.spec.ts` holds.
+
+Per CSS spec, setting `overflow-x` to anything other than `visible` computes
+`overflow-y` to `auto` as well. That wrapper is therefore a scroll container on
+**both** axes, and a `position: sticky` header inside it anchors to the wrapper
+— which has no bounded height and so never scrolls vertically. The header would
+never stick, in any theme, at any width.
+
+Making it work means giving the wrapper a fixed height and moving vertical
+scrolling inside it. That is a layout restructure, which the pass that raised
+this explicitly forbade. Revisit only together with a decision to change the
+catalog's scroll model, not as a CSS tweak.
+
+### Zebra banding makes hover invisible in the light theme
+
+`--surface-raised` and `--background` are both `#ffffff` in light
+(`lib/design-tokens.ts`). Banding odd rows with `--surface` and hovering with
+`--surface-raised` makes the hover state invisible on every even row; swapping
+them moves the problem to the odd rows. There is no third neutral surface token
+to reach for.
+
+The single hover band on `--surface` is kept instead.
+
+A future attempt needs a **new token with a declared contrast pair**, not a
+Tailwind opacity modifier. `npm run contrast` measures the pairs listed in
+`TEXT_PAIRS` / `NON_TEXT_PAIRS` and never touches the DOM, so an alpha tint is
+invisible to the gate — it would pass by not being looked at, which is the same
+vacuous-pass failure the verification standard in CLAUDE.md exists to stop.
+
 ## Proposed optimisations, not implemented
 
 Written down from a diagnosis session. **None of these are applied.** The
