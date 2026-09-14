@@ -73,7 +73,10 @@ export function StuckButton({
   return (
     <>
       <button
-        className="rounded-[var(--radius)] border border-[var(--border)] px-2 py-1 text-xs font-medium"
+        // Matches `outlineButton` in TimerBar: this is a non-terminal action
+        // like Pause, and it must not read as heavier than the one that ends
+        // the session two buttons along.
+        className="rounded-[var(--radius)] border border-[var(--border)] px-2.5 py-1 text-xs font-medium transition-colors hover:border-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
         onClick={() => {
           setMarked(false);
           setOpen(true);

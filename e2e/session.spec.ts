@@ -171,3 +171,83 @@ test('a second session is refused, and the message points at the running one', a
   `;
   expect(rows).toHaveLength(1);
 });
+
+/*
+ * Abandon is the only control on the bar that DISCARDS a sitting rather than
+ * ending it — an abandoned session is not even numbered as an attempt. It used
+ * to fire on a single click from a button styled identically to Pause, and
+ * nothing in this suite exercised it at all.
+ *
+ * The first test is the one that matters: it asserts the session is STILL
+ * RUNNING after the click. A test that only checked the happy path would pass
+ * just as well with no confirmation step at all.
+ */
+test('ABANDON DOES NOT DISCARD THE SESSION UNTIL IT IS CONFIRMED', async ({ page }) => {
+  await page.goto('/problems/timer-alpha');
+  await page.getByRole('button', { name: /start solving/i }).click();
+
+  const timer = page.getByRole('region', { name: /solve session timer/i });
+  await timer.getByRole('button', { name: /^abandon$/i }).click();
+
+  const dialog = page.getByRole('dialog', { name: /abandon this session\?/i });
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByRole('button', { name: /^cancel$/i }).click();
+  await expect(dialog).toBeHidden();
+
+  // The bar is still there, and the row is untouched.
+  await expect(timer).toBeVisible();
+  const [row] = await sql`
+    SELECT status FROM solve_sessions WHERE user_id = ${userId} ORDER BY started_at DESC LIMIT 1
+  `;
+  expect(row!['status']).toBe('active');
+});
+
+test('confirming the dialog does abandon it', async ({ page }) => {
+  await page.goto('/problems/timer-alpha');
+  await page.getByRole('button', { name: /start solving/i }).click();
+
+  const timer = page.getByRole('region', { name: /solve session timer/i });
+  await timer.getByRole('button', { name: /^abandon$/i }).click();
+  await page.getByRole('button', { name: /abandon it/i }).click();
+
+  await expect(page.getByRole('region', { name: /solve session timer/i })).toBeHidden();
+
+  const [row] = await sql`
+    SELECT status FROM solve_sessions WHERE user_id = ${userId} ORDER BY started_at DESC LIMIT 1
+  `;
+  expect(row!['status']).toBe('abandoned');
+});
+
+/*
+ * The rename, asserted rather than assumed. "Give up" ends the session; "I'm
+ * stuck" records a marker and the session carries on. The old pair was "Stuck"
+ * and "I'm stuck" — two adjacent buttons differing by an apostrophe, one of
+ * them terminal.
+ */
+test('the two stuck controls are distinct, and only one of them ends the session', async ({
+  page,
+}) => {
+  await page.goto('/problems/timer-alpha');
+  await page.getByRole('button', { name: /start solving/i }).click();
+
+  const timer = page.getByRole('region', { name: /solve session timer/i });
+  await expect(timer.getByRole('button', { name: /^give up$/i })).toBeVisible();
+  await expect(timer.getByRole('button', { name: /^i'm stuck$/i })).toBeVisible();
+  await expect(timer.getByRole('button', { name: /^stuck$/i })).toHaveCount(0);
+
+  // Marking a stuck point leaves the session running.
+  await timer.getByRole('button', { name: /^i'm stuck$/i }).click();
+  await page
+    .getByRole('dialog', { name: /mark where you are stuck/i })
+    .getByRole('button', {
+      name: /mark it/i,
+    })
+    .click();
+
+  await expect(timer).toBeVisible();
+  const [row] = await sql`
+    SELECT status FROM solve_sessions WHERE user_id = ${userId} ORDER BY started_at DESC LIMIT 1
+  `;
+  expect(row!['status']).toBe('active');
+});
