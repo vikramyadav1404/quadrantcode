@@ -86,6 +86,13 @@ export type ProblemPanelView = {
   title: string;
   difficulty: 'easy' | 'medium' | 'hard';
   topics: string[];
+  /**
+   * Pattern tags — fetched by `getProblemBySlug` since F1.1 and, until now,
+   * dropped on the floor. The page filtered `tags` down to `topic` and threw
+   * the rest away, so this is recovering data the query already paid for
+   * rather than asking for more.
+   */
+  patterns: string[];
   /** Present only for original problems. C1 forbids it for external ones. */
   statement: string | null;
   externalUrl: string | null;
@@ -114,14 +121,14 @@ export function ProblemPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex gap-1 border-b border-[var(--border)] px-4">
+      <div className="flex shrink-0 gap-0.5 border-b border-[var(--border)] px-2">
         {(['description', 'editorial', 'submissions'] as const).map((value) => (
           <button
             aria-current={tab === value}
-            className={`border-b-2 px-3 py-2 text-sm transition-colors ${
+            className={`-mb-px border-b-2 px-2.5 py-2 text-[0.8125rem] font-medium transition-colors ${
               tab === value
                 ? 'border-[var(--accent)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-muted)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
             key={value}
             onClick={() => setTab(value)}
@@ -136,12 +143,19 @@ export function ProblemPanel({
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="min-h-0 flex-1 overflow-auto px-3.5 py-3.5">
         {tab === 'description' ? (
           <div className="flex flex-col gap-4">
             <div>
-              <h1 className="text-xl font-semibold">{problem.title}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              {/*
+                One step above body copy, not three. The title was `text-xl`
+                against `text-sm` content, which read as a page heading dropped
+                into a sidebar rather than the top of a dense panel.
+              */}
+              <h1 className="text-base leading-snug font-semibold tracking-tight">
+                {problem.title}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <DifficultyPill difficulty={problem.difficulty} />
                 <TopicChips interactive topics={problem.topics} />
                 {problem.isPremium ? (
@@ -261,40 +275,35 @@ export function ProblemPanel({
                 ) : null}
               </div>
             ) : (
-              <div className="flex flex-col gap-5 text-sm">
-                <div className="flex flex-col gap-3 text-[var(--text-muted)]">
-                  <p>
-                    This problem is hosted on {problem.platform ?? 'another platform'}, so its
-                    statement lives there. Quadrantcode records how you solve it, not what it
-                    says.
-                  </p>
+              <div className="flex flex-col gap-4 text-sm">
+                <p className="text-[var(--text-muted)]">
+                  This problem is hosted on {problem.platform ?? 'another platform'}, so its
+                  statement lives there. Quadrantcode records how you solve it, not what it
+                  says.
+                </p>
 
-                  {problem.externalUrl ? (
-                    <p>
-                      <Link
-                        className="inline-block rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 font-medium text-[var(--accent-foreground)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-                        href={problem.externalUrl}
-                        rel="noreferrer noopener"
-                        target="_blank"
-                      >
-                        Read it on {problem.platform ?? 'the original site'} ↗
-                      </Link>
-                    </p>
-                  ) : null}
-
-                  {/*
-                    No "on the right". Below `md` the panes stack and the editor
-                    is underneath this paragraph, so a direction is simply wrong
-                    on a phone — and directional copy is the kind of thing that
-                    survives a layout change unnoticed because nothing asserts it.
-                  */}
-                  <p className="text-xs">
-                    The editor is a scratchpad — nothing you run here is checked against that
-                    platform&rsquo;s tests.
-                  </p>
-                </div>
+                {problem.externalUrl ? (
+                  /*
+                    An outline, not a fill. This was the only saturated block of
+                    colour on the screen and it read as foreign because of it —
+                    `--accent` is the one token pair with a measured text-on-fill
+                    ratio, so it had become the default for every solid button
+                    regardless of meaning. The single fill on this screen now
+                    belongs to Solved, which is the action that ends something.
+                  */
+                  <Link
+                    className="inline-flex items-center gap-1.5 self-start rounded-[var(--radius)] border border-[var(--border)] px-2.5 py-1.5 font-medium text-[var(--accent)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                    href={problem.externalUrl}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Read it on {problem.platform ?? 'the original site'}
+                    <span aria-hidden="true">↗</span>
+                  </Link>
+                ) : null}
 
                 <ProblemRecord record={problem.record} />
+                <RelatedTags patterns={problem.patterns} topics={problem.topics} />
               </div>
             )}
           </div>
@@ -340,7 +349,72 @@ export function ProblemPanel({
           submissions
         )}
       </div>
+
+      {/*
+        The footer rail, and the reason the panel stops rather than trails off.
+        It mirrors the execution-limits strip anchoring the right pane, so both
+        columns terminate on a deliberate line instead of running out of
+        content — which is what made the empty lower half read as a void.
+
+        The wording is unchanged and deliberately so: "scratchpad" is asserted
+        by e2e/execution.spec.ts, and there is no "on the right" here because
+        below `md` the panes stack and the editor is underneath this, so a
+        direction would simply be wrong on a phone.
+      */}
+      <p className="shrink-0 border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-muted)]">
+        {problem.statement
+          ? 'Your session, stuck points and run attempts are recorded as you work.'
+          : 'The editor is a scratchpad — nothing you run here is checked against that platform’s tests.'}
+      </p>
     </div>
+  );
+}
+
+/**
+ * Ways out of this problem and into the catalog.
+ *
+ * Patterns only. The topic chips in the header are already links into the
+ * filtered catalog, so repeating them here would be the same navigation twice;
+ * `pattern` is the tag type that has been fetched since F1.1 and rendered
+ * nowhere.
+ *
+ * Renders nothing when a problem carries no pattern tags — a heading over an
+ * empty row is worse than no heading. This section is therefore a bonus, not
+ * the fix for the empty panel: the surface and the footer rail are what make
+ * the column read as a container.
+ */
+function RelatedTags({ patterns, topics }: { patterns: string[]; topics: string[] }) {
+  if (patterns.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="mb-2 text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+        Patterns
+      </h2>
+      <div className="flex flex-wrap gap-1.5">
+        {patterns.map((pattern) => (
+          <Link
+            className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
+            href={`/problems?pattern=${encodeURIComponent(pattern)}`}
+            key={pattern}
+          >
+            {pattern}
+          </Link>
+        ))}
+      </div>
+      {topics[0] ? (
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Or browse everything tagged{' '}
+          <Link
+            className="text-[var(--accent)] hover:underline"
+            href={`/problems?topic=${encodeURIComponent(topics[0])}`}
+          >
+            {topics[0]}
+          </Link>
+          .
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -370,9 +444,11 @@ function ProblemRecord({ record }: { record: ProblemRecordView | null }) {
 
   if (record.totalAttempts === 0 && !record.lastAttempted) {
     return (
-      <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4">
-        <h2 className="text-base font-semibold">Your record</h2>
-        <p className="mt-2 text-[var(--text-muted)]">
+      <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+        <h2 className="text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+          Your record
+        </h2>
+        <p className="mt-1.5 text-[var(--text-muted)]">
           You haven&apos;t started a sitting on this one yet. Start the timer before you read
           the statement — the first minutes are the ones worth measuring.
         </p>
@@ -396,9 +472,11 @@ function ProblemRecord({ record }: { record: ProblemRecordView | null }) {
   if (record.confidence) rows.push({ label: 'Confidence', value: record.confidence });
 
   return (
-    <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4">
-      <h2 className="text-base font-semibold">Your record</h2>
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
+    <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+      <h2 className="text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+        Your record
+      </h2>
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-[0.8125rem]">
         {rows.map((row) => (
           <Fragment key={row.label}>
             <dt className="text-[var(--text-muted)]">{row.label}</dt>
