@@ -65,13 +65,23 @@ export default async function ProblemDetailPage({
         }
         actions={
           problem.externalUrl ? (
+            /*
+              An outline, not a fill — the same demotion `ProblemPanel` made on
+              the solve screen, and for the same reason. `--accent` is the one
+              token pair with a measured text-on-fill ratio, so it had become
+              the default for every solid button regardless of meaning: this
+              link OUT of the page was drawn with exactly as much weight as
+              "Start solving", the action the page exists for. One fill per
+              screen, and here it belongs to Start solving.
+            */
             <a
-              className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)]"
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--accent)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
               href={problem.externalUrl}
               rel="noopener noreferrer"
               target="_blank"
             >
-              Open on {problem.platform ?? 'platform'} ↗
+              Open on {problem.platform ?? 'platform'}
+              <span aria-hidden="true">↗</span>
             </a>
           ) : null
         }
