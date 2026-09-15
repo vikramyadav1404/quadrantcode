@@ -220,6 +220,55 @@ test('confirming the dialog does abandon it', async ({ page }) => {
 });
 
 /*
+ * The notice under the button is a claim about a session, and it used to outlive
+ * the session it described.
+ *
+ * `abandonSessionAction` revalidates correctly — the bar disappearing is the
+ * proof — but the paragraph lived in `useState` inside a client component, and
+ * an RSC re-render does not reset client state. So the page said "the timer is
+ * at the top of the page" with no timer at the top of the page.
+ *
+ * The positive control is the first assertion: without it this test would pass
+ * against a page that never showed the message at all.
+ */
+test('THE "SESSION STARTED" NOTICE DOES NOT OUTLIVE THE SESSION', async ({ page }) => {
+  await page.goto('/problems/timer-alpha');
+  await page.getByRole('button', { name: /start solving/i }).click();
+
+  const notice = page.getByText(/session started — the timer is at the top/i);
+  await expect(notice).toBeVisible();
+
+  const timer = page.getByRole('region', { name: /solve session timer/i });
+  await timer.getByRole('button', { name: /^abandon$/i }).click();
+  await page.getByRole('button', { name: /abandon it/i }).click();
+
+  // The bar goes, and so does the sentence that points at it.
+  await expect(timer).toBeHidden();
+  await expect(notice).toBeHidden();
+});
+
+/*
+ * The same staleness in the other direction: the refusal says "use the timer at
+ * the top of the page", which stops being true the moment that session ends.
+ */
+test('the conflict message goes away once the conflicting session does', async ({ page }) => {
+  await page.goto('/problems/timer-alpha');
+  await page.getByRole('button', { name: /start solving/i }).click();
+  await expect(page.getByRole('region', { name: /solve session timer/i })).toBeVisible();
+
+  await page.getByRole('button', { name: /start solving/i }).click();
+  const refusal = page.getByText(/finish or abandon/i);
+  await expect(refusal).toBeVisible();
+
+  const timer = page.getByRole('region', { name: /solve session timer/i });
+  await timer.getByRole('button', { name: /^abandon$/i }).click();
+  await page.getByRole('button', { name: /abandon it/i }).click();
+
+  await expect(timer).toBeHidden();
+  await expect(refusal).toBeHidden();
+});
+
+/*
  * The rename, asserted rather than assumed. "Give up" ends the session; "I'm
  * stuck" records a marker and the session carries on. The old pair was "Stuck"
  * and "I'm stuck" — two adjacent buttons differing by an apostrophe, one of
