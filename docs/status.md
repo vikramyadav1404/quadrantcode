@@ -193,6 +193,41 @@ collide, but **two runs against the same database will**, with failures like
 `relation "users" does not exist` that look like code faults and are not. Run
 one suite at a time against `:55432`.
 
+### `e2e/session.spec.ts` is flaky on a cold server, and it is the spec's fault
+
+Every test in that file does `page.goto('/problems/timer-alpha')` and then
+immediately clicks `Start solving`, with **nothing waiting for hydration**. On a
+cold `next start` the click can land before React has attached the handler, and
+nothing happens at all: the failure surfaces as a 10s or 30s timeout waiting for
+the timer bar, on whichever tests happened to be unlucky. The captured snapshot
+for one of them shows the tell — `Start solving` still on screen, no timer bar,
+and an **empty `status` region**, meaning the server action never fired rather
+than failing.
+
+Measured 2026-09-15, running `npm run build` and then the spec immediately, so
+the server is cold each time:
+
+| Working tree                                      | run 1    | run 2    | run 3    |
+| ------------------------------------------------- | -------- | -------- | -------- |
+| `main`, changes stashed                           | 1 failed | 0 failed | —        |
+| + a second `getActiveSession` on the problem page | 4 failed | 2 failed | 3 failed |
+| + that read replaced by shell context (shipped)   | 1 failed | —        | —        |
+
+Two things this establishes. **The flake is pre-existing** — the baseline row is
+`main` with the working tree stashed, and it reproduces. And **page render cost
+feeds it directly**: adding one DB round-trip to the problem page moved the
+failure count up consistently, and removing it put the count back on baseline.
+That is why the shipped fix reads the live session from a shell context instead
+of re-querying it (`components/session/ActiveSessionContext.tsx`).
+
+A different failing subset each run is the signature; the same run warm is
+green, in 16s with every test under 1s. **Do not read a red cold run here as a
+regression without stashing and reproducing first.**
+
+Not fixed because it is a change to eight existing tests and belongs in its own
+ticket. The fix is to wait for the button to be interactive rather than present
+— the same reason the suite already waits on regions elsewhere.
+
 ### A forgotten session keeps writing
 
 `components/session/TimerBar.tsx:81` posts to `/api/session/heartbeat` every 30
