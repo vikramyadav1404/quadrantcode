@@ -23,6 +23,7 @@ import { eq } from 'drizzle-orm';
 import { problems } from '@/server/db/schema';
 import { type SessionView, getActiveSession } from '@/server/services/session';
 import { TimerBar } from '@/components/session/TimerBar';
+import { ActiveSessionProvider } from '@/components/session/ActiveSessionContext';
 import type { TimerBarState } from '@/lib/session/timer-bar-state';
 import {
   abandonSessionAction,
@@ -100,55 +101,63 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const timer = active ? await toTimerBarState(db, active, now) : null;
 
   return (
-    <ToastProvider>
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:bg-[var(--surface-raised)] focus:px-3 focus:py-2"
-      >
-        Skip to main content
-      </a>
+    /*
+      `timer` is already resolved above, so publishing it costs nothing. A page
+      that renders a notice about the live session reads it from here instead of
+      querying again — see `components/session/ActiveSessionContext.tsx` for why
+      that is a context and not a prop.
+    */
+    <ActiveSessionProvider sessionId={timer?.sessionId ?? null}>
+      <ToastProvider>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:bg-[var(--surface-raised)] focus:px-3 focus:py-2"
+        >
+          Skip to main content
+        </a>
 
-      <div className="flex min-h-dvh flex-col">
-        <TopBar
-          {...shellState}
-          avatarAppearance={profile.appearance}
-          avatarUrl={profile.avatarUrl}
-        />
-
-        {timer ? (
-          <TimerBar
-            onAbandon={abandonSessionAction}
-            onComplete={completeSessionAction}
-            onMarkStuck={markStuckAction}
-            onPause={pauseSessionAction}
-            onResume={resumeSessionAction}
-            state={timer}
+        <div className="flex min-h-dvh flex-col">
+          <TopBar
+            {...shellState}
+            avatarAppearance={profile.appearance}
+            avatarUrl={profile.avatarUrl}
           />
-        ) : null}
 
-        <div className="flex flex-1">
-          <Sidebar />
-          {/*
-            `flex flex-col` so a page can ask for "the rest of the height" with
-            `flex-1 min-h-0` instead of guessing it.
+          {timer ? (
+            <TimerBar
+              onAbandon={abandonSessionAction}
+              onComplete={completeSessionAction}
+              onMarkStuck={markStuckAction}
+              onPause={pauseSessionAction}
+              onResume={resumeSessionAction}
+              state={timer}
+            />
+          ) : null}
 
-            The solve screen used to hard-code `calc(100vh-8rem)`, which assumed
-            the top bar, the timer bar and this padding. But the timer bar only
-            renders while a session is live, so that number was wrong in one of
-            the two states — the pane came up short and the problem panel
-            bottomed out into empty space. A flex chain is correct in both.
-          */}
-          <main
-            className="flex min-w-0 flex-1 flex-col px-4 pt-6 pb-20 md:px-6 md:pb-6"
-            id="main"
-          >
-            {children}
-          </main>
+          <div className="flex flex-1">
+            <Sidebar />
+            {/*
+              `flex flex-col` so a page can ask for "the rest of the height" with
+              `flex-1 min-h-0` instead of guessing it.
+
+              The solve screen used to hard-code `calc(100vh-8rem)`, which assumed
+              the top bar, the timer bar and this padding. But the timer bar only
+              renders while a session is live, so that number was wrong in one of
+              the two states — the pane came up short and the problem panel
+              bottomed out into empty space. A flex chain is correct in both.
+            */}
+            <main
+              className="flex min-w-0 flex-1 flex-col px-4 pt-6 pb-20 md:px-6 md:pb-6"
+              id="main"
+            >
+              {children}
+            </main>
+          </div>
+
+          <BottomNav />
         </div>
-
-        <BottomNav />
-      </div>
-    </ToastProvider>
+      </ToastProvider>
+    </ActiveSessionProvider>
   );
 }
 
