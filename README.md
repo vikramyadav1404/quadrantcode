@@ -663,14 +663,14 @@ states, no error messages and no configuration values.
 
 ## Verification
 
-| Command                 | What it proves                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`              | 1,176 unit + database integration tests pass; 5 live-S3 credential tests skip by design                                                     |
-| `npm run test:e2e`      | 114 production-build browser tests: auth, IDOR, responsive UI, Monaco/CSP, execution, timeline, accessibility and output-injection controls |
-| `npm run build`         | All 45 static/dynamic route entries compile, typecheck and prerender successfully                                                           |
-| `npm run contrast`      | Every token pair passes its WCAG threshold                                                                                                  |
-| `npm audit --omit=dev`  | 0 production runtime vulnerabilities; the full audit retains 4 moderate dev-only advisories in Drizzle Kit's legacy esbuild chain           |
-| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                                      |
+| Command                 | What it proves                                                                                                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`              | 1,274 unit + database integration tests pass; 5 live-S3 credential tests skip by design                                                                                                        |
+| `npm run test:e2e`      | 143 production-build browser tests — 138 pass, 5 skip behind `RUN_VERCEL_SANDBOX_E2E`: auth, IDOR, responsive UI, Monaco/CSP, execution, timeline, accessibility and output-injection controls |
+| `npm run build`         | All 66 entries in the printed route table compile and typecheck; the 11 marked static prerender, the other 55 are server-rendered on demand                                                    |
+| `npm run contrast`      | Every token pair passes its WCAG threshold                                                                                                                                                     |
+| `npm audit --omit=dev`  | 0 production runtime vulnerabilities; the full audit retains 4 moderate dev-only advisories in Drizzle Kit's legacy esbuild chain                                                              |
+| `npm run test:db:start` | Embedded Postgres on :55432 for the integration suites                                                                                                                                         |
 
 CI runs these as **two jobs**: unit/lint/build, and browser. They are separate so
 Chromium flake never blocks a green typecheck.
