@@ -3,6 +3,7 @@ import { CompanyDisclaimer } from '@/components/companies/CompanyDisclaimer';
 import { DifficultyPill } from '@/components/solve/DifficultyPill';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { getDb } from '@/server/db';
+import { isFeatureEnabled } from '@/lib/flags';
 import { getCompanyPaper } from '@/server/services/companies';
 import { startAssessmentAction } from './actions';
 
@@ -42,15 +43,28 @@ export default async function CompanyPaperPage({
           ))}
         </div>
       </section>
-      <form action={startAssessmentAction}>
-        <input name="paperId" type="hidden" value={data.paper.id} />
-        <button
-          className="self-start rounded bg-[var(--accent)] px-5 py-2.5 font-medium text-[var(--accent-foreground)]"
-          type="submit"
-        >
-          Start or resume assessment
-        </button>
-      </form>
+      {/*
+        The visible half of F4.5's flag. `startAssessmentAction` refuses
+        regardless — this only keeps the page from offering a button that
+        throws, which is the arrangement /settings/phone uses for
+        FEATURE_PHONE_OTP.
+      */}
+      {isFeatureEnabled('FEATURE_MOCKS') ? (
+        <form action={startAssessmentAction}>
+          <input name="paperId" type="hidden" value={data.paper.id} />
+          <button
+            className="self-start rounded bg-[var(--accent)] px-5 py-2.5 font-medium text-[var(--accent-foreground)]"
+            type="submit"
+          >
+            Start or resume assessment
+          </button>
+        </form>
+      ) : (
+        <p className="self-start rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-muted)]">
+          Timed assessments are turned off in this environment. The paper above is the real
+          thing — you just cannot start a clock on it right now.
+        </p>
+      )}
     </div>
   );
 }
