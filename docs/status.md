@@ -228,6 +228,25 @@ Not fixed because it is a change to eight existing tests and belongs in its own
 ticket. The fix is to wait for the button to be interactive rather than present
 — the same reason the suite already waits on regions elsewhere.
 
+### Two feature flags are deliberately unwired
+
+`FEATURE_TIMELINE` (F3.2) and `FEATURE_ORIGINAL_PROBLEMS` (F4.1) are declared in
+`lib/flags.ts` and read by nothing. **Setting either to `true` or `false`
+changes no behaviour.** Timeline capture runs regardless; native problem content
+is reachable regardless.
+
+They survived the 2026-09-16 cull that deleted ten flags for exactly this fault,
+because unlike those ten they guard features that exist and would benefit from a
+switch — a kill switch for snapshot capture has real value given the ninety-day
+retention promise, and native content is the premium tier. They are kept as
+_intent_, not as a control, and are labelled that way in `.env.example` so
+nobody reads `FEATURE_TIMELINE=false` and concludes capture is off.
+
+**Anyone wiring these owes the same two-layer treatment `FEATURE_MOCKS` got:**
+`isFeatureEnabled` at the page to avoid offering a control that throws, and
+`assertFeatureEnabled` at the action or service, which is the actual gate. Hiding
+a button is not a gate.
+
 ### A forgotten session keeps writing
 
 `components/session/TimerBar.tsx:81` posts to `/api/session/heartbeat` every 30
