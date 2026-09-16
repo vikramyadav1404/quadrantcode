@@ -169,14 +169,19 @@ describe('server boundary · build-time guard is present', () => {
     // The shared half must stay importable from a client bundle, which means
     // no secret may be declared in it.
     const source = readFileSync('lib/env.ts', 'utf8');
+    /*
+     * Every name here must be a secret the project ACTUALLY declares in
+     * server/env.ts — otherwise the assertion is trivially true and the list
+     * grows entries that guard nothing. `RAZORPAY_KEY_SECRET` and
+     * `ANTHROPIC_API_KEY` were dropped on 2026-09-16 along with the vars
+     * themselves; they belonged to cut tickets and no code ever read them.
+     */
     for (const secret of [
       'DATABASE_URL',
       'AUTH_SECRET',
       'RESEND_API_KEY',
       'MSG91_AUTH_KEY',
-      'RAZORPAY_KEY_SECRET',
       'UPSTASH_REDIS_REST_TOKEN',
-      'ANTHROPIC_API_KEY',
     ]) {
       expect(source, `${secret} must live in server/env.ts`).not.toContain(secret);
     }

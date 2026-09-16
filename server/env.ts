@@ -78,7 +78,6 @@ const optionalServerSchema = z.object({
   /** Provider-neutral alias used by migration tooling; Neon also supplies the legacy name. */
   DIRECT_DATABASE_URL: optionalString,
   DATABASE_URL_UNPOOLED: optionalString,
-  REDIS_URL: optionalString,
   UPSTASH_REDIS_REST_URL: optionalUrl,
   UPSTASH_REDIS_REST_TOKEN: optionalString,
   /** Test-only escape from the production rate-limiter guard. See ratelimit.ts. */
@@ -109,11 +108,6 @@ const optionalServerSchema = z.object({
   ),
   EXECUTION_SANDBOX_IMAGE: optionalString,
   CRON_SECRET: optionalSecret('CRON_SECRET'),
-  RAZORPAY_KEY_ID: optionalString,
-  RAZORPAY_KEY_SECRET: optionalString,
-  RAZORPAY_WEBHOOK_SECRET: optionalString,
-  TELEGRAM_BOT_TOKEN: optionalString,
-  ANTHROPIC_API_KEY: optionalString,
   SENTRY_DSN: optionalUrl,
   SENTRY_ENVIRONMENT: optionalString,
   SENTRY_ORG: optionalString,

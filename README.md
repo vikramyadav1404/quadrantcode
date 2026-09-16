@@ -155,7 +155,7 @@ re-introduces `--conditions=react-server`.
 
 ```bash
 cp .env.example .env.local      # Next.js app
-cp .env.example .env            # worker (needs DATABASE_URL and, later, REDIS_URL)
+cp .env.example .env            # worker (needs DATABASE_URL)
 
 npm install
 npm run db:migrate              # applies server/db/migrations
@@ -212,13 +212,19 @@ recorded for whatever long-lived process comes later:
 ```bash
 # Railway
 railway init
-railway variables set DATABASE_URL=... REDIS_URL=... NODE_ENV=production
+railway variables set DATABASE_URL=... NODE_ENV=production
 railway up                          # start command: npm run worker
 ```
 
-The worker needs the same `.env` as the app plus `REDIS_URL`; it does **not** need any
+The worker needs the same `.env` as the app; it does **not** need any
 `NEXT_PUBLIC_*` value. It exits `0` on `SIGTERM` after draining in-flight jobs, so the
 platform's rolling deploy does not drop work.
+
+It also has **no queues attached, and never will** — F2.3 is cut. `REDIS_URL` was
+removed on 2026-09-16 for that reason: no code had ever opened it, and these lines
+were instructing people to provision Redis for a worker that would not use it. What
+remains useful here is the lifecycle — env validation at boot, readiness log, graceful
+shutdown — which a scheduled maintenance process would need if one is ever run.
 
 ---
 
