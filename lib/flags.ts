@@ -10,22 +10,29 @@
 
 import type { EnvSource } from './env';
 
+/*
+ * Ten flags were deleted on 2026-09-16. A flag that gates nothing is worse than
+ * no flag: it implies a control that does not exist, and `/admin/health`
+ * rendered all fifteen as though each were a working switch.
+ *
+ * Seven belonged to cut tickets with no code to gate at all — FEATURE_AI
+ * (F3.4), FEATURE_BILLING (F4.4), FEATURE_COINS (F4.3), FEATURE_CONTESTS
+ * (F2.5), FEATURE_NOTIFICATIONS (F2.4), FEATURE_REVISION_MODES (F2.2) and
+ * FEATURE_TRACKS (F4.2). Re-add one with its ticket, not before.
+ *
+ * Three guarded features that shipped and are stable — FEATURE_STREAK_ENGINE
+ * (F1.3), FEATURE_STUCK_INFERENCE (F3.3) and FEATURE_MISTAKE_MEMORY (F3.5).
+ * None was ever read. A kill switch nobody reads is not a kill switch.
+ *
+ * What remains is every flag that is enforced, plus two held deliberately
+ * unwired with the reason recorded in `docs/status.md`.
+ */
 export const FEATURE_FLAGS = [
-  'FEATURE_PHONE_OTP', // F0.3 auth-verification
-  'FEATURE_STREAK_ENGINE', // F1.3 streak-engine
-  'FEATURE_REVISION_MODES', // F2.2 revision-modes
-  'FEATURE_NOTIFICATIONS', // F2.4 notification-engine
-  'FEATURE_CONTESTS', // F2.5 contest-upsolve
-  'FEATURE_EXECUTION', // F3.1 execution-pipeline
-  'FEATURE_TIMELINE', // F3.2 solve-timeline
-  'FEATURE_STUCK_INFERENCE', // F3.3 stuck-inference
-  'FEATURE_AI', // F3.4 ai-gateway
-  'FEATURE_MISTAKE_MEMORY', // F3.5 mistake-memory
-  'FEATURE_ORIGINAL_PROBLEMS', // F4.1 authoring-cms
-  'FEATURE_TRACKS', // F4.2 prep-tracks
-  'FEATURE_COINS', // F4.3 rewards-trust
-  'FEATURE_BILLING', // F4.4 billing
-  'FEATURE_MOCKS', // F4.5 mock-assessment
+  'FEATURE_PHONE_OTP', // F0.3 auth-verification — enforced
+  'FEATURE_EXECUTION', // F3.1 execution-pipeline — enforced
+  'FEATURE_MOCKS', // F4.5 mock-assessment — enforced
+  'FEATURE_TIMELINE', // F3.2 solve-timeline — NOT wired; see docs/status.md
+  'FEATURE_ORIGINAL_PROBLEMS', // F4.1 authoring-cms — NOT wired; see docs/status.md
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];

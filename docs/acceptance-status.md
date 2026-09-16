@@ -968,7 +968,8 @@ it. **DEFERRED**, not done.
 ## F3.3 · `stuck-inference`
 
 **Branch:** `feat/F3.3-stuck-inference` · **Merged to `main`** ·
-`FEATURE_STUCK_INFERENCE=false`
+`FEATURE_STUCK_INFERENCE=false` _(flag deleted 2026-09-16 — it was never read by
+any code; recorded here as it stood at merge)_
 
 | #   | Criterion                                                            | State                          | Evidence                                                                                                |
 | --- | -------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
@@ -1051,7 +1052,8 @@ run, and the inference finds the region itself — much better evidence.
 ## F3.5 · `mistake-memory`
 
 **Branch:** `feat/F3.5-mistake-memory` · **Merged to `main`** ·
-`FEATURE_MISTAKE_MEMORY=false`
+`FEATURE_MISTAKE_MEMORY=false` _(flag deleted 2026-09-16 — it was never read by
+any code; recorded here as it stood at merge)_
 
 | #   | Criterion                                             | State                         | Evidence                                                                                                                  |
 | --- | ----------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |

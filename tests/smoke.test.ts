@@ -63,19 +63,23 @@ describe('lib/flags', () => {
     expect(Object.keys(flags)).toHaveLength(FEATURE_FLAGS.length);
   });
 
+  /*
+   * These two used FEATURE_AI and FEATURE_BILLING as arbitrary examples until
+   * 2026-09-16, when both were deleted for gating nothing. They now use
+   * FEATURE_MOCKS, which is enforced — so if it is ever deleted the union stops
+   * compiling here rather than leaving the spelling rule untested.
+   */
   it('enables a flag only on an exact "true" spelling', () => {
-    expect(isFeatureEnabled('FEATURE_AI', { FEATURE_AI: 'true' })).toBe(true);
-    expect(isFeatureEnabled('FEATURE_AI', { FEATURE_AI: '1' })).toBe(false);
-    expect(isFeatureEnabled('FEATURE_AI', { FEATURE_AI: 'yes' })).toBe(false);
-    expect(isFeatureEnabled('FEATURE_AI', { FEATURE_AI: '' })).toBe(false);
+    expect(isFeatureEnabled('FEATURE_MOCKS', { FEATURE_MOCKS: 'true' })).toBe(true);
+    expect(isFeatureEnabled('FEATURE_MOCKS', { FEATURE_MOCKS: '1' })).toBe(false);
+    expect(isFeatureEnabled('FEATURE_MOCKS', { FEATURE_MOCKS: 'yes' })).toBe(false);
+    expect(isFeatureEnabled('FEATURE_MOCKS', { FEATURE_MOCKS: '' })).toBe(false);
   });
 
   it('throws a typed error when a disabled feature is reached', () => {
-    expect(() => assertFeatureEnabled('FEATURE_BILLING', {})).toThrowError(
-      FeatureDisabledError,
-    );
+    expect(() => assertFeatureEnabled('FEATURE_MOCKS', {})).toThrowError(FeatureDisabledError);
     expect(() =>
-      assertFeatureEnabled('FEATURE_BILLING', { FEATURE_BILLING: 'true' }),
+      assertFeatureEnabled('FEATURE_MOCKS', { FEATURE_MOCKS: 'true' }),
     ).not.toThrow();
   });
 });
