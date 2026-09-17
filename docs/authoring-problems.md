@@ -273,3 +273,72 @@ nothing, because the labels were assigned per skin. Counting records is not
 checking them. If you add a guard to this pipeline, make it one that _compares_
 records — unique test-case sets against record count — rather than one that
 counts them.
+
+---
+
+## 6 · Picking the next problem
+
+### Where the library stands
+
+Replacing a record keeps the topic and difficulty counts intact, so the order is
+a free choice. Run this to see what is left:
+
+```bash
+node -e "const fs=require('fs');const all=[];for(const f of fs.readdirSync('data/native-problems').filter(x=>x.endsWith('.json')))all.push(...JSON.parse(fs.readFileSync('data/native-problems/'+f,'utf8')).problems);const g=new Map();for(const p of all){const k=JSON.stringify(p.testCases);if(!g.has(k))g.set(k,[]);g.get(k).push(p);}console.log('records',all.length,'distinct',g.size);[...g.values()].sort((a,b)=>b.length-a.length).forEach(ps=>console.log(String(ps.length).padStart(3),ps[0].primaryTopic,ps.length===1?'('+ps[0].slug+')':''))"
+```
+
+A group of size 1 is an authored problem. Any group larger than 1 is that many
+skins of one generated problem.
+
+### Replace in this order
+
+The ranking is by two things: how many skins one record removes, and whether the
+topic fits the `int[] → int` wrapper without the encoding leaking into the
+statement.
+
+| Order | Topic                 | Skins | Why                                                                                                                     |
+| ----- | --------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------- |
+| 1     | `arrays-hashing`      | 15    | The largest group in the library — one record is the biggest single honesty win available. Natural fit for the wrapper. |
+| 2     | `dynamic-programming` | 12    | Large group, and a one-dimensional DP over a sequence is exactly `int[] → int`.                                         |
+| 3     | `binary-search`       | 8     | Natural fit, and easy to make genuinely distinct — the search space does not have to be the array.                      |
+| 4     | `heap-greedy`         | 8     | Natural fit. A cost or scheduling total over a sequence returns one integer.                                            |
+| 5     | `stack-queue`         | 8     | Natural fit, and monotonic-stack problems are rich enough to avoid repeating the sliding-window record.                 |
+
+**Leave these until the wrapper question is settled** — `trees-bst` (12),
+`graphs` (12), `backtracking-trie-bit` (8) and `linked-list` (7). Each needs a
+structure flattened into one integer array, and the flattening shows through the
+statement no matter how carefully it is worded: a level-order tree with
+sentinels, or an edge list as pairs, is our plumbing described to the solver.
+`linked-list` is the worst of the four, because a linked list flattened into an
+integer array simply _is_ an array, and the pattern the topic names does not
+survive the encoding. These four deserve a wrapper that takes structured input
+(§2), not a clever encoding.
+
+### The rule: distinct from all nine, not just from the one replaced
+
+It is easy to replace a skin with something that differs from _it_ while
+duplicating a different group. The bar is higher:
+
+**A new record must not share its underlying computation with any other record
+in the library.** Not its test cases, and not the question underneath them.
+Different prose over the same computation is what D27 is about, and doing it by
+hand is no better than doing it with a script.
+
+Concretely, before you write the statement:
+
+1. **Read the other nine.** One per group is enough — they are all skins.
+2. **Name the computation in one sentence**, ignoring the story. "Longest run
+   whose spread is within a limit" and "smallest spread over fixed-width runs"
+   are different. "Count pairs summing to a target" and "count pairs whose
+   difference is a target" are the same problem with a sign changed — do not
+   ship the second while the first is in the library.
+3. **Check the answer shape.** Two records that both reduce an array to a count
+   of qualifying pairs are close enough to be worth rethinking even when the
+   predicate differs.
+4. **After writing, re-run the command above.** Your record must appear as a
+   group of size 1. If it joined an existing group, its test cases match
+   something already there and it is a skin, whatever the prose says.
+
+The distinctness check is mechanical and cheap; the judgement in step 2 is not,
+and it is the one that matters. A group of size 1 proves the test cases differ.
+It does not prove the problem does.
