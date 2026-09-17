@@ -51,7 +51,8 @@
     "native:generate": "tsx scripts/generate-native-problem-library.ts",
     "papers:generate": "tsx scripts/generate-assessment-papers.ts",
     "papers:validate": "tsx scripts/validate-assessment-papers.ts",
-    "assessments:sweep": "tsx scripts/sweep-assessments.ts"
+    "assessments:sweep": "tsx scripts/sweep-assessments.ts",
+    "companies:seed": "tsx scripts/seed-companies.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
