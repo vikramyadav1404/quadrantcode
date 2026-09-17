@@ -104,7 +104,8 @@ One record. Every field is required unless marked. Limits are from
   "topics": ["two-pointers-sliding-window", "..."], // 1-8, MUST include primaryTopic
   "problemType": "function", // only value the enum allows
   "version": 1,
-  "status": "draft", // draft | needs_review | review | tested | published
+  "status": "needs_review", // enum allows draft too, but a NEW record must be
+  // needs_review or the library test fails — see §4 step 3
   "estimatedMinutes": 30, // 5-240, honest median solve time
   "difficultyCalibration": 0, // -2..2; 0 = label is right, +1 = harder than it looks
 
@@ -199,18 +200,34 @@ the overflow case, the sorted case, the all-equal case.
 # 2 · shape, limits, uniqueness, distribution
 npm run native:validate
 
-# 3 · compile and run all five reference solutions against every test case
+# 3 · library invariants — DO NOT SKIP, see below
+npx vitest run tests/native-content tests/assessments
+
+# 4 · compile and run all five reference solutions against every test case
 npm run native:validate-references
 
-# 4 · import into the database (needs DATABASE_URL)
+# 5 · import into the database (needs DATABASE_URL)
 npm run native:import
 
-# 5 · publish through the admin surface, never by hand
+# 6 · publish through the admin surface, never by hand
 #     /admin/problems → review → publish
 ```
 
-Steps 2 and 3 need no database. Step 3 needs `gcc`, `g++`, `javac`, `python`
-and `node` on PATH.
+Steps 2 and 4 need no database; step 3 needs one for part of its suite. Step 4
+needs `gcc`, `g++`, `javac`, `python` and `node` on PATH.
+
+### Step 3 is not optional, and here is the proof
+
+`npm run native:validate` checks the Zod schema, and the schema permits
+`status: "draft"`. `tests/native-content/actual-library.test.ts` separately
+requires every record to be `needs_review`, because that is what the batch
+envelope declares and what the import relies on.
+
+`kiln-soak-window` was authored with `status: "draft"`, passed steps 2 and 4,
+and was committed — with a failing test nobody had run, because this list did
+not mention it. **A record can satisfy the schema and still break the library.**
+Use `needs_review` for a new record; `draft` reads like the honest choice for
+something unreviewed and is the wrong one here.
 
 ### The library is fixed at exactly 100
 

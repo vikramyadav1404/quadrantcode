@@ -220,107 +220,135 @@
       ]
     },
     {
-      "slug": "cache-key-hotspot",
-      "title": "Cache Key Hotspot",
+      "slug": "cold-store-aisle-sweep",
+      "title": "Cold Store Aisle Sweep",
       "difficulty": "medium",
       "primaryTopic": "arrays-hashing",
-      "topics": ["arrays-hashing", "max-frequency"],
+      "topics": ["arrays-hashing", "hash-set-runs"],
       "problemType": "function",
       "version": 1,
       "status": "needs_review",
-      "estimatedMinutes": 35,
+      "estimatedMinutes": 30,
       "difficultyCalibration": 0,
-      "story": "Cache Key Hotspot is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
-      "statement": "Implement the required function for Cache Key Hotspot. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "The function receives all integer observations as one array named values.",
-      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "story": "A cold store numbers its aisles outward from the central corridor. The corridor itself is aisle 0, aisles on one side run negative, aisles on the other run positive. During a stock-take a worker logs each aisle as they finish it, in whatever order the aisles happened to be walked. An aisle can be logged more than once if two people covered it, and plenty are never reached at all. What the manager needs before signing off is not how many aisles were done, but the largest stretch that can be certified as a whole.",
+      "statement": "You are given the aisle numbers from the log.\n\nAn unbroken block is a set of consecutively numbered aisles where every aisle in the set appears in the log at least once. A block with a hole anywhere in it is not unbroken. A single logged aisle is an unbroken block of one.\n\nReturn the number of aisles in the largest unbroken block.",
+      "inputFormat": "Each number is one aisle that was logged. They appear in the order the aisles were walked, which carries no meaning here. The same aisle may appear any number of times, and the log may be empty.",
+      "outputFormat": "Return one integer: the number of aisles in the largest unbroken block of consecutively numbered aisles that were all logged. Return 0 for an empty log.",
       "functionContract": {
         "functionName": "solve",
         "parameters": [
           {
             "name": "values",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "Every aisle number recorded in the stock-take log, in the order it was walked."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
         "0 <= values.length <= 200000",
-        "-1000000000 <= values[i] <= 1000000000",
-        "Equal values represent the same observation."
+        "-1000000000 <= every aisle number <= 1000000000",
+        "The same aisle number may appear any number of times",
+        "The log may be empty, in which case the answer is 0"
       ],
       "examples": [
         {
-          "input": "4 4 2 4",
-          "output": "3",
-          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+          "input": "4 2 7 3 1 9",
+          "output": "4",
+          "explanation": "The log covers aisles 1, 2, 3, 4, 7 and 9. Aisles 1 through 4 form an unbroken block of four. Aisle 7 and aisle 9 each stand alone, because 5, 6 and 8 were never logged."
         },
         {
-          "input": "",
-          "output": "0",
-          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+          "input": "12 12 12 12",
+          "output": "1",
+          "explanation": "One aisle walked four times is still one aisle. The largest unbroken block has a single member, so the answer is one rather than four."
+        },
+        {
+          "input": "-2 -1 0 1 3",
+          "output": "4",
+          "explanation": "Aisles -2, -1, 0 and 1 run consecutively across the corridor, which is a block of four. Aisle 3 is cut off because aisle 2 was never logged."
         }
       ],
       "testCases": [
         {
           "visibility": "sample",
-          "input": "4 4 2 4",
-          "expectedOutput": "3",
-          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "input": "4 2 7 3 1 9",
+          "expectedOutput": "4",
+          "explanation": "The worked example: aisles 1 through 4 are the largest unbroken block.",
           "coverage": "sample",
           "isPerformance": false
         },
         {
           "visibility": "visible",
-          "input": "",
-          "expectedOutput": "0",
-          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "input": "-2 -1 0 1 3",
+          "expectedOutput": "4",
+          "explanation": "A block that runs across the corridor from negative aisles into positive ones.",
           "coverage": "typical",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "9",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "An empty log. Catches a solution that assumes at least one aisle, or that starts its best-so-far at one.",
+          "coverage": "empty",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1000000000",
           "expectedOutput": "1",
+          "explanation": "The smallest non-empty log, holding the most negative aisle allowed.",
           "coverage": "minimum",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "2 2 3 3",
+          "input": "1000000000 999999999 -1000000000",
           "expectedOutput": "2",
+          "explanation": "Both constraint extremes present. The two largest aisle numbers are consecutive; the most negative one is isolated.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 2 3 3 3 4",
+          "expectedOutput": "4",
+          "explanation": "Seven entries covering four aisles. A solution that measures the run by counting log entries rather than distinct aisles reports 7.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "12 12 12 12",
+          "expectedOutput": "1",
+          "explanation": "Every entry is the same aisle, so the largest block holds one aisle.",
           "coverage": "duplicates",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
-          "expectedOutput": "18",
-          "coverage": "maximum",
-          "isPerformance": true
-        },
-        {
-          "visibility": "hidden",
-          "input": "-1 -1 0 -1 0",
-          "expectedOutput": "3",
-          "coverage": "adversarial",
+          "input": "50 10 51 9 52 8 53",
+          "expectedOutput": "4",
+          "explanation": "Two blocks interleaved in the log, three aisles and four. Order of logging must not decide the answer.",
+          "coverage": "typical",
           "isPerformance": false
         }
       ],
-      "timeLimitMs": 1500,
-      "memoryLimitKb": 128000,
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
       "hints": [
-        "Record how often each distinct value has appeared.",
-        "The answer changes only when one stored count exceeds the current maximum."
+        "The order the aisles were walked carries no meaning, so any solution that depends on it is solving a different problem.",
+        "Membership is the only question you ever ask of the log: is this aisle number in it or not. A structure that answers that in constant time is the whole tool.",
+        "Walking upward from every logged aisle re-walks the same block once per member. Ask which single aisle in a block is worth starting from.",
+        "An aisle whose immediate lower neighbour was also logged can never be the bottom of a block, so it is never worth starting a count there."
       ],
       "editorial": {
-        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
-        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
-        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
-        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
-        "timeComplexity": "O(n) expected",
-        "spaceComplexity": "O(n)"
+        "overview": "The log is a bag of aisle numbers whose order and repetitions carry no information, so the first move is to reduce it to the set of aisles that appear at all. The question then becomes a question about that set: how long is its longest run of consecutive integers.",
+        "bruteForceApproach": "Put every aisle in a set, then from each aisle walk upward while the next number is present, and keep the longest walk. Without a guard this re-walks a block of length k once from every one of its k members, which is quadratic on a single long block and times out at two hundred thousand aisles.",
+        "optimalApproach": "Keep the same set, but only start counting at an aisle whose immediate lower neighbour is absent. Such an aisle is the bottom of its block, every block has exactly one bottom, and so every block is walked exactly once. The total work across all walks is therefore the size of the set rather than its square, giving O(n) expected time with a hash set. Sorting the distinct aisles and scanning for consecutive steps is a correct alternative at O(n log n), which also fits comfortably inside the limit.",
+        "correctnessProof": "Consider any unbroken block in the set and let b be its smallest member. Then b - 1 is absent, so b is a starting aisle and the walk from b counts the whole block. Conversely a walk started at any aisle a stops as soon as it meets a gap, so it never counts an aisle outside the block containing a, and it never overcounts. Every block therefore contributes its exact length exactly once, and taking the maximum over starting aisles gives the largest block. Duplicates cannot affect the result because the set holds each aisle once, which is why reducing the log to a set is a step of the argument and not an optimisation.",
+        "timeComplexity": "O(n) expected, where n is the number of logged entries. Each distinct aisle is visited at most twice: once as a candidate start, once inside a single walk.",
+        "spaceComplexity": "O(n) for the set of distinct aisles."
       },
       "languages": {
         "c11": {
@@ -335,7 +363,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+          "referenceSolution": "static int compareAisle(const void *left, const void *right) {\n  long long a = *(const long long *)left;\n  long long b = *(const long long *)right;\n  return (a > b) - (a < b);\n}\n\nlong long solve(const long long *values, int n) {\n  if (n <= 0) return 0;\n  long long *a = (long long *)malloc(sizeof(long long) * (size_t)n);\n  memcpy(a, values, sizeof(long long) * (size_t)n);\n  qsort(a, (size_t)n, sizeof(long long), compareAisle);\n  long long best = 1, run = 1;\n  for (int i = 1; i < n; i++) {\n    if (a[i] == a[i - 1]) continue;\n    if (a[i] == a[i - 1] + 1) run++;\n    else run = 1;\n    if (run > best) best = run;\n  }\n  free(a);\n  return best;\n}"
         },
         "cpp17": {
           "displayName": "C++",
@@ -349,7 +377,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+          "referenceSolution": "long long solve(const vector<long long>& values) {\n  unordered_set<long long> logged(values.begin(), values.end());\n  long long best = 0;\n  for (long long aisle : logged) {\n    if (logged.count(aisle - 1)) continue;\n    long long run = 1;\n    long long next = aisle + 1;\n    while (logged.count(next)) { run++; next++; }\n    if (run > best) best = run;\n  }\n  return best;\n}"
         },
         "java": {
           "displayName": "Java",
@@ -363,7 +391,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+          "referenceSolution": "static long solve(long[] values) {\n  HashSet<Long> logged = new HashSet<>();\n  for (long aisle : values) logged.add(aisle);\n  long best = 0L;\n  for (long aisle : logged) {\n    if (logged.contains(aisle - 1)) continue;\n    long run = 1L;\n    long next = aisle + 1L;\n    while (logged.contains(next)) { run++; next++; }\n    if (run > best) best = run;\n  }\n  return best;\n}"
         },
         "python3": {
           "displayName": "Python",
@@ -377,7 +405,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    logged = set(values)\n    best = 0\n    for aisle in logged:\n        if aisle - 1 in logged:\n            continue\n        run = 1\n        nxt = aisle + 1\n        while nxt in logged:\n            run += 1\n            nxt += 1\n        if run > best:\n            best = run\n    return best"
         },
         "javascript": {
           "displayName": "JavaScript",
@@ -391,49 +419,18 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+          "referenceSolution": "function solve(values) {\n  const logged = new Set(values);\n  let best = 0;\n  for (const aisle of logged) {\n    if (logged.has(aisle - 1)) continue;\n    let run = 1;\n    let next = aisle + 1;\n    while (logged.has(next)) {\n      run++;\n      next++;\n    }\n    if (run > best) best = run;\n  }\n  return best;\n}"
         }
       },
       "provenance": {
         "contentSource": "quadrantcode-original",
         "independentlyCreated": true,
-        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseName": "Quadrantcode Original Content License",
         "licenseUrl": null,
-        "author": "Quadrantcode editorial team",
-        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+        "author": "Vikram Yadav",
+        "note": "Second hand-authored replacement for the generated library described in D27, written against docs/authoring-problems.md. The hash-set run-detection technique is standard and named openly in the editorial; the story, wording, example values and test cases are original to this record. A prefix-sum subarray-count problem was considered and rejected because the library already holds two count-things-summing-to-a-target problems, which the distinctness rule in that document forbids."
       },
-      "companies": [
-        {
-          "companySlug": "atlassian",
-          "evidenceType": "company_pattern",
-          "role": null,
-          "round": null,
-          "candidateLevel": null,
-          "yearFrom": null,
-          "yearTo": null,
-          "location": null,
-          "sourceUrl": null,
-          "reportCount": 0,
-          "confidenceScore": 0,
-          "verificationStatus": "unverified",
-          "lastReviewedDate": null
-        },
-        {
-          "companySlug": "google",
-          "evidenceType": "company_pattern",
-          "role": null,
-          "round": null,
-          "candidateLevel": null,
-          "yearFrom": null,
-          "yearTo": null,
-          "location": null,
-          "sourceUrl": null,
-          "reportCount": 0,
-          "confidenceScore": 0,
-          "verificationStatus": "unverified",
-          "lastReviewedDate": null
-        }
-      ]
+      "companies": []
     },
     {
       "slug": "festival-badge-frequency",
@@ -1307,7 +1304,7 @@
       "topics": ["two-pointers-sliding-window", "monotonic-deque"],
       "problemType": "function",
       "version": 1,
-      "status": "draft",
+      "status": "needs_review",
       "estimatedMinutes": 30,
       "difficultyCalibration": 0,
       "story": "A studio kiln carries a probe that records the chamber temperature once a minute, from the first flame to the last. Some glazes need a soak: a stretch of the firing where the heat is held as steady as the kiln can manage. What matters to the glaze is not how hot the soak runs. It is how little the temperature moves while the soak lasts.",
