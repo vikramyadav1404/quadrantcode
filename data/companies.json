@@ -2,51 +2,51 @@
   {
     "slug": "amazon",
     "name": "Amazon",
-    "overview": "Practice original data-structure and algorithm problems grouped around broad engineering interview patterns. Evidence labels distinguish generated practice from candidate reports and verified material."
+    "overview": "An Amazon-style preparation track: original practice problems grouped around the interview patterns this kind of role tends to test. Quadrantcode is not affiliated with Amazon, and nothing here is presented as a question the company has asked. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "google",
     "name": "Google",
-    "overview": "Build fluency with original problems that emphasize clear reasoning, complexity analysis, and careful handling of edge cases. No company association is implied without stored evidence."
+    "overview": "A Google-style preparation track, weighted towards clear reasoning, complexity analysis and careful edge cases. Quadrantcode is not affiliated with Google, and no association is implied beyond the pattern label. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "microsoft",
     "name": "Microsoft",
-    "overview": "Use original practice sets spanning core data structures, algorithms, and implementation trade-offs. Filters expose the evidence level behind every association."
+    "overview": "A Microsoft-style preparation track spanning core data structures, algorithms and implementation trade-offs. Quadrantcode is not affiliated with Microsoft, and every association carries an explicit evidence label. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "meta",
     "name": "Meta",
-    "overview": "Prepare with original timed and untimed exercises selected from common software-engineering problem patterns. Pattern labels are not claims about past interviews."
+    "overview": "A Meta-style preparation track drawn from common software-engineering problem patterns. Quadrantcode is not affiliated with Meta, and pattern labels are not claims about questions asked in any real interview. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "adobe",
     "name": "Adobe",
-    "overview": "Review original programming exercises across foundational and advanced DSA topics, with explicit provenance and evidence labels for every item."
+    "overview": "An Adobe-style preparation track across foundational and advanced DSA topics. Quadrantcode is not affiliated with Adobe, and every item carries explicit provenance and an evidence label. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "flipkart",
     "name": "Flipkart",
-    "overview": "Practice original algorithmic problems and structured mock assessments designed around general product-engineering preparation patterns."
+    "overview": "A Flipkart-style preparation track built around general product-engineering patterns. Quadrantcode is not affiliated with Flipkart, and the pattern label is the whole of the claim being made. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "atlassian",
     "name": "Atlassian",
-    "overview": "Work through original reasoning-focused exercises and mocks. Candidate-reported material remains separate and moderated before it can be displayed."
+    "overview": "An Atlassian-style preparation track focused on reasoning-heavy exercises. Quadrantcode is not affiliated with Atlassian, and candidate-reported material stays separate and moderated before it can be displayed. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "uber",
     "name": "Uber",
-    "overview": "Explore original problems covering efficient data processing, graphs, scheduling, and other broadly useful interview-practice patterns."
+    "overview": "An Uber-style preparation track covering efficient data processing, graphs, scheduling and related patterns. Quadrantcode is not affiliated with Uber, and the pattern label is the whole of the claim. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "goldman-sachs",
     "name": "Goldman Sachs",
-    "overview": "Prepare with original DSA exercises and pattern-based mocks. Verified, reported, and generated content are clearly separated."
+    "overview": "A Goldman Sachs-style preparation track of original DSA exercises and pattern-based sets. Quadrantcode is not affiliated with Goldman Sachs, and verified, reported and generated content are always kept distinct. Practice content is being authored; this entry is the directory record it will attach to."
   },
   {
     "slug": "walmart",
     "name": "Walmart",
-    "overview": "Use original practice problems across common engineering topics, backed by transparent content provenance and non-affiliation notices."
+    "overview": "A Walmart-style preparation track across common engineering topics, backed by transparent content provenance. Quadrantcode is not affiliated with Walmart, and non-affiliation is stated on every company surface. Practice content is being authored; this entry is the directory record it will attach to."
   }
 ]
