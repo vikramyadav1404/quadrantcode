@@ -23,8 +23,20 @@ committed.
 The repository now also contains the complete native Quadrantcode practice
 workflow described in `docs/native-platform.md`:
 
-1. Exactly 100 independently authored DSA problem records, with the required
-   35 easy / 45 medium / 20 hard and topic distribution.
+1. ~~Exactly 100 independently authored DSA problem records, with the required
+   35 easy / 45 medium / 20 hard and topic distribution.~~ **This was false, and
+   was corrected on 2026-09-17.** There are 100 records, but they are **ten
+   problems in a hundred skins**, produced by
+   `scripts/generate-native-problem-library.ts` — not independently authored.
+   Measured across all 100: 100 unique slugs, titles, statements and stories,
+   but only **10 unique test-case sets** (all 500 cases, hidden included), 10
+   unique reference solutions, 10 unique editorials, 10 unique hint sets, 10
+   unique constraint sets, and **one** function contract — every problem is
+   `solve(values: integer[])`. The 35/45/20 split is real as a count and
+   meaningless as a measure; see the difficulty note below. **None of it is
+   published** — all 100 import at `needs_review` and every public read gates on
+   `published`. They are being replaced with hand-authored problems and should
+   not be promoted. See **D27**.
 2. C11, C++17, Java, Python 3 and JavaScript templates, wrappers and trusted
    references for every problem. Local compiler validation executed 3,000
    reference/test pairs successfully.
@@ -32,8 +44,14 @@ workflow described in `docs/native-platform.md`:
    server-verified learning effects.
 4. Company preparation pages, honest evidence labels, moderated candidate
    reports and the frequent-report threshold of three independent reports.
-5. Exactly 20 original pattern-based mock papers, two for each target company,
-   plus timed attempts and per-question scoring.
+5. ~~Exactly 20 original pattern-based mock papers, two for each target
+   company~~, plus timed attempts and per-question scoring. **Corrected
+   2026-09-17:** there are 20 paper records with 20 distinct slugs and titles,
+   but only **10 unique question-sets and 10 unique instruction texts** — each
+   is used by two papers. Every question points into the generated pool above,
+   so a four-question paper is four of the same ten core problems. The timed
+   attempt engine and per-question scoring are real and unaffected. Papers also
+   import at `needs_review`. See **D27**.
 6. Admin review, preview, content editing, provider validation, publish gates,
    audit history and guarded import/export.
 
@@ -227,6 +245,29 @@ regression without stashing and reproducing first.**
 Not fixed because it is a change to eight existing tests and belongs in its own
 ticket. The fix is to wait for the button to be interactive rather than present
 — the same reason the suite already waits on regions elsewhere.
+
+### The generated library's difficulty labels are cosmetic
+
+**The same problem appears as easy, medium and hard.** Inside each of the ten
+groups in `data/native-problems/`, every record shares byte-identical test
+cases, constraints and reference solution — and the group spans all three
+difficulty values. Group 1 is 15 records built on the input `"4 4 2 4"`, labelled
+across easy, medium and hard.
+
+The aggregate is exactly 35 easy / 45 medium / 20 hard, which is why this went
+unnoticed: the distribution the spec asked for is present as a _count_. It
+measures nothing. `difficulty` here is a label assigned to a skin, not a property
+of the problem, and `difficultyCalibration` carries the same defect.
+
+**What this breaks if the library were ever published.** Difficulty filtering on
+`/problems` would return mixed groups; `estimatedMinutes` is per-skin so the
+solve-time baselines would be incomparable; and any analytics that segment by
+difficulty — weak-topic scoring, the revision engine's risk model — would be
+reading noise. None of that is live, because nothing is published.
+
+Recorded because the count looks right and the data does not, and a reviewer
+checking the distribution would find it correct. See **D27** for the full
+measurement and what was done about it.
 
 ### Two feature flags are deliberately unwired
 

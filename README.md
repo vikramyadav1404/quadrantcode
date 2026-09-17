@@ -28,31 +28,49 @@ return only if the project continued past that.
 
 ### Built
 
-| ID    | Feature                                     | Where                          |
-| ----- | ------------------------------------------- | ------------------------------ |
-| F0.1  | Repository scaffold & CI                    | root, `.github/`               |
-| F0.2  | Identity & problem catalog schema           | `server/db/schema/`            |
-| F0.3  | Auth, phone OTP & verification tiers        | `server/services/auth/`        |
-| F0.3+ | Auth UI — login, verify, onboarding         | `app/(auth)/`                  |
-| F0.4  | Design system & application shell           | `components/`                  |
-| F0.5  | User profile & avatar upload                | `server/services/profile/`     |
-| F1.1  | Problem catalog, search & admin CRUD        | `server/services/problems/`    |
-| F1.2  | CSV ingestion, export & library             | `server/services/ingest/`      |
-| F1.3  | Timezone-correct streak & daily goal engine | `server/services/streak/`      |
-| F1.4  | Server-authoritative solve session timer    | `server/services/session/`     |
-| F1.5  | Attempt history, stuck markers & reflection | `server/services/reflection/`  |
-| F1.6  | Rollup-backed analytics dashboard           | `server/services/analytics/`   |
-| F2.1  | Spaced repetition & forgetting-risk scoring | `server/services/revision/`    |
-| F3.1  | Monaco editor & queued code execution       | `server/services/execution/`   |
-| F3.2  | Solve timeline, code snapshots & privacy    | `server/services/timeline/`    |
-| F3.3  | Heuristic stuck-point inference             | `server/services/inference/`   |
-| F3.5  | Mistake memory & weekly focus               | `server/services/mistakes/`    |
-| F4.6  | Tracing, health dashboard & audit logs      | `server/lib/observability/`    |
-| F4.8  | Security hardening & launch readiness       | config, CI and `docs/`         |
-| N1    | 100 original native DSA problems            | `data/native-problems/`        |
-| N2    | Native authoring, review and Judge0 gate    | `server/services/admin/`       |
-| N3    | Company evidence and report moderation      | `server/services/companies/`   |
-| N4    | 20 original timed pattern-mock papers       | `server/services/assessments/` |
+| ID    | Feature                                                         | Where                          |
+| ----- | --------------------------------------------------------------- | ------------------------------ |
+| F0.1  | Repository scaffold & CI                                        | root, `.github/`               |
+| F0.2  | Identity & problem catalog schema                               | `server/db/schema/`            |
+| F0.3  | Auth, phone OTP & verification tiers                            | `server/services/auth/`        |
+| F0.3+ | Auth UI — login, verify, onboarding                             | `app/(auth)/`                  |
+| F0.4  | Design system & application shell                               | `components/`                  |
+| F0.5  | User profile & avatar upload                                    | `server/services/profile/`     |
+| F1.1  | Problem catalog, search & admin CRUD                            | `server/services/problems/`    |
+| F1.2  | CSV ingestion, export & library                                 | `server/services/ingest/`      |
+| F1.3  | Timezone-correct streak & daily goal engine                     | `server/services/streak/`      |
+| F1.4  | Server-authoritative solve session timer                        | `server/services/session/`     |
+| F1.5  | Attempt history, stuck markers & reflection                     | `server/services/reflection/`  |
+| F1.6  | Rollup-backed analytics dashboard                               | `server/services/analytics/`   |
+| F2.1  | Spaced repetition & forgetting-risk scoring                     | `server/services/revision/`    |
+| F3.1  | Monaco editor & queued code execution                           | `server/services/execution/`   |
+| F3.2  | Solve timeline, code snapshots & privacy                        | `server/services/timeline/`    |
+| F3.3  | Heuristic stuck-point inference                                 | `server/services/inference/`   |
+| F3.5  | Mistake memory & weekly focus                                   | `server/services/mistakes/`    |
+| F4.6  | Tracing, health dashboard & audit logs                          | `server/lib/observability/`    |
+| F4.8  | Security hardening & launch readiness                           | config, CI and `docs/`         |
+| N1    | 10 generated DSA problems in 100 skins — unpublished, see below | `data/native-problems/`        |
+| N2    | Native authoring, review and Judge0 gate                        | `server/services/admin/`       |
+| N3    | Company evidence and report moderation                          | `server/services/companies/`   |
+| N4    | 20 paper records over 10 distinct question-sets — unpublished   | `server/services/assessments/` |
+
+> **N1 and N4, stated plainly.** `data/native-problems/` holds 100 records with
+> 100 distinct slugs, titles, statements and stories — and **ten** distinct
+> problems underneath. All 100 share one function contract, `solve(values:
+integer[])`, and collapse into ten groups with byte-identical test cases,
+> reference solutions, editorials, hints and constraints. They were produced by
+> `scripts/generate-native-problem-library.ts`, not authored one at a time. The
+> 20 papers sit on 10 unique question-sets and 10 unique instruction texts.
+>
+> **None of it is published.** Everything imports at `needs_review`, and every
+> public read gates on `published`, so no user can reach any of it. It is being
+> replaced with hand-authored problems. The measurement, and the difficulty
+> labelling problem it exposed, are in `docs/status.md` and **D27**.
+>
+> What is real here is the machinery around the content: the importer, the
+> review and publish gate, the timed attempt engine with its server-owned clock,
+> and per-question scoring. Those were built against this library and work; the
+> library is the part being replaced.
 
 ### Planned — in the target build
 

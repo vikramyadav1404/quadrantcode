@@ -1360,3 +1360,100 @@ Hobby plan's daily cron, and a crash after Sandbox execution but before database
 finalization can spend duplicate CPU. Database effects remain exactly once.
 Keep the feature disabled until the digest-pinned image proves its cgroup,
 namespace, egress and cleanup contracts in a controlled preview.
+
+---
+
+## D27 · The native library is ten problems in a hundred skins, and it is not shipping
+
+**Date:** 2026-09-17 · **Status:** the library is held at `needs_review`,
+permanently, and is being replaced with hand-authored problems.
+
+### What the documents claimed
+
+`docs/status.md` said "Exactly 100 **independently authored** DSA problem
+records, with the required 35 easy / 45 medium / 20 hard and topic
+distribution." The README said "100 original native DSA problems". Both were
+false, and both survived multiple passes of this project's own honesty edits
+because the _count_ was right and nobody measured the _content_.
+
+### What it actually is
+
+Measured across all 100 records in `data/native-problems/`:
+
+| Field                                       | Unique values |
+| ------------------------------------------- | ------------- |
+| slug, title, statement, story               | 100           |
+| primary topic                               | 10            |
+| **test cases** — all 500, hidden included   | **10**        |
+| **reference solutions**                     | **10**        |
+| editorials · hints · constraints · examples | 10 each       |
+| **function contract**                       | **1**         |
+
+Every problem is `solve(values: integer[])`. The records collapse into ten
+groups by test-case identity: 15 / 12 / 12 / 12 / 10 / 8 / 8 / 8 / 8 / 7. Group 1
+is fifteen records all taking the input `4 4 2 4`, named _Signal Frequency
+Ledger_, _Archive Duplicate Pulse_, _Warehouse Mode Counter_, _Telemetry
+Majority Meter_, and eleven more. The prose is genuinely distinct. The problem
+is one problem.
+
+They were produced by `scripts/generate-native-problem-library.ts`. "Authored"
+was never the right word.
+
+The 20 papers in `data/assessment-papers.json` have 20 distinct slugs and titles
+over **10** unique question-sets and **10** unique instruction texts, each used
+twice, and every question resolves into the pool above.
+
+### The part that would survive contact with a reviewer worst
+
+**The difficulty labels are cosmetic.** Each of the ten groups spans easy,
+medium _and_ hard while sharing byte-identical test cases, constraints and
+reference solution. The aggregate is exactly 35 / 45 / 20 — the distribution the
+spec asked for — so a reviewer checking the requirement finds it satisfied. It
+measures nothing: `difficulty` is a property of the skin, not of the problem,
+and `difficultyCalibration` inherits the same defect.
+
+Had this been published, difficulty filters would have returned mixed groups,
+`estimatedMinutes` baselines would have been incomparable within a group, and
+every analytic that segments by difficulty — weak-topic scoring, the revision
+engine's risk model — would have been reading noise. It is the kind of number
+that looks correct in a table and falls apart under one question.
+
+### Decision
+
+1. **The library is not published.** All 100 problems and 20 papers import at
+   `needs_review`; `server/services/problems/queries.ts:76`,
+   `server/services/native-content/public.ts:76` and
+   `server/services/companies/queries.ts:164,240` all gate on `published`. No
+   user can reach any of it. Nothing needs to be deleted for that to hold.
+2. **The documents were corrected rather than quietly softened.** Both false
+   lines are struck through in place with the measurement beside them, so the
+   claim and its correction stay visible together.
+3. **`npm run companies:seed` was added** to populate `/companies` without it.
+   The ten company records are the one non-generated piece here.
+
+### Rejected: import it anyway, publish nothing, fix the docs
+
+Tempting, because the visibility gate already holds and the empty `/companies`
+message is what prompted this. Rejected because the papers cannot be imported
+without the problems — `importAssessmentPaperLibrary` resolves every
+`problemSlug` to a row and throws when one is missing — so "import it all, show
+none of it" means inserting 100 problem rows, 500 test cases and 20 papers that
+are all destined for deletion, into the same table the hand-authored problems
+will land in. Seeding ten companies is the smaller and more honest move.
+
+### Rejected: delete `generate-native-problem-library.ts`
+
+The generator is not the fault. A generated library is a reasonable way to
+exercise an importer, a review queue and a publish gate — and that machinery
+_is_ real and does work, which is the salvageable outcome here. The fault was
+describing its output as authored. The script stays; the claim does not.
+
+### What to watch for
+
+The failure was not the generator and not the data. It was that **every check
+this project ran counted records and none compared them.** `native:validate`
+passes 100/100 because each record is structurally valid. The 35/45/20
+distribution passes because the labels are present. A cheap guard against the
+next instance of this is a distinctness assertion — unique test-case sets should
+be within some factor of record count — but none is written yet, and writing one
+against a library that is being replaced would be guarding the wrong thing.
