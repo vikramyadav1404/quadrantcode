@@ -241,8 +241,32 @@ problems, and `loadNativeProblemBatches` reads only `batch-01.json` through
   the reference validator loads through the same path, _nothing_ validates —
   not your problem, not the existing ones.
 
-So authoring today means **replacing** a generated record in place, matching its
-`primaryTopic` and `difficulty` so the distribution counts still hold
+### Check the papers before you pick a record to replace
+
+**40 of the 100 problem slugs are referenced by `data/assessment-papers.json`.**
+Replacing one of those changes its slug, and the paper import then throws
+`Unknown original problem <slug>` — which fails
+`tests/native-content/importer.test.ts` and
+`tests/assessments/content-library.test.ts`, not the two validate commands.
+
+`rising-corridor` was first written over `research-grant-selection`, which a
+paper needed, and moved to `nonadjacent-vault-yield` once step 3 caught it. The
+first two authored records happened to land on unreferenced slugs, which was
+luck rather than care.
+
+Run this first and pick a slug it prints:
+
+```bash
+node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('data/assessment-papers.json','utf8'));const papers=Array.isArray(d)?d:(d.papers||[]);const used=new Set();for(const p of papers)for(const q of p.questions)used.add(q.problemSlug);const all=[];for(const f of fs.readdirSync('data/native-problems').filter(x=>x.endsWith('.json')))for(const p of JSON.parse(fs.readFileSync('data/native-problems/'+f,'utf8')).problems)all.push(p);for(const p of all)if(!used.has(p.slug))console.log('free',p.difficulty.padEnd(7),p.primaryTopic.padEnd(28),p.slug)"
+```
+
+Rewriting a paper to point at the new slug is the other option, and it is worse:
+the papers are generated content headed for replacement too, so editing one
+spends effort on something being thrown away.
+
+So authoring today means **replacing** an unreferenced generated record in
+place, matching its `primaryTopic` and `difficulty` so the distribution counts
+still hold
 (`NATIVE_TOPIC_DISTRIBUTION` and `NATIVE_DIFFICULTY_DISTRIBUTION` are both
 checked).
 
