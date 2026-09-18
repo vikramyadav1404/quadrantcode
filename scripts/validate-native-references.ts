@@ -6,8 +6,35 @@ import { spawn } from 'node:child_process';
 import { EXECUTION_LANGUAGES, type ExecutionLanguage } from '@/lib/execution/languages';
 import { outputsMatch, wrapUserSource } from '@/server/services/execution/native';
 import { loadNativeProblemBatches } from '@/server/services/native-content';
+import {
+  harnessHash,
+  platformTag,
+  readReferenceCache,
+  referenceCacheKey,
+  toolchainVersion,
+  writeReferenceCache,
+} from './reference-cache';
 
 type Runnable = { command: string; args: string[]; cwd: string };
+
+/**
+ * `--no-cache` forces a full run.
+ *
+ * Worth using periodically, and worth using before trusting a green. A cached
+ * pass cannot notice a reference that only passes sometimes — uninitialised
+ * memory in C is the real exposure — because the key covers the inputs, not the
+ * behaviour. See `scripts/reference-cache.ts`.
+ */
+const useCache = !process.argv.includes('--no-cache');
+
+/** `<command>` and args used to read each toolchain's version for the cache key. */
+const TOOLCHAIN: Record<ExecutionLanguage, [string, string[]]> = {
+  c11: ['gcc', ['--version']],
+  cpp17: ['g++', ['--version']],
+  java: ['javac', ['-version']],
+  python3: ['python', ['--version']],
+  javascript: ['node', ['--version']],
+};
 
 const batches = await loadNativeProblemBatches();
 const problems = batches.flatMap((batch) => batch.problems);
@@ -15,11 +42,49 @@ const validationRoot = await mkdtemp(join(tmpdir(), 'quadrantcode-reference-vali
 const compiled = new Map<string, Runnable>();
 let executions = 0;
 
+const previous = useCache ? await readReferenceCache() : new Set<string>();
+const verified = new Set<string>();
+const harness = await harnessHash();
+const platform = platformTag();
+const toolchains = Object.fromEntries(
+  await Promise.all(
+    EXECUTION_LANGUAGES.map(async (language) => {
+      const [command, args] = TOOLCHAIN[language];
+      return [language, await toolchainVersion(command, args)] as const;
+    }),
+  ),
+) as Record<ExecutionLanguage, string>;
+
+let cacheHits = 0;
+
 try {
   for (const language of EXECUTION_LANGUAGES) {
     for (const problem of problems) {
       const template = problem.languages[language];
       const source = wrapUserSource(template.wrapperTemplate, template.referenceSolution);
+
+      /*
+       * Two different caches, and they are not the same thing.
+       *
+       * `cacheKey` decides whether this record was already PROVEN in a previous
+       * run, and skips compiling and executing entirely. `compiled` dedupes
+       * compilation WITHIN this run, across records that share a solution.
+       */
+      const cacheKey = referenceCacheKey({
+        language,
+        source,
+        testCases: problem.testCases,
+        toolchain: toolchains[language],
+        platform,
+        harnessHash: harness,
+      });
+
+      if (previous.has(cacheKey)) {
+        verified.add(cacheKey);
+        cacheHits += 1;
+        continue;
+      }
+
       const key = `${language}:${createHash('sha256').update(source).digest('hex')}`;
       let runnable = compiled.get(key);
       if (!runnable) {
@@ -41,10 +106,21 @@ try {
           );
         }
       }
+
+      // Recorded only after every test case passed. A partial pass is not a
+      // pass, and a throw above means this is never reached.
+      verified.add(cacheKey);
     }
     console.log(`validated ${language}: ${problems.length} problems`);
   }
 
+  /*
+   * Written only on a clean run. Any failure throws before this point, so a
+   * broken record is never recorded as verified and the next run re-proves it.
+   */
+  if (useCache) await writeReferenceCache(verified);
+
+  const checked = problems.length * EXECUTION_LANGUAGES.length;
   console.log(
     JSON.stringify(
       {
@@ -52,6 +128,9 @@ try {
         languages: EXECUTION_LANGUAGES.length,
         uniqueCompilations: compiled.size,
         executions,
+        cached: cacheHits,
+        revalidated: checked - cacheHits,
+        cache: useCache ? 'on' : 'off (--no-cache)',
         result: 'all reference outputs match',
       },
       null,
