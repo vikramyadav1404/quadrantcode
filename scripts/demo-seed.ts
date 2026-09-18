@@ -27,10 +27,26 @@
  * before seeding. `npm run demo:seed -- --clean` removes them without
  * re-seeding, which is what to run before a full e2e pass.
  *
- * **It prints a session token.** That is the same mechanism `e2e/helpers/auth.ts`
- * uses: insert an `auth_sessions` row and carry its token in the session
- * cookie. It is a development convenience and nothing else — it does not
- * bypass any check, it creates a real session the same way a magic link would.
+ * ## Running it against a deployment
+ *
+ * It was written for the local instance and now also seeds the production
+ * database, so the walkthrough link is not seven empty pages. Two consequences
+ * that do not apply locally:
+ *
+ * - **The printed session token is a live credential**, not a development
+ *   convenience. It is a real `auth_sessions` row — the same mechanism
+ *   `e2e/helpers/auth.ts` uses — valid for thirty days against whatever
+ *   database it was written to. It bypasses no check; it is exactly the session
+ *   a magic link would have produced. Anyone holding it is signed in as the
+ *   demo user until the row is deleted.
+ * - **The demo user is `role: 'user'` deliberately.** `app/admin` and
+ *   `app/api/admin` are gated on role rank, and nothing in the walkthrough
+ *   needs them. An admin demo account plus a printed token would put native
+ *   review and problem CRUD behind a string in a terminal transcript.
+ *
+ * `--clean` removes the user, the sessions and the token together, so the whole
+ * seed is reversible. That depends on the database's `session_events` trigger
+ * reading `quadrantcode.purging`; `npm run schema:check` confirms it does.
  */
 import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
@@ -38,14 +54,43 @@ import postgres from 'postgres';
 
 const DEMO_EMAIL = 'demo@quadrantcode.local';
 
+/*
+ * The fifth field is the real LeetCode slug, and it is separate from ours on
+ * purpose: the first field has to keep the `demo-` prefix, because that prefix
+ * is what the cleanup deletes on.
+ *
+ * Earlier this built the URL from the demo slug, which produced links like
+ * `/problems/demo-two-sum-style/` — every one a 404. On a walkthrough
+ * deployment that is a dead link under a real problem title.
+ *
+ * Title, difficulty, topic and a link is metadata, which is what C1 permits;
+ * no statement, examples or tests are copied, and the CHECK constraint
+ * `problems_external_link_no_statement` is the backstop.
+ *
+ * Verified against LeetCode's own catalogue (`/api/problems/all/`, 4,055
+ * slugs) rather than from memory — a plain fetch of each URL returns 403 for
+ * real and invented slugs alike, so it cannot tell them apart.
+ */
 const PROBLEMS = [
-  ['demo-two-sum-style', 'Two Sum', 'easy', 'arrays'],
-  ['demo-binary-search-style', 'Binary Search', 'easy', 'binary-search'],
-  ['demo-search-rotated-style', 'Search in Rotated Sorted Array', 'medium', 'binary-search'],
-  ['demo-coin-change-style', 'Coin Change', 'medium', 'dynamic-programming'],
-  ['demo-course-schedule-style', 'Course Schedule', 'medium', 'graphs'],
-  ['demo-lru-cache-style', 'LRU Cache', 'medium', 'design'],
-  ['demo-median-two-sorted-style', 'Median of Two Sorted Arrays', 'hard', 'binary-search'],
+  ['demo-two-sum-style', 'Two Sum', 'easy', 'arrays', 'two-sum'],
+  ['demo-binary-search-style', 'Binary Search', 'easy', 'binary-search', 'binary-search'],
+  [
+    'demo-search-rotated-style',
+    'Search in Rotated Sorted Array',
+    'medium',
+    'binary-search',
+    'search-in-rotated-sorted-array',
+  ],
+  ['demo-coin-change-style', 'Coin Change', 'medium', 'dynamic-programming', 'coin-change'],
+  ['demo-course-schedule-style', 'Course Schedule', 'medium', 'graphs', 'course-schedule'],
+  ['demo-lru-cache-style', 'LRU Cache', 'medium', 'design', 'lru-cache'],
+  [
+    'demo-median-two-sorted-style',
+    'Median of Two Sorted Arrays',
+    'hard',
+    'binary-search',
+    'median-of-two-sorted-arrays',
+  ],
 ] as const;
 
 /** A solution that gets its binary-search bounds wrong, then right. */
@@ -122,18 +167,23 @@ async function main(): Promise<void> {
     return;
   }
 
+  // `user`, not `admin`. See the note at the top: this account's session token
+  // is printed, and admin would carry /admin and /api/admin with it.
   const [user] = await sql`
     INSERT INTO users (email, role, timezone, email_verified_at)
-    VALUES (${DEMO_EMAIL}, 'admin', 'Asia/Kolkata', now())
+    VALUES (${DEMO_EMAIL}, 'user', 'Asia/Kolkata', now())
     RETURNING id
   `;
   const userId = String(user!['id']);
 
+  // The display name is the one that shows in the app shell, so it is where a
+  // reader decides whether they are looking at a real account.
   await sql`
     INSERT INTO user_profiles (user_id, display_name, target_role, bio)
-    VALUES (${userId}, 'Demo User', 'sde_1',
-            'Working through binary search and DP before interviews.')
-    ON CONFLICT (user_id) DO UPDATE SET display_name = excluded.display_name
+    VALUES (${userId}, 'Demo Account', 'sde_1',
+            'Seeded sample data for the walkthrough — not a real user.')
+    ON CONFLICT (user_id) DO UPDATE
+      SET display_name = excluded.display_name, bio = excluded.bio
   `;
 
   await sql`
@@ -144,12 +194,12 @@ async function main(): Promise<void> {
 
   const problemIds: string[] = [];
 
-  for (const [slug, title, difficulty, topic] of PROBLEMS) {
+  for (const [slug, title, difficulty, topic, externalSlug] of PROBLEMS) {
     const [problem] = await sql`
       INSERT INTO problems (slug, title, source_type, platform, external_url, difficulty, status)
       VALUES (${slug}, ${title}, 'external_link', 'leetcode',
-              ${`https://leetcode.com/problems/${slug}/`}, ${difficulty}, 'published')
-      ON CONFLICT (slug) DO UPDATE SET title = excluded.title
+              ${`https://leetcode.com/problems/${externalSlug}/`}, ${difficulty}, 'published')
+      ON CONFLICT (slug) DO UPDATE SET title = excluded.title, external_url = excluded.external_url
       RETURNING id
     `;
     const problemId = String(problem!['id']);
