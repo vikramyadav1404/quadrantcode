@@ -174,7 +174,9 @@ function libraryFixture() {
 }
 
 describe('native problem content schema', () => {
-  it('enforces the exact 100-problem distributions and all language templates', () => {
+  it('accepts a library that meets every floor, and reports what it found', () => {
+    // The fixture is built from the constants, so it sits exactly ON the floors
+    // — the tightest library that can still pass. Anything smaller breaches one.
     expect(validateNativeLibrary(libraryFixture())).toEqual({
       total: 100,
       difficulty: NATIVE_DIFFICULTY_DISTRIBUTION,
@@ -182,10 +184,36 @@ describe('native problem content schema', () => {
     });
   });
 
-  it('rejects an incomplete aggregate library', () => {
+  it('rejects a library that has dropped below a floor', () => {
+    /*
+     * Asserted on 'at least' rather than a named topic. Which floor breaks
+     * depends on which problem the slice removes, and pinning that would make
+     * the test depend on the fixture's ordering rather than on the rule.
+     *
+     * This used to assert 'exactly 100'. The library is still rejected — one
+     * fewer problem than the floors require is still too few — but the reason
+     * is now a floor rather than a total, which is the whole point of the
+     * change.
+     */
     const batches = libraryFixture();
     batches[9] = { ...batches[9]!, problems: batches[9]!.problems.slice(0, 9) };
-    expect(() => validateNativeLibrary(batches)).toThrow('exactly 100');
+    expect(() => validateNativeLibrary(batches)).toThrow(/expected at least/);
+  });
+
+  it('accepts a library grown past the floors', () => {
+    /*
+     * The case the lock made impossible. An eleventh batch of extra problems
+     * must now validate — every floor is still met, and nothing caps the total.
+     */
+    const batches = libraryFixture();
+    const extra = batches[0]!.problems.slice(0, 5).map((problem, index) => ({
+      ...problem,
+      slug: `original-extra-${String(index + 1).padStart(3, '0')}`,
+      title: `Original Extra ${String(index + 1).padStart(3, '0')}`,
+    }));
+
+    const grown = [...batches, { ...batches[0]!, batch: 11, problems: extra }];
+    expect(validateNativeLibrary(grown).total).toBe(105);
   });
 
   it('rejects fabricated verified evidence in generated batches', () => {
@@ -210,5 +238,76 @@ describe('native problem content schema', () => {
         ],
       }),
     ).toThrow('COMPANY_PATTERN');
+  });
+});
+
+/*
+ * Positive controls for `validateNativeLibrary`, written BEFORE the exact-count
+ * checks were relaxed into floors.
+ *
+ * Removing a check is exactly where a test goes vacuous: a suite that only
+ * asserts a good library passes would stay green if the checks were deleted
+ * outright. Each case below therefore asserts a REJECTION, and each was run
+ * against the strict implementation first:
+ *
+ *   topic shortfall       rejected before (11 !== 12) and after (11 < 12)
+ *   difficulty shortfall  rejected before (34 !== 35) and after (34 < 35)
+ *   empty library         rejected before (0 !== 100)  and after (0 < 1)
+ *   non-contiguous batch  NOT rejected before — this one failed until the
+ *                         contiguity guard was added, which is what proves it
+ *                         tests something real rather than restating the code
+ *
+ * Assertions match on the subject — the topic name, the difficulty level —
+ * rather than the full sentence, so they survive the wording change from
+ * "expected N" to "expected at least N" without being loosened to `.toThrow()`.
+ */
+describe('validateNativeLibrary rejects a broken library', () => {
+  it('rejects a topic below its floor, even when the total is right', () => {
+    const batches = libraryFixture();
+    /*
+     * Move a problem OUT of `arrays-hashing`, not into it. The total stays 100,
+     * so this isolates the per-topic check from the total check.
+     *
+     * The direction matters, and the first draft had it backwards. Any
+     * single-problem move creates both a shortfall and an excess, and the
+     * checks run in declaration order with `arrays-hashing` first. Moving a
+     * problem INTO it tripped the excess (16 against 15) before reaching the
+     * topic that was actually short — which the strict checks reject and floors
+     * would not, so the test would have kept passing for a different reason
+     * after the relaxation. Making the shortfall land on the first-checked
+     * topic means both regimes fail on the same subject.
+     */
+    const victim = batches
+      .flatMap((batch) => batch.problems)
+      .find((problem) => problem.primaryTopic === 'arrays-hashing');
+    expect(victim).toBeDefined();
+    victim!.primaryTopic = 'graphs';
+
+    expect(() => validateNativeLibrary(batches)).toThrow('arrays-hashing');
+  });
+
+  it('rejects a difficulty below its floor, even when the total is right', () => {
+    const batches = libraryFixture();
+    const victim = batches
+      .flatMap((batch) => batch.problems)
+      .find((problem) => problem.difficulty === 'easy');
+    expect(victim).toBeDefined();
+    victim!.difficulty = 'medium';
+
+    expect(() => validateNativeLibrary(batches)).toThrow('easy');
+  });
+
+  it('rejects an empty library', () => {
+    expect(() => validateNativeLibrary([])).toThrow();
+  });
+
+  it('rejects a gap in the batch numbers', () => {
+    // The loader globs `batch-*.json`, so a deleted or misnamed file would
+    // simply not be read. The fixed 1..10 range used to throw ENOENT for that;
+    // contiguity is what replaces it.
+    const batches = libraryFixture();
+    batches[9] = { ...batches[9]!, batch: 11 };
+
+    expect(() => validateNativeLibrary(batches)).toThrow('contiguous');
   });
 });
