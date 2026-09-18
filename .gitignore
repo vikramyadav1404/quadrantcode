@@ -54,3 +54,6 @@ test-results/
 
 # Local UI comparison screenshots; keep them on the developer machine only.
 .artifacts/
+
+# neonctl local config (org id, not a secret, but not repository history either)
+.neon
