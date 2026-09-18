@@ -152,6 +152,52 @@ test.
 
 ## Standing risks
 
+### Applied migrations were edited in place, and Drizzle cannot detect it
+
+`dac85c8` (2026-09-13, _"rename traceloop to quadrantcode throughout"_) was a
+repository-wide rename. It swept `server/db/migrations/` along with everything
+else, rewriting the body of migrations that **had already run**.
+
+Drizzle's migrator decides what to apply by timestamp, not by content. An edited
+migration is therefore never re-applied, and `npm run db:migrate` prints
+`migrations applied` while changing nothing. Measured on the local development
+database: **17 of 25 recorded migrations no longer hash-match the file they came
+from.** There is no repair by migrating; the database has to be rebuilt or the
+difference hand-applied.
+
+**The damage is not cosmetic.** The rename included the session-local flag the
+`session_events` append-only trigger checks. A database migrated before that date
+has a trigger reading `traceloop.purging`, while
+`server/services/timeline/retention.ts` sets `quadrantcode.purging`. Every path
+that legitimately erases event rows is then refused by the database:
+`snapshots:purge` — which is what makes ninety-day retention true — account
+deletion, and `demo:seed --clean`.
+
+**A fresh clone is unaffected.** Migrating from nothing applies the current files
+and produces the current schema, so a new contributor sees none of this. The
+exposure is long-lived databases, which is where nobody looks.
+
+**Where it stood on 2026-09-19.** `quadrantcode_dev` was drifted — found because
+`demo:seed` failed with `session_events is append-only`, an error that named
+`traceloop_reject_event_mutation`, a function that exists in no migration file.
+It has been rebuilt. **Production was checked and is CURRENT**, so the retention
+promise holds there. A leftover `traceloop_test` database was dropped.
+
+```bash
+npm run schema:check    # reads SCHEMA_CHECK_URL, NEON_DATABASE_URL, or DATABASE_URL
+```
+
+Read-only, exits non-zero on drift, and prints the host and database name before
+anything else — a check that silently answers about the wrong database is worse
+than none. Note that **table count does not discriminate**: drifted and current
+both report 48, which is why the restore drill's `tables 48` could not have
+caught this.
+
+**The rule this leaves.** An applied migration is immutable. A rename, a
+reformat or a lint sweep that touches `server/db/migrations/` produces exactly
+this failure, silently, and the symptom surfaces weeks later somewhere unrelated.
+Correct a shipped migration with a new one.
+
 ### The execution consumer's access control is a beta platform feature
 
 `/api/queues/executions` is **not authenticated by a signature**. Neither

@@ -53,7 +53,8 @@
     "papers:validate": "tsx scripts/validate-assessment-papers.ts",
     "assessments:sweep": "tsx scripts/sweep-assessments.ts",
     "companies:seed": "tsx scripts/seed-companies.ts",
-    "drill": "tsx scripts/restore-drill.ts"
+    "drill": "tsx scripts/restore-drill.ts",
+    "schema:check": "tsx scripts/schema-drift.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
