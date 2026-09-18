@@ -10,6 +10,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 20,
@@ -108,73 +109,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -226,6 +172,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 35,
@@ -324,73 +271,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -442,6 +334,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 20,
@@ -540,73 +433,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -658,6 +496,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 55,
@@ -756,73 +595,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -874,6 +658,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 35,
@@ -972,73 +757,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -1090,6 +820,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "scheduling-greedy"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 20,
@@ -1216,73 +947,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static int compareService(const void *left, const void *right) {\n  long long a = *(const long long *)left;\n  long long b = *(const long long *)right;\n  return (a > b) - (a < b);\n}\n\nlong long solve(const long long *values, int n) {\n  if (n <= 0) return 0;\n  long long *times = (long long *)malloc(sizeof(long long) * (size_t)n);\n  memcpy(times, values, sizeof(long long) * (size_t)n);\n  qsort(times, (size_t)n, sizeof(long long), compareService);\n  long long elapsed = 0, total = 0;\n  for (int i = 0; i < n; i++) {\n    elapsed += times[i];\n    total += elapsed;\n  }\n  free(times);\n  return total;\n}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>& values) {\n  vector<long long> times(values);\n  sort(times.begin(), times.end());\n  long long elapsed = 0, total = 0;\n  for (long long service : times) {\n    elapsed += service;\n    total += elapsed;\n  }\n  return total;\n}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[] values) {\n  long[] times = values.clone();\n  Arrays.sort(times);\n  long elapsed = 0L, total = 0L;\n  for (long service : times) {\n    elapsed += service;\n    total += elapsed;\n  }\n  return total;\n}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(values: list[int]) -> int:\n    elapsed = 0\n    total = 0\n    for service in sorted(values):\n        elapsed += service\n        total += elapsed\n    return total"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(values) {\n  const times = [...values].sort((a, b) => a - b);\n  let elapsed = 0;\n  let total = 0;\n  for (const service of times) {\n    elapsed += service;\n    total += elapsed;\n  }\n  return total;\n}"
         }
       },
@@ -1303,6 +979,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 35,
@@ -1401,73 +1078,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -1519,6 +1141,7 @@
       "primaryTopic": "heap-greedy",
       "topics": ["heap-greedy", "minimum-merge-cost"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 20,
@@ -1617,73 +1240,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
         }
       },
@@ -1735,6 +1303,7 @@
       "primaryTopic": "graphs",
       "topics": ["graphs", "graph-components"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 55,
@@ -1833,73 +1402,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
         }
       },
@@ -1951,6 +1465,7 @@
       "primaryTopic": "graphs",
       "topics": ["graphs", "graph-components"],
       "problemType": "function",
+      "shape": "int-array-to-int",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 35,
@@ -2049,73 +1564,18 @@
       },
       "languages": {
         "c11": {
-          "displayName": "C",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const long long *values, int n)",
-          "starterCode": "long long solve(const long long *values, int n) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n/*__USER_CODE__*/\nint main(void){int n=0,cap=16; long long *a=malloc(sizeof(long long)*cap),x; while(scanf(\"%lld\",&x)==1){if(n==cap){cap*=2;a=realloc(a,sizeof(long long)*cap);}a[n++]=x;} printf(\"%lld\",solve(a,n)); free(a); return 0;}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "int root(int*p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}\nlong long solve(const long long*v,int z){if(!z)return 0;int n=(int)v[0],*p=malloc(sizeof(int)*n);for(int i=0;i<n;i++)p[i]=i;int c=n;for(int i=1;i+1<z;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}free(p);return c;}"
         },
         "cpp17": {
-          "displayName": "C++",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "long long solve(const vector<long long>& values)",
-          "starterCode": "long long solve(const vector<long long>& values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "#include <bits/stdc++.h>\nusing namespace std;\n/*__USER_CODE__*/\nint main(){ios::sync_with_stdio(false);cin.tie(nullptr);vector<long long>a;long long x;while(cin>>x)a.push_back(x);cout<<solve(a);}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int n=v[0];vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};int c=n;for(int i=1;i+1<(int)v.size();i+=2){int a=f(v[i]),b=f(v[i+1]);if(a!=b)p[a]=b,c--;}return c;}"
         },
         "java": {
-          "displayName": "Java",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "static long solve(long[] values)",
-          "starterCode": "static long solve(long[] values) {\n  // Write your solution here.\n  return 0L;\n}",
-          "wrapperTemplate": "import java.io.*;\nimport java.util.*;\npublic class Main {\n/*__USER_CODE__*/\npublic static void main(String[] args)throws Exception{String s=new String(System.in.readAllBytes()).trim();if(s.isEmpty()){System.out.print(solve(new long[0]));return;}String[]p=s.split(\"\\\\s+\");long[]a=new long[p.length];for(int i=0;i<p.length;i++)a[i]=Long.parseLong(p[i]);System.out.print(solve(a));}\n}",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "static int root(int[]p,int x){while(p[x]!=x){p[x]=p[p[x]];x=p[x];}return x;}static long solve(long[]v){if(v.length==0)return 0;int n=(int)v[0],c=n;int[]p=new int[n];for(int i=0;i<n;i++)p[i]=i;for(int i=1;i+1<v.length;i+=2){int a=root(p,(int)v[i]),b=root(p,(int)v[i+1]);if(a!=b){p[a]=b;c--;}}return c;}"
         },
         "python3": {
-          "displayName": "Python",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "def solve(values: list[int]) -> int",
-          "starterCode": "def solve(values: list[int]) -> int:\n    # Write your solution here.\n    return 0",
-          "wrapperTemplate": "/*__USER_CODE__*/\nif __name__ == \"__main__\":\n    import sys\n    values = [int(x) for x in sys.stdin.read().split()]\n    print(solve(values))",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    n=v[0];p=list(range(n))\n    def f(x):\n        while p[x]!=x:p[x]=p[p[x]];x=p[x]\n        return x\n    c=n\n    for i in range(1,len(v)-1,2):\n        a,b=f(v[i]),f(v[i+1])\n        if a!=b:p[a]=b;c-=1\n    return c"
         },
         "javascript": {
-          "displayName": "JavaScript",
-          "runtimeVersion": null,
-          "judge0LanguageId": null,
-          "functionSignature": "function solve(values)",
-          "starterCode": "function solve(values) {\n  // Write your solution here.\n  return 0;\n}",
-          "wrapperTemplate": "const fs = require(\"fs\");\n/*__USER_CODE__*/\nconst raw=fs.readFileSync(0,\"utf8\").trim();const values=raw?raw.split(/\\s+/).map(Number):[];console.log(String(solve(values)));",
-          "serialization": {
-            "input": "Whitespace-separated signed integers read into values.",
-            "output": "One signed integer.",
-            "equality": "exact_json"
-          },
           "referenceSolution": "function solve(v){if(!v.length)return 0;const n=v[0],p=Array.from({length:n},(_,i)=>i);function f(x){while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;}let c=n;for(let i=1;i+1<v.length;i+=2){const a=f(v[i]),b=f(v[i+1]);if(a!==b){p[a]=b;c--;}}return c;}"
         }
       },

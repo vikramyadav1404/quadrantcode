@@ -34,9 +34,14 @@ a name to go and learn. What is not allowed is lifting the explanation.
 
 ---
 
-## 2 · What the wrappers support today
+## 2 · Shapes: what the wrappers support today
 
-**One shape, and it is narrow.** Every existing wrapper reads one line of
+A **shape** is the execution contract a problem speaks — what the wrapper reads
+from stdin, what it prints, and the signature the solver implements. Shapes live
+once, in `server/services/native-content/wrapper-shapes.ts`, and a record names
+one instead of carrying its own copy.
+
+**One shape exists, and it is narrow:** `int-array-to-int` reads one line of
 whitespace-separated integers into a single array and prints one integer.
 
 |                               |                                                 |
@@ -47,7 +52,8 @@ whitespace-separated integers into a single array and prints one integer.
 | stdout                        | one signed integer                              |
 | equality                      | `exact_json` — see the gotcha below             |
 
-The five signatures, which you copy verbatim:
+The five signatures the shape supplies. **You do not copy these** — naming the
+shape expands them:
 
 ```
 c11         long long solve(const long long *values, int n)
@@ -57,6 +63,26 @@ python3     def solve(values: list[int]) -> int
 javascript  function solve(values)
 ```
 
+### What a record supplies, and what the shape supplies
+
+| Supplied by the record                                | Supplied by the shape                                                  |
+| ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| `shape` — the id, once                                | `displayName`, `runtimeVersion`, `judge0LanguageId`                    |
+| `languages.<lang>.referenceSolution` — five, one each | `functionSignature`, `starterCode`, `wrapperTemplate`, `serialization` |
+
+Expansion happens inside `nativeProblemBatchSchema` while parsing, so everything
+downstream — the validator, the importer, the reference validator — sees the
+same fully-populated record it always did. Nothing reaches the database as a
+shape: the importer writes the expanded text into `problem_language_templates`
+exactly as before, and the live execution path reads those rows and never sees
+the registry.
+
+> Until 2026-09-18 every record spelled out all seven shared fields per
+> language. Measured across the hundred-record library they were byte-identical
+> in all five languages — **117,900 bytes of duplication**, with no single place
+> to change a wrapper. At a few thousand problems that is several megabytes of
+> repeated string.
+
 ### Encoding a second parameter
 
 There is no second parameter. A problem needing one packs it into the array,
@@ -65,17 +91,25 @@ conventionally at `values[0]`, with the data following. **Say so in
 the width of the soak", not "values[0] is W". A solver should not be able to
 feel our plumbing through the statement.
 
-### What needs a new wrapper
+### What needs a new shape
 
 Anything that is not `int[] → int`. Strings, floats, a returned array, a tree or
 graph given as structured input, multiple test cases per run, a `className` for
-a method-on-class contract. The schema has the fields for these
+a method-on-class contract. The schema has the fields for some of these
 (`functionContract.className`, richer `serialization`), but **no wrapper
 implements them**, so writing such a record produces something that cannot be
-validated or run. Adding a wrapper means editing all five `wrapperTemplate`
-strings and re-validating every existing problem.
+validated or run.
 
-Pick a problem that fits the shape, or budget the wrapper work first.
+Adding a shape means authoring seven fields in five languages — twenty-odd
+pieces — and proving them against a real problem in each. Budget about a day per
+shape. The registry is what makes that a bounded job rather than a rewrite of
+every record.
+
+`outputsMatch` already does `JSON.parse` plus deep-equal, so **array and nested
+output need no change there**; the constraint is entirely in the wrapper
+templates.
+
+Pick a problem that fits the existing shape, or budget the shape work first.
 
 ---
 
@@ -103,6 +137,7 @@ One record. Every field is required unless marked. Limits are from
   "primaryTopic": "two-pointers-sliding-window", // one of the 10 topic slugs
   "topics": ["two-pointers-sliding-window", "..."], // 1-8, MUST include primaryTopic
   "problemType": "function", // only value the enum allows
+  "shape": "int-array-to-int", // the execution contract; see §2. One shape exists
   "version": 1,
   "status": "needs_review", // enum allows draft too, but a NEW record must be
   // needs_review or the library test fails — see §4 step 3
@@ -156,7 +191,14 @@ One record. Every field is required unless marked. Limits are from
     "spaceComplexity": "O(n)",
   },
 
-  "languages": { "c11": {}, "cpp17": {}, "java": {}, "python3": {}, "javascript": {} },
+  // One reference solution per language. Nothing else: the shape supplies the rest.
+  "languages": {
+    "c11": { "referenceSolution": "long long solve(const long long *values, int n) { ... }" },
+    "cpp17": { "referenceSolution": "..." },
+    "java": { "referenceSolution": "..." },
+    "python3": { "referenceSolution": "..." },
+    "javascript": { "referenceSolution": "..." },
+  },
 
   "provenance": {
     "contentSource": "quadrantcode-original", // literal
@@ -171,12 +213,13 @@ One record. Every field is required unless marked. Limits are from
 }
 ```
 
-Each entry in `languages` carries `displayName`, `runtimeVersion`,
-`judge0LanguageId`, `functionSignature`, `starterCode`, `wrapperTemplate`,
-`serialization` and `referenceSolution`. **Copy all of them from an existing
-record and change only `referenceSolution`.** The wrappers are shared
-infrastructure; a per-problem edit to one is how five languages silently stop
-agreeing.
+Each entry in `languages` carries **only** `referenceSolution`. The seven shared
+fields come from the shape, and a record cannot override them — which is the
+point. A per-problem edit to a wrapper is how five languages silently stop
+agreeing, and that is now impossible rather than merely discouraged.
+
+Write the five reference solutions against the signatures in §2. They are the
+one thing that genuinely differs per problem.
 
 ### Test-case rules the schema enforces
 
