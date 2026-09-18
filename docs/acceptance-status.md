@@ -1188,14 +1188,14 @@ what it should: every other console call bypasses redaction.
 The deliverable is `docs/security-audit.md` — findings, fixes, and accepted
 risks with reasons. This table is the criteria; the report is the substance.
 
-| #   | Criterion                                                      | State                   | Evidence                                                                       |
-| --- | -------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
-| 1   | A written audit report with findings, fixes and accepted risks | **DONE**                | `docs/security-audit.md` — 3 findings, 5 accepted risks, 3 unverifiable        |
-| 2   | Route enumeration test passes and covers every route           | **DONE**                | Walks the filesystem; **a route nobody has classified fails the test**         |
-| 3   | Every IDOR attempt is blocked                                  | **DONE**                | `e2e/idor.spec.ts` — 404 for each, over real HTTP, as a signed-in stranger     |
-| 4   | Secret scanner over full history returns clean                 | **DONE**                | 79 commits, no leaks — after one finding was reviewed and one canary was fixed |
-| 5   | A restore was actually performed and verified                  | **BLOCKED**             | There are no backups, because there is no deployment                           |
-| 6   | Load test results recorded with p95 numbers                    | **DONE, service layer** | 100 concurrent: catalog p95 **146 ms**, dashboard p95 **146 ms**, 0 failures   |
+| #   | Criterion                                                      | State                   | Evidence                                                                                                         |
+| --- | -------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 1   | A written audit report with findings, fixes and accepted risks | **DONE**                | `docs/security-audit.md` — 3 findings, 5 accepted risks, 3 unverifiable                                          |
+| 2   | Route enumeration test passes and covers every route           | **DONE**                | Walks the filesystem; **a route nobody has classified fails the test**                                           |
+| 3   | Every IDOR attempt is blocked                                  | **DONE**                | `e2e/idor.spec.ts` — 404 for each, over real HTTP, as a signed-in stranger                                       |
+| 4   | Secret scanner over full history returns clean                 | **DONE**                | 79 commits, no leaks — after one finding was reviewed and one canary was fixed                                   |
+| 5   | A restore was actually performed and verified                  | **NOT DONE**            | Procedure written and ready to run: `docs/restore-drill.md`. Was BLOCKED on "no deployment"; that reason expired |
+| 6   | Load test results recorded with p95 numbers                    | **DONE, service layer** | 100 concurrent: catalog p95 **146 ms**, dashboard p95 **146 ms**, 0 failures                                     |
 
 ### The findings
 
@@ -1228,10 +1228,31 @@ identifier** — a sortable column being the likely first.
 
 ### What this audit could not do
 
-**No restore drill.** The criterion asks for a restore actually performed. There
-are no backups because there is no deployed database — the only Postgres this
-project has run against is the embedded test instance, recreated from migrations
-each run. **BLOCKED**, not done.
+**No restore drill.** The criterion asks for a restore actually performed.
+
+> ~~There are no backups because there is no deployed database — the only
+> Postgres this project has run against is the embedded test instance,
+> recreated from migrations each run. **BLOCKED**, not done.~~
+>
+> **That reason expired and was corrected on 2026-09-18.** There _is_ a deployed
+> database: `docs/status.md` records the first real deployment with Neon
+> migrated and seeded, and the application's `DATABASE_URL` points at
+> `neon.tech`. Nothing blocks this any more; it simply has not been run.
+>
+> Neon's free tier gives a **six-hour history window** and point-in-time
+> recovery by branching, rather than a downloadable backup file. That is enough
+> to satisfy the criterion, which asks for a restore performed and verified, not
+> for a particular backup format.
+>
+> **`docs/restore-drill.md` is the procedure**, written to be run against the
+> live project: one marker row into `audit_logs`, a branch created from a past
+> timestamp — `neon branches create --parent`, which only reads production,
+> rather than `neon branches restore`, which modifies it in place — then
+> verification that the marker is present on the restored branch, then cleanup.
+>
+> It is **NOT DONE** rather than BLOCKED. The distinction matters: blocked means
+> nobody can act, and this is waiting on somebody with Neon credentials running
+> a documented sequence.
 
 **The load test is service-layer.** 100 concurrent callers against real queries,
 with the dataset size reported alongside (2 problems, 0 sessions) because
