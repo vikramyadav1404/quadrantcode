@@ -7,15 +7,14 @@ import {
   validateNativeLibrary,
 } from '@/server/services/native-content/schema';
 
-function fixtureLanguage(language: (typeof EXECUTION_LANGUAGES)[number]) {
+/*
+ * A record now supplies only its reference solution per language. The other
+ * seven fields are the shape's, expanded during parsing — see
+ * `server/services/native-content/wrapper-shapes.ts`. This fixture used to
+ * spell all eight out, which is the duplication the shape registry removed.
+ */
+function fixtureLanguage(_language: (typeof EXECUTION_LANGUAGES)[number]) {
   return {
-    displayName: language,
-    runtimeVersion: null,
-    judge0LanguageId: null,
-    functionSignature: 'solve(values)',
-    starterCode: 'function solve(values) { return values; }',
-    wrapperTemplate: '/*__USER_CODE__*/\n/*__QUADRANTCODE_WRAPPER__*/',
-    serialization: { input: 'JSON array', output: 'JSON value', equality: 'exact_json' },
     referenceSolution: 'function solve(values) { return values.length; }',
   } as const;
 }
@@ -36,6 +35,7 @@ function libraryFixture() {
     primaryTopic: topic,
     topics: [topic],
     problemType: 'function',
+    shape: 'int-array-to-int',
     version: 1,
     status: 'needs_review',
     estimatedMinutes: 30,

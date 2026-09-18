@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { EVIDENCE_TYPES, PROBLEM_TYPES, TEST_CASE_VISIBILITIES } from '@/lib/native/constants';
-import { EXECUTION_LANGUAGES } from '@/lib/execution/languages';
+import { EXECUTION_LANGUAGES, type ExecutionLanguage } from '@/lib/execution/languages';
+import { WRAPPER_SHAPES, WRAPPER_SHAPE_IDS, type WrapperShapeId } from './wrapper-shapes';
 
 export const NATIVE_TOPIC_DISTRIBUTION = {
   'arrays-hashing': 15,
@@ -71,28 +72,54 @@ const testCaseSchema = z.object({
   isPerformance: z.boolean().default(false),
 });
 
-const languageTemplateSchema = z.object({
-  displayName: z.string().min(1).max(100),
-  runtimeVersion: z.string().min(1).max(100).nullable(),
-  judge0LanguageId: z.number().int().positive().nullable(),
-  functionSignature: z.string().min(3).max(1_000),
-  starterCode: z.string().min(10).max(65_536),
-  wrapperTemplate: z.string().min(20).max(65_536),
-  serialization: z.object({
-    input: z.string().min(1).max(1_000),
-    output: z.string().min(1).max(1_000),
-    equality: z.literal('exact_json'),
-  }),
+/**
+ * What a record supplies per language, and what it receives back.
+ *
+ * A record carries only its `referenceSolution`. The other seven fields are the
+ * execution contract, held once per shape in `wrapper-shapes.ts` and expanded
+ * while parsing — see the transform at the bottom of `nativeProblemSchema`.
+ *
+ * `NativeLanguageTemplate` is written out rather than inferred because it is
+ * the *output* type and must stay exactly what consumers already receive. The
+ * registry is `as const`, so inferring from it would narrow every field to a
+ * literal type and quietly change the contract.
+ */
+export type NativeLanguageTemplate = {
+  displayName: string;
+  runtimeVersion: string | null;
+  judge0LanguageId: number | null;
+  functionSignature: string;
+  starterCode: string;
+  wrapperTemplate: string;
+  serialization: { input: string; output: string; equality: 'exact_json' };
+  referenceSolution: string;
+};
+
+const languageReferenceSchema = z.object({
   referenceSolution: z.string().min(10).max(65_536),
 });
 
-const languageTemplatesSchema = z.object({
-  c11: languageTemplateSchema,
-  cpp17: languageTemplateSchema,
-  java: languageTemplateSchema,
-  python3: languageTemplateSchema,
-  javascript: languageTemplateSchema,
+const languageReferencesSchema = z.object({
+  c11: languageReferenceSchema,
+  cpp17: languageReferenceSchema,
+  java: languageReferenceSchema,
+  python3: languageReferenceSchema,
+  javascript: languageReferenceSchema,
 });
+
+/** Expand a shape into the full per-language block a record used to spell out. */
+function expandShape(
+  shape: WrapperShapeId,
+  references: z.infer<typeof languageReferencesSchema>,
+): Record<ExecutionLanguage, NativeLanguageTemplate> {
+  const templates = WRAPPER_SHAPES[shape];
+  return Object.fromEntries(
+    EXECUTION_LANGUAGES.map((language) => [
+      language,
+      { ...templates[language], referenceSolution: references[language].referenceSolution },
+    ]),
+  ) as Record<ExecutionLanguage, NativeLanguageTemplate>;
+}
 
 const companyAssociationSchema = z.object({
   companySlug: slugSchema,
@@ -143,7 +170,13 @@ export const nativeProblemSchema = z
       timeComplexity: z.string().min(3).max(300),
       spaceComplexity: z.string().min(3).max(300),
     }),
-    languages: languageTemplatesSchema,
+    /**
+     * The execution contract this problem speaks. One per record, not per
+     * language: all five share the same input/output shape, and a per-language
+     * shape would be meaningless. See `wrapper-shapes.ts`.
+     */
+    shape: z.enum(WRAPPER_SHAPE_IDS),
+    languages: languageReferencesSchema,
     provenance: z.object({
       contentSource: z.literal('quadrantcode-original'),
       independentlyCreated: z.literal(true),
@@ -215,7 +248,21 @@ export const nativeProblemSchema = z
         message: 'Every supported language must be present exactly once.',
       });
     }
-  });
+  })
+  /*
+   * Expansion happens here, inside parsing, so it has exactly one gateway.
+   *
+   * Every consumer downstream — validateNativeLibrary, the importer, the
+   * reference validator — receives the same fully-populated object it received
+   * before shapes existed. The importer then writes that expanded text into
+   * `problem_language_templates` as it always has, which is why this needed no
+   * migration and why the live execution path never sees a shape: it reads
+   * those rows, not this file.
+   */
+  .transform((problem) => ({
+    ...problem,
+    languages: expandShape(problem.shape, problem.languages),
+  }));
 
 export const nativeProblemBatchSchema = z.object({
   schemaVersion: z.literal(1),
