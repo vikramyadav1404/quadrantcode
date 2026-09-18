@@ -1948,62 +1948,68 @@
       ]
     },
     {
-      "slug": "factory-bar-span",
-      "title": "Factory Bar Span",
+      "slug": "strait-ice-floes",
+      "title": "Strait Ice Floes",
       "difficulty": "medium",
       "primaryTopic": "stack-queue",
-      "topics": ["stack-queue", "largest-rectangle"],
+      "topics": ["stack-queue", "stack-simulation"],
       "problemType": "function",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 35,
       "difficultyCalibration": 0,
-      "story": "Factory Bar Span is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise largest contiguous rectangle result before the next decision can be made.",
-      "statement": "Implement the required function for Factory Bar Span. Interpret the supplied sequence exactly as described in the input contract, compute the largest contiguous rectangle, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "The array values contains nonnegative bar heights in left-to-right order.",
-      "outputFormat": "Return the greatest rectangular area supported by consecutive bars.",
+      "story": "A narrow strait carries floating ice. Opposing currents run along it, so each floe is driven either east or west, and every floe drifts at the same speed. When two floes closing on each other meet, the heavier one carries on as if nothing happened and the lighter is broken up and gone. Two floes of exactly equal mass shatter each other, and both are lost. Floes drifting the same way never meet at all, since nothing ever catches anything up. The survey station wants to know how much ice will still be afloat once the strait settles.",
+      "statement": "You are given the floes in order along the strait, from west to east. A positive number is a floe drifting east, a negative number one drifting west, and the size of the number is the floe’s mass in tonnes.\n\nTwo floes meet when one drifting east lies west of one drifting west, with nothing left between them. The heavier survives unchanged, the lighter is destroyed, and equal masses destroy both.\n\nReturn how many floes are still afloat once no further meetings are possible.",
+      "inputFormat": "Each number is one floe, listed from the west end of the strait to the east. Its sign gives the direction it drifts, positive for east and negative for west, and its size gives its mass in tonnes. No floe has mass zero, and the strait may be empty.",
+      "outputFormat": "Return one integer: how many floes remain once the strait settles. Return 0 if none do.",
       "functionContract": {
         "functionName": "solve",
         "parameters": [
           {
             "name": "values",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "One entry per floe from west to east, signed for drift direction and sized by mass in tonnes."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
         "0 <= values.length <= 200000",
-        "0 <= values[i] <= 1000000000",
-        "The result fits in a signed 64-bit integer."
+        "1 <= mass of every floe <= 1000000000, so every value lies between -1000000000 and 1000000000",
+        "No value is 0, because a floe always drifts one way or the other",
+        "All floes drift at the same speed, so two drifting the same way never meet"
       ],
       "examples": [
         {
-          "input": "2 1 5 6 2 3",
-          "output": "10",
-          "explanation": "Example 1 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 10."
+          "input": "5 10 -5",
+          "output": "2",
+          "explanation": "The 5-tonne and 10-tonne floes drift east and the 5-tonne floe at the end drifts west. It meets the 10-tonne floe first and is destroyed by it. The two eastbound floes never meet each other, so two remain afloat."
         },
         {
-          "input": "2 4",
-          "output": "4",
-          "explanation": "Example 2 follows the stated largest contiguous rectangle process. Every contributing value is visible in the input, and the computed result is 4."
+          "input": "8 -8",
+          "output": "0",
+          "explanation": "The two close on each other with identical mass, so they shatter each other and nothing at all is left in the strait."
+        },
+        {
+          "input": "10 2 -5",
+          "output": "1",
+          "explanation": "The westbound 5-tonne floe destroys the 2-tonne one, then meets the 10-tonne floe and is destroyed by it in turn. One floe remains."
         }
       ],
       "testCases": [
         {
           "visibility": "sample",
-          "input": "2 1 5 6 2 3",
-          "expectedOutput": "10",
-          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "input": "5 10 -5",
+          "expectedOutput": "2",
+          "explanation": "The worked example: the westbound floe loses to the 10-tonne floe.",
           "coverage": "sample",
           "isPerformance": false
         },
         {
           "visibility": "visible",
-          "input": "2 4",
-          "expectedOutput": "4",
-          "explanation": "Applying the largest contiguous rectangle rule to this input produces the stated result without using any unstated data.",
+          "input": "10 2 -5",
+          "expectedOutput": "1",
+          "explanation": "One westbound floe destroys a lighter floe and then loses to a heavier one.",
           "coverage": "typical",
           "isPerformance": false
         },
@@ -2011,44 +2017,67 @@
           "visibility": "hidden",
           "input": "",
           "expectedOutput": "0",
+          "explanation": "An empty strait. Catches a solution that assumes at least one floe or reads a first element unconditionally.",
+          "coverage": "empty",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "explanation": "A single floe with nothing to meet, at the smallest mass allowed.",
           "coverage": "minimum",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "3 3 3",
-          "expectedOutput": "9",
+          "input": "1000000000 -1000000000",
+          "expectedOutput": "0",
+          "explanation": "Both mass extremes, closing on each other and exactly equal, so both are destroyed. Catches a comparison that treats equal masses as a win for one side.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "-2 -1 1 2",
+          "expectedOutput": "4",
+          "explanation": "Nothing meets anything. The westbound floes are already west of the eastbound ones, so every pair is drifting apart. A solution that collides any adjacent pair of opposite sign without checking which side each is on reports fewer than four.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 -5 5 -5",
+          "expectedOutput": "0",
+          "explanation": "Two separate equal-mass meetings, one after the other. Catches a solution that stops simulating after the first time the strait empties.",
           "coverage": "duplicates",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7 8 9 10 11 1 2 3 4 5 6 7",
-          "expectedOutput": "150",
-          "coverage": "maximum",
-          "isPerformance": true
-        },
-        {
-          "visibility": "hidden",
-          "input": "5 4 3 2 1",
-          "expectedOutput": "9",
-          "coverage": "adversarial",
+          "input": "1 2 3 -10",
+          "expectedOutput": "1",
+          "explanation": "One heavy westbound floe destroys three eastbound floes in a row and survives. Catches a solution that resolves only one meeting per incoming floe.",
+          "coverage": "typical",
           "isPerformance": false
         }
       ],
-      "timeLimitMs": 1500,
-      "memoryLimitKb": 128000,
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
       "hints": [
-        "A bar can extend until the first smaller bar on each side.",
-        "Use a monotonic increasing stack and finalize taller bars when a shorter bar arrives."
+        "Work along the strait from west to east and ask, for each floe in turn, whether it can still be destroyed by anything that comes later.",
+        "A westbound floe can only ever meet floes to its west, and only eastbound ones. Everything else is either drifting away from it or chasing it at the same speed.",
+        "The eastbound floes still in play are exactly the ones an incoming westbound floe has to fight, and it fights them nearest first. That ordering is what a stack gives you.",
+        "One incoming floe may destroy several in a row, so the fight is a loop rather than a single comparison, and it can end three ways: the incoming floe dies, it survives everything, or the strait behind it empties.",
+        "Equal masses destroy each other. That case removes two floes at once and is the one most easily written as a win for one side."
       ],
       "editorial": {
-        "overview": "Use a monotonic stack of starting positions and heights. Each pop finalizes the widest rectangle for that height.",
-        "bruteForceApproach": "Choose every left boundary, extend right, maintain the minimum height, and evaluate each rectangle.",
-        "optimalApproach": "Keep increasing heights with their earliest valid starts. A lower height closes all taller rectangles; a zero sentinel closes the rest.",
-        "correctnessProof": "A popped height cannot extend through the current lower bar, and its stored start is the earliest position it can reach. Thus the computed width is maximal for that height. Every height is eventually popped, so the best rectangle is considered.",
-        "timeComplexity": "O(n)",
-        "spaceComplexity": "O(n)"
+        "overview": "Read the strait once from west to east, keeping the floes that are still afloat and could still be hit. A floe drifting west only ever meets eastbound floes lying to its west, nearest first, so the survivors behave exactly like a stack: the last one kept is the first one fought.",
+        "bruteForceApproach": "Simulate the strait in time steps, moving every floe and resolving collisions as they occur. Correct, but the number of steps depends on how far apart the floes start, which the input does not even give, and re-scanning the whole strait each step is quadratic at best.",
+        "optimalApproach": "Keep a stack of the floes still afloat. For each floe in turn, if it drifts east, push it: nothing already kept can ever meet it, because everything to its west that is still afloat is either drifting west and moving away or drifting east at the same speed. If it drifts west, fight it against the top of the stack while that top is an eastbound floe. Pop the top when it is lighter and continue the fight; pop it and destroy the incoming floe when the masses are equal; destroy the incoming floe and stop when the top is heavier. If the fight empties the stack or reaches a westbound floe on top, the incoming floe survives and is pushed. Each floe is pushed at most once and popped at most once, so the pass is O(n) time and O(n) space, and the answer is the size of the stack at the end.",
+        "correctnessProof": "The stack holds exactly the floes that are still afloat and still able to be met, in west-to-east order, with every eastbound floe in it lying east of every floe that could destroy it. Two facts keep that true. An eastbound floe can never meet anything already in the stack, since a stacked eastbound floe drifts at the same speed and a stacked westbound floe is west of it and moving away, so pushing it preserves the invariant. A westbound floe can only meet the eastbound floes in the stack, and it reaches them in order from the top down, because the top is the nearest one to its west. Resolving that fight top-down therefore matches the order the meetings really happen in. Since each meeting removes at least one floe and no floe is ever added twice, the simulation terminates and its result is the true final state.",
+        "timeComplexity": "O(n), where n is the number of floes. Each floe is pushed at most once and popped at most once across the whole pass.",
+        "spaceComplexity": "O(n) for the stack of surviving floes, which in the worst case holds every floe."
       },
       "languages": {
         "c11": {
@@ -2063,7 +2092,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "long long solve(const long long*v,int n){long long best=0,*h=malloc(sizeof(long long)*(n+1));int*s=malloc(sizeof(int)*(n+1)),top=0;for(int i=0;i<=n;i++){long long x=i<n?v[i]:0;int start=i;while(top&&h[top-1]>x){top--;if(h[top]*(i-s[top])>best)best=h[top]*(i-s[top]);start=s[top];}if(!top||h[top-1]<x){h[top]=x;s[top++]=start;}}free(h);free(s);return best;}"
+          "referenceSolution": "long long solve(const long long *values, int n) {\n  if (n <= 0) return 0;\n  long long *afloat = (long long *)malloc(sizeof(long long) * (size_t)n);\n  int top = 0;\n  for (int i = 0; i < n; i++) {\n    long long floe = values[i];\n    int alive = 1;\n    while (alive && top > 0 && afloat[top - 1] > 0 && floe < 0) {\n      long long westbound = -floe;\n      if (afloat[top - 1] < westbound) {\n        top--;\n      } else if (afloat[top - 1] == westbound) {\n        top--;\n        alive = 0;\n      } else {\n        alive = 0;\n      }\n    }\n    if (alive) afloat[top++] = floe;\n  }\n  free(afloat);\n  return (long long)top;\n}"
         },
         "cpp17": {
           "displayName": "C++",
@@ -2077,7 +2106,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "long long solve(const vector<long long>&v){vector<pair<int,long long>>st;long long b=0;for(int i=0;i<=(int)v.size();i++){long long h=i<(int)v.size()?v[i]:0;int s=i;while(!st.empty()&&st.back().second>h){auto p=st.back();st.pop_back();b=max(b,p.second*(i-p.first));s=p.first;}if(st.empty()||st.back().second<h)st.push_back({s,h});}return b;}"
+          "referenceSolution": "long long solve(const vector<long long>& values) {\n  vector<long long> afloat;\n  for (long long floe : values) {\n    bool alive = true;\n    while (alive && !afloat.empty() && afloat.back() > 0 && floe < 0) {\n      long long westbound = -floe;\n      if (afloat.back() < westbound) {\n        afloat.pop_back();\n      } else if (afloat.back() == westbound) {\n        afloat.pop_back();\n        alive = false;\n      } else {\n        alive = false;\n      }\n    }\n    if (alive) afloat.push_back(floe);\n  }\n  return (long long)afloat.size();\n}"
         },
         "java": {
           "displayName": "Java",
@@ -2091,7 +2120,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "static long solve(long[]v){int n=v.length,top=0;long[]h=new long[n+1];int[]s=new int[n+1];long best=0;for(int i=0;i<=n;i++){long x=i<n?v[i]:0;int start=i;while(top>0&&h[top-1]>x){top--;best=Math.max(best,h[top]*(i-s[top]));start=s[top];}if(top==0||h[top-1]<x){h[top]=x;s[top++]=start;}}return best;}"
+          "referenceSolution": "static long solve(long[] values) {\n  long[] afloat = new long[values.length];\n  int top = 0;\n  for (long floe : values) {\n    boolean alive = true;\n    while (alive && top > 0 && afloat[top - 1] > 0 && floe < 0) {\n      long westbound = -floe;\n      if (afloat[top - 1] < westbound) {\n        top--;\n      } else if (afloat[top - 1] == westbound) {\n        top--;\n        alive = false;\n      } else {\n        alive = false;\n      }\n    }\n    if (alive) afloat[top++] = floe;\n  }\n  return top;\n}"
         },
         "python3": {
           "displayName": "Python",
@@ -2105,7 +2134,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    afloat: list[int] = []\n    for floe in values:\n        alive = True\n        while alive and afloat and afloat[-1] > 0 and floe < 0:\n            westbound = -floe\n            if afloat[-1] < westbound:\n                afloat.pop()\n            elif afloat[-1] == westbound:\n                afloat.pop()\n                alive = False\n            else:\n                alive = False\n        if alive:\n            afloat.append(floe)\n    return len(afloat)"
         },
         "javascript": {
           "displayName": "JavaScript",
@@ -2119,49 +2148,18 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+          "referenceSolution": "function solve(values) {\n  const afloat = [];\n  for (const floe of values) {\n    let alive = true;\n    while (alive && afloat.length > 0 && afloat[afloat.length - 1] > 0 && floe < 0) {\n      const westbound = -floe;\n      const eastbound = afloat[afloat.length - 1];\n      if (eastbound < westbound) {\n        afloat.pop();\n      } else if (eastbound === westbound) {\n        afloat.pop();\n        alive = false;\n      } else {\n        alive = false;\n      }\n    }\n    if (alive) afloat.push(floe);\n  }\n  return afloat.length;\n}"
         }
       },
       "provenance": {
         "contentSource": "quadrantcode-original",
         "independentlyCreated": true,
-        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseName": "Quadrantcode Original Content License",
         "licenseUrl": null,
-        "author": "Quadrantcode editorial team",
-        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+        "author": "Vikram Yadav",
+        "note": "Sixth hand-authored replacement for the generated library described in D27, written against docs/authoring-problems.md. Stack simulation with pairwise elimination is a standard technique and is named openly in the editorial; the story, wording, example values and test cases are original to this record. Two candidates were rejected under the distinctness rule because the group being replaced is largest-rectangle-in-histogram, the canonical monotonic-stack problem: trapping rain water reuses the same histogram input, the same previous-smaller and next-smaller machinery, and still answers with an area over a histogram, and sum of subarray minimums is built on that same prev/next-smaller pair. This record uses a stack to simulate rather than to aggregate over ranges, which is what makes it a different computation rather than a different story."
       },
-      "companies": [
-        {
-          "companySlug": "amazon",
-          "evidenceType": "company_pattern",
-          "role": null,
-          "round": null,
-          "candidateLevel": null,
-          "yearFrom": null,
-          "yearTo": null,
-          "location": null,
-          "sourceUrl": null,
-          "reportCount": 0,
-          "confidenceScore": 0,
-          "verificationStatus": "unverified",
-          "lastReviewedDate": null
-        },
-        {
-          "companySlug": "flipkart",
-          "evidenceType": "company_pattern",
-          "role": null,
-          "round": null,
-          "candidateLevel": null,
-          "yearFrom": null,
-          "yearTo": null,
-          "location": null,
-          "sourceUrl": null,
-          "reportCount": 0,
-          "confidenceScore": 0,
-          "verificationStatus": "unverified",
-          "lastReviewedDate": null
-        }
-      ]
+      "companies": []
     }
   ]
 }
