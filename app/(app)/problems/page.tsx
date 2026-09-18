@@ -67,7 +67,16 @@ export default async function ProblemsPage({
     <>
       <PageHeader
         title="Problems"
-        description="Metadata and links only — solving happens on the original platform."
+        /*
+          Describes the feature, not just the content policy.
+
+          This read "Metadata and links only — solving happens on the original
+          platform", which defends C1 correctly and was then read as "this app
+          has no solve experience". It does: an editor, a server-authoritative
+          timer, stuck markers and reflection are one click away. The old copy
+          undersold the whole differentiator on the first page anyone lands on.
+        */
+        description="Solve on the original platform or in the built-in editor — Quadrantcode records how the solve went, never the problem text."
       />
 
       <form className="mb-6 flex flex-wrap gap-2" method="get">
