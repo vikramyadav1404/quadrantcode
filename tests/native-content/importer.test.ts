@@ -26,7 +26,7 @@ suite('native library importer', () => {
   }, 120_000);
   afterAll(async () => ctx?.close());
 
-  it('imports 100 problems and 20 papers idempotently', async () => {
+  it('imports the whole library and every paper idempotently', async () => {
     const [batches, paperLibrary, companies] = await Promise.all([
       loadNativeProblemBatches(),
       loadAssessmentPaperLibrary(),
@@ -34,35 +34,54 @@ suite('native library importer', () => {
         companiesSchema.parse(JSON.parse(source)),
       ),
     ]);
+
+    /*
+     * Counted from what was loaded rather than written as 100 and 20.
+     *
+     * Idempotency is the subject here: importing twice must create everything
+     * once and change nothing the second time. The library's size was incidental
+     * to that, and hard-coding it meant authoring one more problem would fail
+     * this test for a reason unrelated to what it tests.
+     */
+    const problemTotal = batches.flatMap((batch) => batch.problems).length;
+    const paperTotal = paperLibrary.papers.length;
     const firstProblems = await importNativeProblemLibrary(ctx.db, batches, companies);
     const firstPapers = await importAssessmentPaperLibrary(ctx.db, paperLibrary);
     const secondProblems = await importNativeProblemLibrary(ctx.db, batches, companies);
     const secondPapers = await importAssessmentPaperLibrary(ctx.db, paperLibrary);
 
     expect(firstProblems).toEqual({
-      problems: 100,
-      versionsCreated: 100,
+      problems: problemTotal,
+      versionsCreated: problemTotal,
       versionsUnchanged: 0,
     });
-    expect(firstPapers).toEqual({ papers: 20, papersCreated: 20, papersUnchanged: 0 });
-    expect(secondProblems).toEqual({
-      problems: 100,
-      versionsCreated: 0,
-      versionsUnchanged: 100,
+    expect(firstPapers).toEqual({
+      papers: paperTotal,
+      papersCreated: paperTotal,
+      papersUnchanged: 0,
     });
-    expect(secondPapers).toEqual({ papers: 20, papersCreated: 0, papersUnchanged: 20 });
+    expect(secondProblems).toEqual({
+      problems: problemTotal,
+      versionsCreated: 0,
+      versionsUnchanged: problemTotal,
+    });
+    expect(secondPapers).toEqual({
+      papers: paperTotal,
+      papersCreated: 0,
+      papersUnchanged: paperTotal,
+    });
 
     const [[problemCount], [versionCount], [paperCount]] = await Promise.all([
       ctx.db.select({ value: count() }).from(problems),
       ctx.db.select({ value: count() }).from(problemVersions),
       ctx.db.select({ value: count() }).from(assessmentPapers),
     ]);
-    expect(problemCount?.value).toBe(100);
-    expect(versionCount?.value).toBe(100);
-    expect(paperCount?.value).toBe(20);
+    expect(problemCount?.value).toBe(problemTotal);
+    expect(versionCount?.value).toBe(problemTotal);
+    expect(paperCount?.value).toBe(paperTotal);
 
     const publicExport = await buildNativeContentExport(ctx.db, false);
-    expect(publicExport.problems).toHaveLength(100);
+    expect(publicExport.problems).toHaveLength(problemTotal);
     expect(
       publicExport.problems.every((problem) =>
         problem.testCases.every((testCase) => testCase.visibility !== 'hidden'),

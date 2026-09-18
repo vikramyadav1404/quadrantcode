@@ -266,9 +266,15 @@ export const nativeProblemSchema = z
 
 export const nativeProblemBatchSchema = z.object({
   schemaVersion: z.literal(1),
-  batch: z.number().int().min(1).max(100),
+  /*
+   * Ceilings raised from 100 batches of 10 — which was the other half of the
+   * hundred-problem lock — to 1000 batches of 100. Generous rather than
+   * unbounded: a bound still catches a typo like `batch: 99999`, and 100,000
+   * problems is well past anything planned.
+   */
+  batch: z.number().int().min(1).max(1_000),
   reviewStatus: z.literal('needs_review'),
-  problems: z.array(nativeProblemSchema).min(1).max(10),
+  problems: z.array(nativeProblemSchema).min(1).max(100),
 });
 
 export type NativeProblem = z.infer<typeof nativeProblemSchema>;
@@ -308,20 +314,56 @@ export function validateNativeLibrary(
     }
   }
 
-  const total = [...slugs].length;
-  if (total !== 100)
-    throw new Error(`Native library must contain exactly 100 problems; found ${total}.`);
-
-  for (const [level, expected] of Object.entries(NATIVE_DIFFICULTY_DISTRIBUTION)) {
-    const actual = difficulty[level as keyof typeof difficulty];
-    if (actual !== expected)
-      throw new Error(`${level}: expected ${expected}, found ${actual}.`);
+  /*
+   * Batch numbers must run 1..N with no gap.
+   *
+   * `loadNativeProblemBatches` globs `batch-*.json` rather than walking a fixed
+   * 1..10 range, which is what allows the library to grow. The fixed range had
+   * one accidental virtue: a deleted or misnamed file threw ENOENT. A glob
+   * would simply not see it, and the library would validate happily while
+   * missing a tenth of itself. Contiguity replaces that guarantee, and is
+   * stricter than what it replaces because it also catches a duplicate-free
+   * but wrongly-numbered set.
+   */
+  const numbers = [...batchNumbers].sort((left, right) => left - right);
+  for (const [index, number] of numbers.entries()) {
+    if (number !== index + 1) {
+      throw new Error(
+        `Batch numbers must be contiguous from 1; found ${numbers.join(', ')}. ` +
+          'A missing or misnamed batch file is the usual cause.',
+      );
+    }
   }
 
-  for (const [topic, expected] of Object.entries(NATIVE_TOPIC_DISTRIBUTION)) {
+  const total = [...slugs].length;
+  if (total < 1) throw new Error('Native library must contain at least one problem.');
+
+  /*
+   * Floors, not exact counts.
+   *
+   * These were equalities, which pinned the library to exactly 100 problems
+   * three times over — once on the total and once per entry in each
+   * distribution — and made adding a single problem impossible. The constants
+   * are now minimums: no topic or difficulty may be starved, and the library
+   * may grow without bound above them.
+   *
+   * A floor stops meaning much once the library is several times larger than
+   * the constants. The alternative considered was proportions with a tolerance,
+   * which keeps its meaning at scale but constrains the ORDER of authoring:
+   * problems would have to arrive in roughly balanced groups rather than one at
+   * a time. Floors were chosen deliberately for that reason. If the library
+   * does drift lopsided, proportions are the thing to reach for.
+   */
+  for (const [level, minimum] of Object.entries(NATIVE_DIFFICULTY_DISTRIBUTION)) {
+    const actual = difficulty[level as keyof typeof difficulty];
+    if (actual < minimum)
+      throw new Error(`${level}: expected at least ${minimum}, found ${actual}.`);
+  }
+
+  for (const [topic, minimum] of Object.entries(NATIVE_TOPIC_DISTRIBUTION)) {
     const actual = primaryTopics[topic] ?? 0;
-    if (actual !== expected)
-      throw new Error(`${topic}: expected ${expected}, found ${actual}.`);
+    if (actual < minimum)
+      throw new Error(`${topic}: expected at least ${minimum}, found ${actual}.`);
   }
 
   return { total, difficulty, primaryTopics };
