@@ -1084,62 +1084,68 @@
       ]
     },
     {
-      "slug": "document-batch-merge",
-      "title": "Document Batch Merge",
+      "slug": "one-counter-open",
+      "title": "One Counter Open",
       "difficulty": "easy",
       "primaryTopic": "heap-greedy",
-      "topics": ["heap-greedy", "minimum-merge-cost"],
+      "topics": ["heap-greedy", "scheduling-greedy"],
       "problemType": "function",
       "version": 1,
       "status": "needs_review",
       "estimatedMinutes": 20,
-      "difficultyCalibration": 0,
-      "story": "Document Batch Merge is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise minimum repeated merge cost result before the next decision can be made.",
-      "statement": "Implement the required function for Document Batch Merge. Interpret the supplied sequence exactly as described in the input contract, compute the minimum repeated merge cost, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "values contains nonnegative bundle sizes. A merge replaces two bundles by their sum and charges that sum.",
-      "outputFormat": "Return the minimum total charge needed to leave at most one bundle.",
+      "difficultyCalibration": 1,
+      "story": "A repair counter opens at nine with everyone already waiting outside. There is one member of staff and one counter, so customers are seen strictly one at a time, and nobody leaves before being seen. The branch is measured on the total time its queue spends in the building: every customer’s time counts, from the doors opening until they walk out, so the order the staff member calls people in is the only thing that changes the score.",
+      "statement": "You are given how long each waiting customer takes to serve. You may call them in any order.\n\nA customer’s time in the building runs from opening until their own service finishes: the service times of everyone called before them, plus their own. The counter is never idle and only one customer is served at a time.\n\nReturn the smallest achievable total of every customer’s time in the building.",
+      "inputFormat": "Each number is how many minutes one waiting customer takes to serve. They are listed in no particular order, and the queue may be empty.",
+      "outputFormat": "Return one integer: the smallest achievable total of every customer’s time in the building. Return 0 for an empty queue.",
       "functionContract": {
         "functionName": "solve",
         "parameters": [
           {
             "name": "values",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "How many minutes each waiting customer takes to serve, in no particular order."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
         "0 <= values.length <= 200000",
-        "0 <= values[i] <= 1000000000",
-        "The total cost fits in signed 64-bit range."
+        "1 <= every service time <= 10000",
+        "The queue may be empty, in which case the answer is 0",
+        "The answer can exceed the range of a 32-bit signed integer: a full queue of long jobs totals over 100000000000000"
       ],
       "examples": [
         {
-          "input": "4 3 2 6",
-          "output": "29",
-          "explanation": "Example 1 follows the stated minimum repeated merge cost process. Every contributing value is visible in the input, and the computed result is 29."
+          "input": "4 1 3",
+          "output": "13",
+          "explanation": "Calling them shortest first, as 1 then 3 then 4, the three leave at minute 1, minute 4 and minute 8, which totals 13. Calling them in the order given leaves them at 4, 5 and 8, totalling 17."
         },
         {
-          "input": "5 5",
-          "output": "10",
-          "explanation": "Example 2 follows the stated minimum repeated merge cost process. Every contributing value is visible in the input, and the computed result is 10."
+          "input": "10 1",
+          "output": "12",
+          "explanation": "Taking the one-minute customer first, they leave at minute 1 and the other at minute 11, totalling 12. The other way round it is minute 10 and minute 11, totalling 21."
+        },
+        {
+          "input": "5 5 5",
+          "output": "30",
+          "explanation": "Identical service times, so the order changes nothing at all. The three customers leave at minutes 5, 10 and 15."
         }
       ],
       "testCases": [
         {
           "visibility": "sample",
-          "input": "4 3 2 6",
-          "expectedOutput": "29",
-          "explanation": "Applying the minimum repeated merge cost rule to this input produces the stated result without using any unstated data.",
+          "input": "4 1 3",
+          "expectedOutput": "13",
+          "explanation": "The worked example: shortest first gives 1, 4 and 8.",
           "coverage": "sample",
           "isPerformance": false
         },
         {
           "visibility": "visible",
-          "input": "5 5",
-          "expectedOutput": "10",
-          "explanation": "Applying the minimum repeated merge cost rule to this input produces the stated result without using any unstated data.",
+          "input": "10 1",
+          "expectedOutput": "12",
+          "explanation": "Two customers, and the order nearly halves the score.",
           "coverage": "typical",
           "isPerformance": false
         },
@@ -1147,44 +1153,66 @@
           "visibility": "hidden",
           "input": "",
           "expectedOutput": "0",
+          "explanation": "An empty queue. Catches a solution that assumes at least one customer or reads a first element unconditionally.",
+          "coverage": "empty",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1",
+          "expectedOutput": "1",
+          "explanation": "The smallest non-empty queue, one customer at the shortest service time.",
           "coverage": "minimum",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "1 1 1 1",
-          "expectedOutput": "8",
+          "input": "10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000 10000",
+          "expectedOutput": "2453500000",
+          "explanation": "Seven hundred customers at the maximum service time. The total is 2453500000, just past the 32-bit signed limit, so an accumulator of the wrong width wraps to a plausible negative rather than failing loudly.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9 1 1 1 1",
+          "expectedOutput": "23",
+          "explanation": "One input, two wrong orders caught. Serving in the order given totals 55, and so does serving longest first. Only shortest first gives 23.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "7 7 7 7",
+          "expectedOutput": "70",
+          "explanation": "Every service time identical, so every order scores the same 70.",
           "coverage": "duplicates",
           "isPerformance": false
         },
         {
           "visibility": "hidden",
-          "input": "1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9 10 11 12 13 1 2 3 4 5 6 7 8 9",
-          "expectedOutput": "4388",
-          "coverage": "maximum",
-          "isPerformance": true
-        },
-        {
-          "visibility": "hidden",
-          "input": "0 0 9",
-          "expectedOutput": "9",
-          "coverage": "adversarial",
+          "input": "2 8 5 3",
+          "expectedOutput": "35",
+          "explanation": "Sorted to 2, 3, 5, 8 the customers leave at minutes 2, 5, 10 and 18.",
+          "coverage": "typical",
           "isPerformance": false
         }
       ],
-      "timeLimitMs": 1500,
-      "memoryLimitKb": 128000,
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
       "hints": [
-        "An expensive combined bundle may be charged again later.",
-        "Always combine the two smallest current bundles; a min-heap makes them available."
+        "Write down the total for a small queue in two different orders. The difference will tell you which customer you want to call first.",
+        "A customer who is called early adds their service time to everyone still waiting behind them, not just to their own total.",
+        "That means a service time is effectively multiplied by how many customers are still in the building when it runs, including the customer themselves.",
+        "To keep the large multipliers on the small numbers, call the shortest service first. After that the answer is a single pass with a running clock."
       ],
       "editorial": {
-        "overview": "Use the optimal merge pattern: repeatedly remove the two smallest sizes, add their sum to the cost, and insert the sum.",
-        "bruteForceApproach": "Explore every possible pair to merge at every stage and take the cheapest complete sequence.",
-        "optimalApproach": "A min-heap implements the greedy choice of merging the two smallest current bundles.",
-        "correctnessProof": "In an optimal merge tree, the two smallest weights can be made sibling leaves at greatest depth without increasing cost. Merging them reduces the problem to the same problem on one fewer bundle, so repeating the choice is optimal.",
-        "timeComplexity": "O(n log n)",
-        "spaceComplexity": "O(n)"
+        "overview": "Each customer’s time in the building is the running total of every service called up to and including theirs, so the answer is the sum of those running totals. Serving the shortest job first minimises it, and the whole solution is a sort followed by one pass with a running clock. This problem needs no heap: the topic bundles heaps with greedy scheduling, and a sort is all the greedy here requires.",
+        "bruteForceApproach": "Try every order, compute the total for each, and keep the smallest. Correct, and hopeless past about ten customers, since the number of orders is the factorial of the queue length.",
+        "optimalApproach": "Sort the service times ascending, then sweep once keeping a running clock. For each customer add their service to the clock, then add the clock to the answer. Sorting dominates, so this is O(n log n) time and O(n) space for the sorted copy. The accumulator must be 64-bit: with two hundred thousand customers at ten thousand minutes each the total passes ten to the fourteenth, which overflows a 32-bit integer silently.",
+        "correctnessProof": "An exchange argument. Take any order and suppose two customers served one immediately after the other have service times a then b with a greater than b. Everyone before them is unaffected, and so is everyone after, because the pair finishes at the same moment either way. Only the pair changes: as a then b their two contributions are C plus a, and C plus a plus b, where C is the clock before the pair. Swapped, they are C plus b, and C plus b plus a. The second terms are equal and the first differs by a minus b, which is positive, so swapping to put the shorter job first strictly lowers the total. Any order that is not sorted ascending contains such an adjacent pair, so it can be improved; therefore the sorted order is optimal. Equal service times give a difference of zero, which is why ties can be broken arbitrarily.",
+        "timeComplexity": "O(n log n), where n is the number of customers. The sort dominates; the sweep that follows is linear.",
+        "spaceComplexity": "O(n) for the sorted copy of the service times, or O(1) extra if the input may be sorted in place."
       },
       "languages": {
         "c11": {
@@ -1199,7 +1227,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){long long*a=malloc(sizeof(long long)*(n?n:1));memcpy(a,v,sizeof(long long)*n);long long c=0;while(n>1){qsort(a,n,sizeof(long long),cmp_ll);long long s=a[0]+a[1];c+=s;memmove(a,a+2,sizeof(long long)*(n-2));a[n-2]=s;n--;}free(a);return c;}"
+          "referenceSolution": "static int compareService(const void *left, const void *right) {\n  long long a = *(const long long *)left;\n  long long b = *(const long long *)right;\n  return (a > b) - (a < b);\n}\n\nlong long solve(const long long *values, int n) {\n  if (n <= 0) return 0;\n  long long *times = (long long *)malloc(sizeof(long long) * (size_t)n);\n  memcpy(times, values, sizeof(long long) * (size_t)n);\n  qsort(times, (size_t)n, sizeof(long long), compareService);\n  long long elapsed = 0, total = 0;\n  for (int i = 0; i < n; i++) {\n    elapsed += times[i];\n    total += elapsed;\n  }\n  free(times);\n  return total;\n}"
         },
         "cpp17": {
           "displayName": "C++",
@@ -1213,7 +1241,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "long long solve(const vector<long long>&v){priority_queue<long long,vector<long long>,greater<long long>>q(v.begin(),v.end());long long c=0;while(q.size()>1){auto a=q.top();q.pop();auto b=q.top();q.pop();c+=a+b;q.push(a+b);}return c;}"
+          "referenceSolution": "long long solve(const vector<long long>& values) {\n  vector<long long> times(values);\n  sort(times.begin(), times.end());\n  long long elapsed = 0, total = 0;\n  for (long long service : times) {\n    elapsed += service;\n    total += elapsed;\n  }\n  return total;\n}"
         },
         "java": {
           "displayName": "Java",
@@ -1227,7 +1255,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "static long solve(long[]v){PriorityQueue<Long>q=new PriorityQueue<>();for(long x:v)q.add(x);long c=0;while(q.size()>1){long s=q.remove()+q.remove();c+=s;q.add(s);}return c;}"
+          "referenceSolution": "static long solve(long[] values) {\n  long[] times = values.clone();\n  Arrays.sort(times);\n  long elapsed = 0L, total = 0L;\n  for (long service : times) {\n    elapsed += service;\n    total += elapsed;\n  }\n  return total;\n}"
         },
         "python3": {
           "displayName": "Python",
@@ -1241,7 +1269,7 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "def solve(v: list[int]) -> int:\n    import heapq\n    q=v[:];heapq.heapify(q);c=0\n    while len(q)>1:\n        s=heapq.heappop(q)+heapq.heappop(q);c+=s;heapq.heappush(q,s)\n    return c"
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    elapsed = 0\n    total = 0\n    for service in sorted(values):\n        elapsed += service\n        total += elapsed\n    return total"
         },
         "javascript": {
           "displayName": "JavaScript",
@@ -1255,49 +1283,18 @@
             "output": "One signed integer.",
             "equality": "exact_json"
           },
-          "referenceSolution": "function solve(v){const a=v.slice();let c=0;while(a.length>1){a.sort((x,y)=>x-y);const s=a.shift()+a.shift();c+=s;a.push(s);}return c;}"
+          "referenceSolution": "function solve(values) {\n  const times = [...values].sort((a, b) => a - b);\n  let elapsed = 0;\n  let total = 0;\n  for (const service of times) {\n    elapsed += service;\n    total += elapsed;\n  }\n  return total;\n}"
         }
       },
       "provenance": {
         "contentSource": "quadrantcode-original",
         "independentlyCreated": true,
-        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseName": "Quadrantcode Original Content License",
         "licenseUrl": null,
-        "author": "Quadrantcode editorial team",
-        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+        "author": "Vikram Yadav",
+        "note": "Fifth hand-authored replacement for the generated library described in D27, written against docs/authoring-problems.md. Shortest-job-first scheduling and its exchange-argument proof are standard and named openly in the editorial, including the fact that no heap is required; the story, wording, example values and test cases are original to this record. Designed as an easy problem because the free-slug check showed every unreferenced heap-greedy slot was easy, and relabelling to fit an occupied slot would be the cosmetic-difficulty fault D27 records. Calibration is plus one because the sort is easy to guess while the 64-bit accumulation is where solutions actually fail."
       },
-      "companies": [
-        {
-          "companySlug": "google",
-          "evidenceType": "company_pattern",
-          "role": null,
-          "round": null,
-          "candidateLevel": null,
-          "yearFrom": null,
-          "yearTo": null,
-          "location": null,
-          "sourceUrl": null,
-          "reportCount": 0,
-          "confidenceScore": 0,
-          "verificationStatus": "unverified",
-          "lastReviewedDate": null
-        },
-        {
-          "companySlug": "atlassian",
-          "evidenceType": "company_pattern",
-          "role": null,
-          "round": null,
-          "candidateLevel": null,
-          "yearFrom": null,
-          "yearTo": null,
-          "location": null,
-          "sourceUrl": null,
-          "reportCount": 0,
-          "confidenceScore": 0,
-          "verificationStatus": "unverified",
-          "lastReviewedDate": null
-        }
-      ]
+      "companies": []
     },
     {
       "slug": "cargo-grouping-budget",
