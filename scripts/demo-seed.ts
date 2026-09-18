@@ -146,6 +146,20 @@ async function main(): Promise<void> {
   const url = process.env['DATABASE_URL'];
   if (!url) throw new Error('DATABASE_URL is not set');
 
+  /*
+   * Say which database this is, before touching it.
+   *
+   * `.env` points DATABASE_URL at the local instance, and dotenv does not
+   * override a variable already set in the shell — so seeding a deployment
+   * means exporting it first, and forgetting to is silent. The restore drill
+   * wrote its marker to localhost:55432 exactly this way and produced a
+   * transcript that read as if it had worked.
+   */
+  const target = new URL(url);
+  console.log(
+    JSON.stringify({ event: 'demo.target', database: `${target.host}${target.pathname}` }),
+  );
+
   const sql = postgres(url, { max: 1, onnotice: () => {} });
 
   /*
