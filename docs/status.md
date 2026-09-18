@@ -165,7 +165,8 @@ database that took the old version has to be rebuilt or the difference
 hand-applied.
 
 **Recorded hashes are not the measure of this, and an earlier revision of this
-note implied they were.** `pg-core/dialect.cjs` reads exactly one row —
+note implied they were — the write-up, not the check, was the defect (D28).**
+`pg-core/dialect.cjs` reads exactly one row —
 `order by created_at desc limit 1` — and applies every migration whose
 `folderMillis` exceeds it. The `hash` column is written and **never read for any
 decision**. A differing hash therefore records that a file was edited after it
@@ -201,15 +202,19 @@ reading `quadrantcode.purging` — so `snapshots:purge`, account deletion and
 `demo:seed --clean` all work and the retention promise holds. Production was
 **not** rebuilt and does not need to be.
 
-Two things are on record as unexplained rather than resolved. Production reports
-7 of 25 hashes matching, and the rebuilt-from-history control says a clean
-pre-rename database should report 21 — so production's record corresponds to no
-checkout in this repository's history. `--explain` maps each recorded hash back
-to the commit it came from and is the way to find out. The same gap applied to
-`quadrantcode_dev`, which reported 8; **that specimen was destroyed by rebuilding
-it before anyone asked why**, so the local half of the question can no longer be
-answered. Neither figure describes the schema, which is why this is a loose end
-and not a fault.
+**Production's 7-of-25 is explained, and it was never drift.** Every one of the
+25 recorded hashes resolves to the byte-for-byte content of a migration file in
+this repository: 18 to the **CRLF** form of _today's_ content, 3 to the LF form,
+and 4 to files with no line breaks, where both forms are the same string.
+`neither = 0` — nothing unaccounted for. Production was migrated from a partially
+CRLF working tree, which is the incident already recorded in `.gitattributes`
+(`core.autocrlf=true` on a Windows clone rewrote 323 files and took
+`format:check` from clean to 254 failures). The "18 of 25 drifted" reading was a
+line-ending artifact reported as schema damage. See **D28**.
+
+`quadrantcode_dev` reported 8 and was almost certainly the same artifact, but
+**that specimen was destroyed by rebuilding it before anyone asked why**, so the
+local half is inference rather than measurement and is recorded as such.
 
 ```bash
 npm run schema:check              # reads SCHEMA_CHECK_URL, NEON_DATABASE_URL, or DATABASE_URL

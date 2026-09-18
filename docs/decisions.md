@@ -1457,3 +1457,91 @@ distribution passes because the labels are present. A cheap guard against the
 next instance of this is a distinctness assertion — unique test-case sets should
 be within some factor of record count — but none is written yet, and writing one
 against a library that is being replaced would be guarding the wrong thing.
+
+---
+
+## D28 · A hash proves nothing about a schema, and two functions prove nothing about a database
+
+**Date:** 2026-09-19 · **Status:** production was **not** rebuilt. The drift
+verdict is withdrawn — it was wrong. `schema:check` now decides on the schema,
+and reports hashes as provenance only.
+
+### What the scripts claimed
+
+Two checks ran against the production database within an hour of each other and
+returned opposite verdicts, both stated as facts about the whole schema:
+
+| Script                          | What it measured       | What it printed                                             |
+| ------------------------------- | ---------------------- | ----------------------------------------------------------- |
+| `.tmp/prod-schema-check.mts`    | 2 trigger functions    | "CURRENT. Production matches the migration files"           |
+| `schema:check` as first shipped | 2 triggers + 25 hashes | "DRIFTED. This database does not match the migration files" |
+
+The first gave a false all-clear that was acted on. The second blocked a
+production seed that never needed blocking. **Neither sentence was earned by
+what the script looked at**, and the only signal either one genuinely observed —
+the triggers — agreed in both runs and was correct all along.
+
+### What a migration hash actually is
+
+`node_modules/drizzle-orm/pg-core/dialect.cjs`:
+
+```
+select id, hash, created_at from ... order by created_at desc limit 1
+if (!lastDbMigration || Number(lastDbMigration.created_at) < migration.folderMillis)
+```
+
+The migrator reads **one** row and compares **timestamps**. The `hash` column is
+written at application time and **never read for any decision**. Therefore:
+
+- A **mismatched** hash means a file changed after it ran. It says nothing about
+  the live schema, does not affect future migrations, and Postgres never
+  consults it.
+- A **matching** hash proves nothing either. A hand-run `ALTER TABLE` leaves all
+  25 rows agreeing while the schema diverges.
+
+A hash cannot answer a question about a schema in either direction. Only the
+schema can.
+
+### What production actually was
+
+Every one of the 25 recorded hashes resolves to the byte-for-byte content of a
+migration file in this repository. Eighteen resolve to the **CRLF** form of
+**today's** content, three to the LF form, and four to files with no line breaks
+at all, where the two forms are the same string. **Nothing was unaccounted for.**
+
+```
+LF 7   CRLF 18   neither 0
+```
+
+Production was migrated from a partially CRLF working tree — consistent with the
+incident already recorded in `.gitattributes`, where `core.autocrlf=true` on a
+Windows clone rewrote 323 files and took `format:check` from clean to 254
+failures. The "18 of 25 drifted" reading was **a line-ending artifact reported as
+schema damage.**
+
+### The same failure as D27
+
+D27 was a count that was right about records and never compared their content.
+This is the same shape one level down: a comparison that ran, produced a number,
+and had that number written up as a conclusion it could not support. In both
+cases the check was real, the arithmetic was correct, and the _sentence attached
+to it_ was the defect. The cost here was a false all-clear, then a false alarm
+that halted a deployment step, and a development database rebuilt — destroying
+the specimen — before anyone asked what its numbers meant.
+
+The rule both leave: **state what was measured in the same breath as the
+verdict.** `schema:check` now ends with "That is what was checked — not the whole
+schema. Columns, constraints and indexes are not compared here," because a reader
+should not have to open the source to learn the scope of a pass.
+
+### What is still true, and what is not
+
+Still true: applied migrations are immutable, `dac85c8` did edit four of them in
+place (`0001`, `0015`, `0019`, `0020`), Drizzle cannot detect that, and a
+database that took the pre-rename `0015` has a trigger reading `traceloop.purging`
+that refuses every legitimate erasure. That was real, and `quadrantcode_dev` had
+it.
+
+Not true: that production was affected. Its triggers are correct, its migration
+record is complete, and the only difference is how a line ending was encoded on
+the machine that ran it.
