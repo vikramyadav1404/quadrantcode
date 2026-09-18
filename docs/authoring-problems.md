@@ -247,6 +247,7 @@ npm run native:validate
 npx vitest run tests/native-content tests/assessments
 
 # 4 · compile and run all five reference solutions against every test case
+#     (cached — only changed records are re-run; see below)
 npm run native:validate-references
 
 # 5 · import into the database (needs DATABASE_URL)
@@ -347,9 +348,30 @@ rejected that way and the sentence was reworded rather than the check loosened.
 A false positive costs one edit; a false negative ships a claim we cannot stand
 behind.
 
-**Validation validates everything.** `native:validate-references` compiles and
-runs all five languages against every test case of all 100 problems — roughly
-3,000 executions. It is minutes, not seconds. Run it in the background.
+**Validation is cached, and a cached green is weaker evidence.**
+`native:validate-references` compiles and runs all five languages against every
+test case. Uncached that is ~3,000 executions and **387 seconds** measured; with
+the cache a run that changes one record is **about 3 seconds**, because only that
+record's ten entries are re-proven.
+
+The cache key covers the reference solution, the test cases, the toolchain
+versions, the platform, and a hash of `server/services/execution/native.ts` —
+so a changed solution, an edited expected output or an upgraded compiler all
+force a re-run. Proven, not assumed: corrupting a solution and corrupting an
+expected output both still fail a _cached_ run.
+
+What it cannot cover is **nondeterminism**. A reference that passes by luck —
+uninitialised memory in C is the real exposure — caches green and stays green.
+Every uncached run used to re-roll that dice; the cache removes that accidental
+safety net.
+
+```bash
+npm run native:validate-references -- --no-cache
+```
+
+Run that before trusting a green on anything that matters, and periodically
+regardless. Note that switching `native.ts` back and forth costs two full runs,
+because the cache holds one generation and prunes the other.
 
 **The distribution can be right while the content is wrong.** The generated
 library's 35/45/20 split is exactly what the spec asked for, and it measures

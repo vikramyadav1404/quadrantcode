@@ -203,6 +203,35 @@ that point the argument above stops holding and the payload needs its own HMAC,
 because the platform boundary would no longer be the only thing between an
 attacker and the contents of a job.
 
+### Reference validation has never run in CI
+
+`npm run native:validate-references` — the gate that compiles and runs all five
+reference solutions against every test case — **is not in
+`.github/workflows/ci.yml`.** That workflow runs typecheck, lint, format,
+contrast, `npm test`, `deploy:check` and build, plus the Playwright job.
+Reference validation appears nowhere in it.
+
+So a broken reference solution is caught **only when someone runs the script on
+their own machine.** For the whole authored-problem pass, one developer's local
+runs were the entire gate. Nothing in the repository would have failed if a
+reference solution had been wrong.
+
+**Why it is not simply added.** At the current hundred problems a full run is
+about seven minutes, which CI could absorb. At the few thousand the library is
+being scaled towards it is roughly **7.9 hours** sequential — 4.2 compiling and
+3.7 executing, measured, not estimated. That is not viable as a merge gate.
+
+Caching makes the _local_ loop fast (a one-record change becomes seconds), but
+it does not solve CI: a cache file committed to the repository is a trust hole,
+since anyone could commit one asserting everything passes, and CI cannot
+usefully reuse a cache built on a contributor's machine anyway.
+
+**Deliberately left open.** The options when there is a reason to revisit are a
+scheduled uncached run rather than a merge gate, parallelising the validator
+(it is fully sequential today, and nothing is shared between problems), or a
+cache keyed to a trusted builder. None is urgent while the library is small and
+one person runs it.
+
 ### Concurrent test runs share one database
 
 `tests/helpers/db.ts` rebuilds the fixed `public` schema in `beforeAll`.
