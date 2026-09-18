@@ -127,11 +127,31 @@ function buildHistory(): Map<string, string> {
     for (const path of paths) {
       const body = git('show', `${commit.sha}:${path}`);
       const name = path.split('/').pop() ?? path;
+      /*
+       * Label the line-ending variant, because it is the difference between
+       * "someone edited this migration" and "this was migrated from a Windows
+       * checkout". Without the label a CRLF hash reads as an edit, which is
+       * the wrong conclusion and the expensive one.
+       */
+      const crlf = body.replace(/\n/g, '\r\n');
+      /*
+       * Only offer CRLF when it is actually a different string. A migration
+       * with no line breaks -- several here are a single CREATE INDEX -- hashes
+       * identically either way, and labelling that one "CRLF" invents a
+       * Windows checkout that the evidence does not show.
+       */
+      const variants: [string, string][] =
+        crlf === body
+          ? [[body, 'LF']]
+          : [
+              [body, 'LF'],
+              [crlf, 'CRLF'],
+            ];
       // Oldest wins: git log is newest-first, so later writes are earlier commits.
-      for (const variant of [body, body.replace(/\n/g, '\r\n')]) {
+      for (const [content, ending] of variants) {
         index.set(
-          createHash('sha256').update(variant).digest('hex'),
-          `${name} @ ${commit.sha.slice(0, 7)} ${commit.date}`,
+          createHash('sha256').update(content).digest('hex'),
+          `${name} @ ${commit.sha.slice(0, 7)} ${commit.date}  ${ending}`,
         );
       }
     }
