@@ -7,9 +7,8 @@ The procedure for F4.8 acceptance criterion 5:
 Configuration does not satisfy it. Neither does this document. The criterion is
 met only by running the sequence below and recording the output.
 
-> **Run this yourself.** It needs Neon account credentials, which do not live on
-> a development machine. Paste the transcript back and the evidence gets
-> recorded in `docs/acceptance-status.md`.
+> **Run this yourself.** It needs Neon credentials, which do not live on a
+> development machine. Keep the transcript; it is the evidence.
 
 ---
 
@@ -17,342 +16,299 @@ met only by running the sequence below and recording the output.
 
 Neon's free tier has **no downloadable backup**. What it has is a six-hour
 history window and the ability to materialise a branch from a past moment. The
-drill therefore proves that a point-in-time recovery works, which is what the
-criterion is actually about.
+drill therefore proves point-in-time recovery works, which is what the criterion
+is actually about.
 
-|                         |                                                                  |
-| ----------------------- | ---------------------------------------------------------------- |
-| Writes to production    | **One row**, in `audit_logs`. Nothing else.                      |
-| Touches production data | No. The restore creates a **new** branch.                        |
-| Reversible              | Yes — the marker row is deleted and the branch dropped in step 7 |
+|                         |                                                                        |
+| ----------------------- | ---------------------------------------------------------------------- |
+| Writes to production    | **One row**, in `audit_logs`. Nothing else.                            |
+| Touches production data | No. The restore creates a **new** branch.                              |
+| Reversible              | The branch is dropped in step 6. **The marker row is not** — see below |
 
-### Why not `neon branches restore`
+### The marker row is permanent, and that is correct
 
-Because it is **in place**. It restores a root branch to an earlier state and
-auto-creates a backup branch, but the production branch is modified. That is a
-real restore and a real risk, and it is not what this drill needs. Creating a
-branch from a past timestamp proves the same capability while only ever reading
-production.
+`audit_logs` is append-only **at the database**. Trigger
+`audit_logs_append_only` refuses UPDATE and DELETE, and unlike `session_events`
+there is no purge escape hatch. Migration 0019 says why:
+
+> _An audit log exists precisely so that the people with power over other
+> people's data cannot quietly erase what they did — a purge flag would hand
+> them the eraser._
+
+So the marker cannot be removed, and this procedure has no cleanup step for it.
+That is the right outcome rather than a compromise: a restore drill **is** a real
+operational event, an audit log is where a permanent record of one belongs, and
+the row carries no user data.
+
+> An earlier draft of this document instructed the operator to `DELETE` the
+> marker in a cleanup step. The database refuses that, and it would have been
+> discovered mid-drill with the marker already written.
 
 ### ⏳ The six-hour window
 
-The free tier keeps **six hours** of history. Everything here must happen inside
-one sitting, and a timestamp in the transcript stops being usable afterwards —
-you cannot re-create the branch tomorrow to check the evidence. **Capture the
-output as you go**; it is not reproducible later.
+The free tier keeps **six hours** of history. Everything here must happen in one
+sitting, and a timestamp in the transcript stops being usable afterwards — you
+cannot re-create the branch tomorrow to check the evidence. **Capture output as
+you go**; it is not reproducible later.
 
 ### 💸 Cost
 
-Nothing in this procedure costs money on the free tier, provided step 7 runs.
+Nothing here costs money on the free tier, provided step 6 runs.
 
-- A branch consumes part of the **0.5 GB project storage**; this database is
-  far smaller than that
-- The free tier allows **3 root branches**. A branch created with `--parent` is
-  a child, not a root, so it should not consume that quota — but see
-  _"If the branch quota is full"_ below
-- Compute for a branch is billed in the same free allowance as the parent, and
-  an idle branch suspends
-- **Leaving the drill branch behind is the only way this costs anything.** Step
-  7 is not optional.
+- A branch consumes part of the **0.5 GB project storage**; this database is far
+  smaller than that
+- The free tier allows **3 root branches**. A branch created with `--parent` is a
+  child, not a root, so it should not consume that quota — but see _"If the
+  branch quota is full"_
+- **Leaving the drill branch behind is the only way this costs anything.** Step 6
+  is not optional.
 
 ---
 
-## 0 · Install the CLI
+## 0 · Prerequisites
 
-Not installed on the development machine. Checked: neither `neon` nor `neonctl`
-is on PATH.
+`psql` is **not** required. The helper uses the `postgres` driver the project
+already depends on.
 
-```bash
+```powershell
 npm install -g neonctl
 ```
 
-```bash
+```powershell
 neon --version
 ```
 
-> Expect a version string. The binary is named `neon`; the package is `neonctl`.
+> A version string. The binary is `neon`; the package is `neonctl`.
 
-```bash
+```powershell
 neon auth
 ```
 
-> Opens a browser for OAuth. Expect `Authentication successful` and a saved
-> credentials path. Nothing here goes in the repository.
+> Opens a browser. **You have 60 seconds** — have the browser ready before you
+> press enter. Expect `Authentication successful`.
+>
+> Run this in your own terminal. The token belongs in your local Neon config.
 
-```bash
+```powershell
 neon projects list
 ```
 
-> Expect your project with its id. **Copy the project id** — later commands take
-> `--project-id`, and passing it explicitly avoids acting on the wrong project
-> if you ever have more than one.
+> **Copy the project id.** Every later `neon` command takes it explicitly, so you
+> cannot act on the wrong project by accident.
+
+### Point the helper at Neon
+
+```powershell
+$env:NEON_DATABASE_URL = "<neon pooled connection string>"
+```
+
+> No output. Set this in your own terminal — the connection string is a
+> credential. The helper prints only the host, never the string.
+>
+> **`DATABASE_URL` is deliberately ignored.** In this repo it points at the local
+> embedded test instance. An earlier version of the helper fell back to it and
+> wrote a marker to `localhost:55432`; the transcript looked correct and proved
+> nothing. The helper now refuses any host that is not `*.neon.tech`.
 
 ---
 
-## 1 · Record the starting state
+## 1 · Baseline, before anything is written
 
-```bash
+```powershell
 neon branches list --project-id <PROJECT_ID>
 ```
 
-> Expect the production branch, probably `main` or `production`. Note its name
-> and how many branches exist — you need this to confirm cleanup in step 8.
+> The production branch, probably `main` or `production`. **Note how many
+> branches exist** — you compare against this in step 7.
+
+```powershell
+npm run drill -- verify
+```
+
+> Confirms `connected to <something>.neon.tech via NEON_DATABASE_URL
+(production)`, then `marker rows 0` and the current row and table counts.
+>
+> **Check the host line before going further.** This is the last step before a
+> permanent write, and the only one that confirms you are pointed at Neon.
 
 ---
 
-## 2 · Write the marker row
+## 2 · The marker row — the only write to production
 
-This is the **only** write to production in the whole drill.
-
-**Where it goes:** `audit_logs`. That table is admin-only, is never shown to a
-user, and its `actorId` deliberately has **no foreign key** — the schema comment
-explains that a `references(users.id)` would let deleting an admin erase
-everything that admin ever did. So a marker needs no real user to exist, and
-inserting one distorts nothing.
-
-It is also honest: a restore drill is an auditable operational event, so the row
-is true rather than junk.
-
-Connect with the pooled production URL — the same `DATABASE_URL` the app uses:
-
-```bash
-psql "$DATABASE_URL"
+```powershell
+npm run drill -- marker
 ```
 
-```sql
-INSERT INTO audit_logs (actor_id, action, target, diff)
-VALUES (
-  '00000000-0000-0000-0000-000000000000',
-  'ops.restore_drill',
-  'f4.8-criterion-5',
-  '{"note": "Marker written before the restore point. Proves the branch restored to the intended moment."}'::jsonb
-)
-RETURNING id, created_at;
-```
-
-> Expect one row. **Copy `created_at` exactly** — it is the anchor for the whole
-> drill. The all-zeroes `actor_id` is a deliberate sentinel: it is not a real
-> user and cannot collide with one.
-
-```sql
-SELECT now() AS marker_written_at;
-```
-
-> Expect a timestamp a moment after `created_at`. Keep both.
+> ```
+> marker id     <uuid>
+> created_at    2026-09-18T…Z
+> db clock now  2026-09-18T…Z
+>
+> This row is PERMANENT — audit_logs refuses DELETE.
+> ```
+>
+> **Copy the marker id and `created_at`.** One row in `audit_logs`, admin-only,
+> with an all-zeroes sentinel `actor_id` that cannot collide with a real user.
 
 ---
 
-## 3 · Wait, then take the restore timestamp
+## 3 · Wait 60 seconds, then take the restore point
 
-Wait **at least 60 seconds**. The restore point must be unambiguously _after_
-the marker was committed, and clock skew between your shell and the database is
-not worth arguing with.
+The restore point must be unambiguously _after_ the marker committed, and clock
+skew between your shell and the database is not worth arguing with.
 
-```sql
-SELECT now() AS restore_point;
+```powershell
+npm run drill -- now
 ```
 
-> **Copy this value.** This is the timestamp you restore to. It must be inside
-> the six-hour window, which it trivially is.
-
-```sql
-\q
-```
+> ```
+> RESTORE POINT 2026-09-18T…Z
+> ```
+>
+> **Copy this exactly.** Already RFC 3339 and ready to paste.
 
 ---
 
 ## 4 · Create the restore branch
 
-Replace `<RESTORE_POINT>` with the value from step 3, in RFC 3339 form
-(`2026-09-18T14:03:22Z`).
-
-```bash
+```powershell
 neon branches create --project-id <PROJECT_ID> --name restore-drill --parent <RESTORE_POINT>
 ```
 
-> Expect a new branch named `restore-drill` with its own connection details, and
-> the parent shown as the production branch at that timestamp. **Copy the
-> connection string it prints** — it is the branch's own, not production's.
+> A new branch and its own connection string. **Copy that connection string.**
 >
-> Production is untouched. Nothing was written to it by this command.
+> Production is untouched: this command only read it. Note this is
+> `branches create`, **not** `branches restore` — the latter restores a root
+> branch _in place_, which modifies production even though it auto-creates a
+> backup branch.
 
 ---
 
-## 5 · Verify — the part that makes this a drill
+## 5 · Verify — the step that makes this a drill
 
-A branch existing proves nothing. These three checks prove the data is right.
-
-```bash
-psql "<RESTORE_BRANCH_CONNECTION_STRING>"
+```powershell
+$env:DRILL_URL = "<restore branch connection string>"
 ```
 
-### 5a · The marker is present
-
-```sql
-SELECT id, action, target, created_at
-FROM audit_logs
-WHERE action = 'ops.restore_drill' AND target = 'f4.8-criterion-5';
+```powershell
+npm run drill -- verify
 ```
 
-> **Expect exactly the row from step 2, with the same id and `created_at`.**
+> Confirms `via DRILL_URL (restore branch)`, then:
 >
-> This is the whole drill in one query. It proves the branch was restored to the
-> intended moment rather than to some arbitrary earlier state — an empty result
-> would mean the restore point predated the marker, and the drill would have to
-> be repeated with a later timestamp.
-
-### 5b · The rest of the data came back
-
-```sql
-SELECT
-  (SELECT count(*) FROM users)      AS users,
-  (SELECT count(*) FROM problems)   AS problems,
-  (SELECT count(*) FROM companies)  AS companies,
-  (SELECT count(*) FROM audit_logs) AS audit_logs;
-```
-
-> Keep this output. Compare it against 5c below.
-
-### 5c · The same counts on production
-
-In a **second** terminal, so you do not lose the branch session:
-
-```bash
-psql "$DATABASE_URL" -c "SELECT (SELECT count(*) FROM users) AS users, (SELECT count(*) FROM problems) AS problems, (SELECT count(*) FROM companies) AS companies, (SELECT count(*) FROM audit_logs) AS audit_logs;"
-```
-
-> **Expect the counts to match 5b.** They should, because nothing has written to
-> production since the restore point.
+> ```
+> marker rows   1
+>   id <uuid>  created_at 2026-09-18T…Z
+> users N  problems N  companies N  audit_logs N
+> tables N
+> ```
 >
-> If production is higher, something wrote to it during the drill — note what,
-> because it means the drill ran against a moving target rather than that the
-> restore failed.
+> **The marker id must match step 2.** This is the whole drill in one result: it
+> proves the branch restored to the _intended_ moment rather than some arbitrary
+> earlier state.
+>
+> `marker rows 0` means the restore point predated the marker. Delete the branch
+> (step 6), and repeat from step 3 with a later timestamp. **Do not write a
+> second marker** — the first is still there, permanently.
 
-### 5d · The schema arrived, not just the rows
-
-```sql
-SELECT count(*) AS tables FROM information_schema.tables WHERE table_schema = 'public';
+```powershell
+Remove-Item Env:\DRILL_URL
 ```
 
-> Expect the same count as production. Run the same query on production to
-> compare. A restore that brings rows but not constraints is not a restore.
-
-```sql
-\q
+```powershell
+npm run drill -- verify
 ```
+
+> Back on production. **Counts and table count should match the branch.** They
+> should, because nothing has written to production since the restore point.
+>
+> If production is higher, something wrote to it during the drill — note what.
+> That means the drill ran against a moving target, not that the restore failed.
+>
+> A matching **table** count matters separately: a restore that brings rows but
+> not constraints is not a restore.
 
 ---
 
-## 6 · Capture the evidence
+## 6 · Delete the branch — not optional
 
-Keep, from the transcript:
-
-1. The marker row's `id` and `created_at` (step 2)
-2. The restore point (step 3)
-3. The branch-create output (step 4)
-4. The marker found on the branch (5a) — **the verification**
-5. Matching counts, branch vs production (5b, 5c)
-6. Matching table counts (5d)
-7. Cleanup confirmation (steps 7 and 8)
-
-Paste it back. It gets recorded in `docs/acceptance-status.md` against criterion
-5, with the date, and this file stays as the repeatable procedure.
-
----
-
-## 7 · Clean up — not optional
-
-### 7a · Delete the branch
-
-```bash
+```powershell
 neon branches delete --project-id <PROJECT_ID> restore-drill
 ```
 
-> Expect a confirmation. This is what stops the drill costing storage.
-
-### 7b · Remove the marker row from production
-
-```bash
-psql "$DATABASE_URL"
-```
-
-```sql
-DELETE FROM audit_logs
-WHERE action = 'ops.restore_drill' AND target = 'f4.8-criterion-5'
-RETURNING id;
-```
-
-> Expect exactly the one id from step 2. If it returns more than one, a previous
-> drill left a row behind — that is harmless, but say so in the transcript.
->
-> Leaving it is also defensible: it is a true audit entry. Deleting it keeps
-> production exactly as it was found, which is the stricter choice.
-
-```sql
-\q
-```
+> A confirmation. This is what stops the drill costing storage.
 
 ---
 
-## 8 · Confirm production is as you found it
+## 7 · Confirm production is as you found it
 
-```bash
+```powershell
 neon branches list --project-id <PROJECT_ID>
 ```
 
-> Expect the same branches as step 1. No `restore-drill`.
+> The same branches as step 1. No `restore-drill`.
 
-```bash
-psql "$DATABASE_URL" -c "SELECT count(*) AS drill_markers FROM audit_logs WHERE action = 'ops.restore_drill';"
+```powershell
+npm run drill -- verify
 ```
 
-> Expect `0`.
+> `marker rows 1` — the permanent record that the drill happened. Everything else
+> unchanged from step 1.
+
+---
+
+## 8 · Record the evidence
+
+Keep, from the transcript:
+
+1. The marker id and `created_at` (step 2)
+2. The restore point (step 3)
+3. The branch-create output (step 4)
+4. **The marker found on the branch, with a matching id (step 5)** — the
+   verification
+5. Matching counts and table counts, branch versus production (step 5)
+6. Branch deletion (step 6) and the final branch list (step 7)
+
+That goes into `docs/acceptance-status.md` against criterion 5, with the date.
 
 ---
 
 ## If the branch quota is full
 
-The free tier allows **3 root branches**. A branch created with `--parent` is a
-child of production, so it should not count against that limit — but if step 4
-fails with a quota error:
-
-```bash
+```powershell
 neon branches list --project-id <PROJECT_ID>
 ```
 
-> Look for branches you do not recognise. Two produce themselves without anyone
-> asking:
+> Look for branches you do not recognise. Two appear without anyone asking:
 >
 > - **Backup branches** named like `main_old_<timestamp>`, created automatically
 >   by a previous `neon branches restore`
 > - **Leftover drill branches** from an interrupted run of this procedure
 
-Delete only branches you are certain are disposable:
-
-```bash
+```powershell
 neon branches delete --project-id <PROJECT_ID> <BRANCH_NAME>
 ```
 
-> **Never delete the production branch**, and never delete a branch you cannot
-> account for. If every branch is accounted for and the quota is still full,
-> stop and say so — the drill is not worth deleting something you are unsure
-> about. That is a better outcome than a green checkbox.
+> **Never delete the production branch**, and never delete one you cannot account
+> for. If everything is accounted for and the quota is still full, stop and say
+> so. An unexplained branch you deleted is worse than an unticked checkbox.
 
 ---
 
 ## If something goes wrong
 
-**Step 4 fails.** Nothing has happened to production except the marker row. Run
-step 7b and stop.
+**Step 4 fails.** Nothing has happened to production except the marker row, which
+stays. Stop.
 
-**5a returns no rows.** The restore point was before the marker. Delete the
-branch (7a) and repeat from step 3 with a later timestamp. Do **not** write a
-second marker — the first one is still there.
+**Step 5 shows `marker rows 0`.** The restore point was before the marker. Delete
+the branch and repeat from step 3 with a later timestamp. Do not write a second
+marker.
 
-**Counts differ in 5b/5c.** Do not treat this as a failed restore without
-checking whether something wrote to production during the drill. A deployment,
-a cron job, or your own browser session are all likelier causes.
+**Counts differ between branch and production.** Check whether something wrote to
+production during the drill before concluding the restore failed. A deployment, a
+cron job, or your own browser session are all likelier causes.
 
-**You lose the transcript.** Repeat the drill. The six-hour window means the
-evidence cannot be reconstructed after the fact, and a reconstructed transcript
-would be a fabrication rather than a record.
+**You lose the transcript.** Repeat the drill — it will leave a second marker
+row, which is honest. The six-hour window means evidence cannot be reconstructed
+afterwards, and a reconstructed transcript would be a fabrication rather than a
+record.

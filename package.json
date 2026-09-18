@@ -52,7 +52,8 @@
     "papers:generate": "tsx scripts/generate-assessment-papers.ts",
     "papers:validate": "tsx scripts/validate-assessment-papers.ts",
     "assessments:sweep": "tsx scripts/sweep-assessments.ts",
-    "companies:seed": "tsx scripts/seed-companies.ts"
+    "companies:seed": "tsx scripts/seed-companies.ts",
+    "drill": "tsx scripts/restore-drill.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
