@@ -1188,14 +1188,14 @@ what it should: every other console call bypasses redaction.
 The deliverable is `docs/security-audit.md` — findings, fixes, and accepted
 risks with reasons. This table is the criteria; the report is the substance.
 
-| #   | Criterion                                                      | State                   | Evidence                                                                                                         |
-| --- | -------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 1   | A written audit report with findings, fixes and accepted risks | **DONE**                | `docs/security-audit.md` — 3 findings, 5 accepted risks, 3 unverifiable                                          |
-| 2   | Route enumeration test passes and covers every route           | **DONE**                | Walks the filesystem; **a route nobody has classified fails the test**                                           |
-| 3   | Every IDOR attempt is blocked                                  | **DONE**                | `e2e/idor.spec.ts` — 404 for each, over real HTTP, as a signed-in stranger                                       |
-| 4   | Secret scanner over full history returns clean                 | **DONE**                | 79 commits, no leaks — after one finding was reviewed and one canary was fixed                                   |
-| 5   | A restore was actually performed and verified                  | **NOT DONE**            | Procedure written and ready to run: `docs/restore-drill.md`. Was BLOCKED on "no deployment"; that reason expired |
-| 6   | Load test results recorded with p95 numbers                    | **DONE, service layer** | 100 concurrent: catalog p95 **146 ms**, dashboard p95 **146 ms**, 0 failures                                     |
+| #   | Criterion                                                      | State                   | Evidence                                                                                                                       |
+| --- | -------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | A written audit report with findings, fixes and accepted risks | **DONE**                | `docs/security-audit.md` — 3 findings, 5 accepted risks, 3 unverifiable                                                        |
+| 2   | Route enumeration test passes and covers every route           | **DONE**                | Walks the filesystem; **a route nobody has classified fails the test**                                                         |
+| 3   | Every IDOR attempt is blocked                                  | **DONE**                | `e2e/idor.spec.ts` — 404 for each, over real HTTP, as a signed-in stranger                                                     |
+| 4   | Secret scanner over full history returns clean                 | **DONE**                | 79 commits, no leaks — after one finding was reviewed and one canary was fixed                                                 |
+| 5   | A restore was actually performed and verified                  | **DONE**                | 2026-09-18 · marker `c566a574` found on a branch restored to `17:21:35Z`, counts and schema matching · `docs/restore-drill.md` |
+| 6   | Load test results recorded with p95 numbers                    | **DONE, service layer** | 100 concurrent: catalog p95 **146 ms**, dashboard p95 **146 ms**, 0 failures                                                   |
 
 ### The findings
 
@@ -1228,7 +1228,13 @@ identifier** — a sortable column being the likely first.
 
 ### What this audit could not do
 
-**No restore drill.** The criterion asks for a restore actually performed.
+**~~No restore drill.~~ Done 2026-09-18.** The criterion asks for a restore
+actually performed. It was, against the live Neon project: a permanent marker
+row written to `audit_logs`, a branch created from a timestamp after it, and the
+marker found on that branch with identical id, counts and table count — then the
+branch deleted. Full transcript in `docs/restore-drill.md`. The history below is
+kept because the reason it was blocked, and the way that reason expired without
+anyone noticing, is the part worth remembering.
 
 > ~~There are no backups because there is no deployed database — the only
 > Postgres this project has run against is the embedded test instance,

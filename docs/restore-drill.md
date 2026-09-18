@@ -7,6 +7,55 @@ The procedure for F4.8 acceptance criterion 5:
 Configuration does not satisfy it. Neither does this document. The criterion is
 met only by running the sequence below and recording the output.
 
+---
+
+## ✅ Performed 18 September 2026
+
+Neon project `holy-field-88722670`, region `aws-ap-southeast-1`.
+
+|                     |                                                                               |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Marker id           | `c566a574-c8a1-45e9-a44b-49f5b0478959`                                        |
+| Marker written      | `2026-09-18T17:19:48.615Z`                                                    |
+| Restore point       | `2026-09-18T17:21:35.656Z` (1m 47s after the marker)                          |
+| Branch created with | `--parent 2026-09-18T17:21:35Z`                                               |
+| Restore branch      | `restore-drill` · `br-dark-rain-b34vmvam` · endpoint `ep-still-boat-b3d3qjh5` |
+
+**On the restore branch** — `ep-still-boat-b3d3qjh5-pooler…`, via `DRILL_URL`:
+
+```
+marker rows   1
+  id c566a574-c8a1-45e9-a44b-49f5b0478959  created_at 2026-09-18T17:19:48.615Z
+users 1  problems 30  companies 0  audit_logs 1
+tables 48
+```
+
+**On production** — `ep-winter-term-b3ibi9et-pooler…`, via `NEON_DATABASE_URL`:
+
+```
+marker rows   1
+  id c566a574-c8a1-45e9-a44b-49f5b0478959  created_at 2026-09-18T17:19:48.615Z
+users 1  problems 30  companies 0  audit_logs 1
+tables 48
+```
+
+Then `neon branches delete restore-drill`, and `neon branches list` returned the
+default `production` branch (`br-weathered-sunset-b3sajlh1`) alone.
+
+**What makes this a verification rather than a branch that appeared.** The marker
+id matches to the millisecond on both sides, so the branch came back to the
+intended moment rather than some arbitrary earlier state. `audit_logs` reads 1
+against a pre-drill baseline of 0, so the marker is the only write. `tables 48`
+on both sides means the schema restored, not only the rows. And the two host
+lines differ — `ep-still-boat` against `ep-winter-term` — which is what
+distinguishes two real queries from one database queried twice.
+
+Baseline before the drill: `users 1 · problems 30 · companies 0 · audit_logs 0 ·
+tables 48`.
+
+The marker row remains in production, permanently, as the audit record that this
+happened.
+
 > **Run this yourself.** It needs Neon credentials, which do not live on a
 > development machine. Keep the transcript; it is the evidence.
 
