@@ -160,10 +160,24 @@ else, rewriting the body of migrations that **had already run**.
 
 Drizzle's migrator decides what to apply by timestamp, not by content. An edited
 migration is therefore never re-applied, and `npm run db:migrate` prints
-`migrations applied` while changing nothing. Measured on the local development
-database: **17 of 25 recorded migrations no longer hash-match the file they came
-from.** There is no repair by migrating; the database has to be rebuilt or the
-difference hand-applied.
+`migrations applied` while changing nothing. There is no repair by migrating; a
+database that took the old version has to be rebuilt or the difference
+hand-applied.
+
+**Recorded hashes are not the measure of this, and an earlier revision of this
+note implied they were.** `pg-core/dialect.cjs` reads exactly one row —
+`order by created_at desc limit 1` — and applies every migration whose
+`folderMillis` exceeds it. The `hash` column is written and **never read for any
+decision**. A differing hash therefore records that a file was edited after it
+ran; it does not describe the live schema, does not affect future migrations,
+and Postgres never consults it. The converse is the sharper point: a **matching**
+hash proves nothing either, because a hand-run `ALTER TABLE` leaves every hash
+agreeing. Only the schema answers a question about the schema.
+
+`dac85c8` changed **four** migration files — `0001`, `0015`, `0019`, `0020`.
+A database built from a clean pre-rename checkout therefore shows 21 hashes
+matching and 4 stale, confirmed by building one at `90d8272` and checking it.
+Counts far from 4 have some other cause and should not be attributed to this.
 
 **The damage is not cosmetic.** The rename included the session-local flag the
 `session_events` append-only trigger checks. A database migrated before that date
@@ -177,21 +191,38 @@ deletion, and `demo:seed --clean`.
 and produces the current schema, so a new contributor sees none of this. The
 exposure is long-lived databases, which is where nobody looks.
 
-**Where it stood on 2026-09-19.** `quadrantcode_dev` was drifted — found because
-`demo:seed` failed with `session_events is append-only`, an error that named
+**Where it stood on 2026-09-19.** `quadrantcode_dev` had the old triggers —
+found because `demo:seed` failed with `session_events is append-only`, naming
 `traceloop_reject_event_mutation`, a function that exists in no migration file.
-It has been rebuilt. **Production was checked and is CURRENT**, so the retention
-promise holds there. A leftover `traceloop_test` database was dropped.
+It has been rebuilt, and a leftover `traceloop_test` database was dropped.
+
+**Production's triggers are correct** — `quadrantcode_reject_event_mutation`
+reading `quadrantcode.purging` — so `snapshots:purge`, account deletion and
+`demo:seed --clean` all work and the retention promise holds. Production was
+**not** rebuilt and does not need to be.
+
+Two things are on record as unexplained rather than resolved. Production reports
+7 of 25 hashes matching, and the rebuilt-from-history control says a clean
+pre-rename database should report 21 — so production's record corresponds to no
+checkout in this repository's history. `--explain` maps each recorded hash back
+to the commit it came from and is the way to find out. The same gap applied to
+`quadrantcode_dev`, which reported 8; **that specimen was destroyed by rebuilding
+it before anyone asked why**, so the local half of the question can no longer be
+answered. Neither figure describes the schema, which is why this is a loose end
+and not a fault.
 
 ```bash
-npm run schema:check    # reads SCHEMA_CHECK_URL, NEON_DATABASE_URL, or DATABASE_URL
+npm run schema:check              # reads SCHEMA_CHECK_URL, NEON_DATABASE_URL, or DATABASE_URL
+npm run schema:check -- --explain # dates every recorded hash against git history
 ```
 
-Read-only, exits non-zero on drift, and prints the host and database name before
-anything else — a check that silently answers about the wrong database is worse
-than none. Note that **table count does not discriminate**: drifted and current
-both report 48, which is why the restore drill's `tables 48` could not have
-caught this.
+Read-only, exits non-zero **only on trigger drift**, and prints the host and
+database name before anything else — a check that silently answers about the
+wrong database is worse than none. Two limits worth knowing: **table count does
+not discriminate** (drifted and current both report 48, which is why the restore
+drill's `tables 48` could not have caught this), and the check covers triggers
+only — columns, constraints and indexes are not compared, so a pass is not a
+statement about the whole schema.
 
 **The rule this leaves.** An applied migration is immutable. A rename, a
 reformat or a lint sweep that touches `server/db/migrations/` produces exactly

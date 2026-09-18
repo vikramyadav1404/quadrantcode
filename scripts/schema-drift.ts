@@ -37,6 +37,7 @@
  *    drifted database and a current one both report 48.
  */
 import 'dotenv/config';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import postgres from 'postgres';
@@ -85,12 +86,58 @@ for (const body of sources) {
   }
 }
 
+/*
+ * `--explain` maps each recorded hash back to the version of the file it came
+ * from, by indexing every historical version of every migration in git.
+ *
+ * A count alone says a database is drifted without saying from what, and the
+ * count on its own can be actively misleading: "18 of 25 differ" reads like
+ * eighteen schema changes, when it may be one sweep that touched eighteen
+ * files and changed nothing a database can observe.
+ *
+ * Both line endings are indexed. A blob is stored LF; a checkout with
+ * `core.autocrlf` true hashes as CRLF, and that alone would make every
+ * migration look edited.
+ */
+function buildHistory(): Map<string, string> {
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 28 });
+
+  const index = new Map<string, string>();
+  const commits = git('log', '--format=%H %ad', '--date=short', '--', MIGRATIONS)
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => ({ sha: line.slice(0, 40), date: line.slice(41) }));
+
+  for (const commit of commits) {
+    const paths = git('ls-tree', '-r', '--name-only', commit.sha, '--', MIGRATIONS)
+      .trim()
+      .split('\n')
+      .filter((p) => p.endsWith('.sql') && !p.includes('/down/'));
+
+    for (const path of paths) {
+      const body = git('show', `${commit.sha}:${path}`);
+      const name = path.split('/').pop() ?? path;
+      // Oldest wins: git log is newest-first, so later writes are earlier commits.
+      for (const variant of [body, body.replace(/\n/g, '\r\n')]) {
+        index.set(
+          createHash('sha256').update(variant).digest('hex'),
+          `${name} @ ${commit.sha.slice(0, 7)} ${commit.date}`,
+        );
+      }
+    }
+  }
+  return index;
+}
+
+const explain = process.argv.includes('--explain');
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 let drifted = false;
 
 try {
   const recorded = await sql`
-    SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at
+    SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at
   `;
 
   const matching = recorded.filter((row) => hashes.has(String(row['hash']))).length;
@@ -100,12 +147,43 @@ try {
   process.stdout.write(`recorded applied  ${recorded.length}\n`);
   process.stdout.write(`hashes matching   ${matching}\n`);
 
+  /*
+   * A stale hash is a provenance record, not a defect, and it is reported as
+   * one. It does not fail the check.
+   *
+   * `pg-core/dialect.cjs` reads one row -- `order by created_at desc limit 1`
+   * -- and applies every migration whose folderMillis exceeds it. The `hash`
+   * column is written and never read for any decision. So a mismatched hash
+   * says a file changed after it ran; it says nothing about the live schema,
+   * it does not affect future migrations, and Postgres never consults it.
+   *
+   * The converse matters more: a matching hash does not prove the schema is
+   * right either. Anyone can ALTER a table by hand and every hash still
+   * agrees. Only the schema can answer a question about the schema, which is
+   * what the trigger comparison below is for.
+   */
   if (stale > 0) {
-    drifted = true;
     process.stdout.write(
-      `\n  ${stale} recorded migration(s) no longer match the file they came from.\n` +
-        '  Those files were edited after they ran. db:migrate will not fix this.\n',
+      `\n  ${stale} recorded hash(es) differ from the current file. That is a record of\n` +
+        '  editing, not a fault: the migrator compares timestamps, never hashes.\n',
     );
+    if (!explain) {
+      process.stdout.write('  Re-run with --explain to see which version each came from.\n');
+    }
+  }
+
+  if (explain) {
+    const history = buildHistory();
+    process.stdout.write('\nprovenance of each recorded migration\n');
+    for (const row of recorded) {
+      const hash = String(row['hash']);
+      const current = hashes.has(hash);
+      const origin = history.get(hash);
+      process.stdout.write(
+        `  ${hash.slice(0, 12)}  ${current ? 'current ' : 'STALE   '}` +
+          `${origin ?? 'NOT ANY VERSION IN GIT — hand-edited, or built elsewhere'}\n`,
+      );
+    }
   }
 
   const functions = await sql`
@@ -139,11 +217,21 @@ try {
   await sql.end();
 }
 
+/*
+ * The verdict is about the schema, and only about the part of it this script
+ * actually looked at. An earlier version said "matches the migration files" on
+ * the strength of two trigger functions, which is a claim the evidence could
+ * not carry, and it was believed.
+ */
 process.stdout.write(
   drifted
-    ? '\nDRIFTED. This database does not match the migration files.\n' +
-        'Rebuild it, or hand-apply the difference. Migrating will not repair it.\n'
-    : '\nCURRENT. This database matches the migration files.\n',
+    ? '\nDRIFTED. The append-only triggers do not match the migration files.\n' +
+        'Erasure paths -- snapshots:purge, account deletion, demo:seed --clean --\n' +
+        'will be refused. Rebuild the database, or hand-apply the difference;\n' +
+        'migrating will not repair it.\n'
+    : '\nTRIGGERS OK. The append-only triggers match the migration files.\n' +
+        'That is what was checked -- not the whole schema. Columns, constraints\n' +
+        'and indexes are not compared here.\n',
 );
 
 process.exit(drifted ? 1 : 0);
