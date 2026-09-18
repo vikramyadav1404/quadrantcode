@@ -4,7 +4,8 @@
  *   npm run schema:check
  *
  * Reads `SCHEMA_CHECK_URL`, then `NEON_DATABASE_URL`, then `DATABASE_URL`.
- * Writes nothing. Exits non-zero on drift.
+ * Writes nothing. Exits non-zero when the append-only triggers disagree with
+ * the migration files — not when a recorded hash does.
  *
  * ## Why this is not answered by "migrations applied"
  *
@@ -31,10 +32,17 @@
  * this stays a question about the database rather than about imports — and it
  * needs none, which matters because `retention.ts` sits behind `server-only`.
  *
- * 1. Recorded migration hashes against the files they came from
- * 2. The purge flag the trigger actually reads against the one the files set
- * 3. Table count, reported for context — it does **not** discriminate. A
- *    drifted database and a current one both report 48.
+ * 1. **The purge flag the trigger actually reads**, against the one the files
+ *    set. This is the only signal that decides the verdict, because it is the
+ *    only one that observes the schema.
+ * 2. Recorded migration hashes, reported as provenance. They never fail the
+ *    run — see the note at the comparison itself for why they cannot.
+ * 3. Table count, for context — it does **not** discriminate. A database with
+ *    the wrong triggers and a correct one both report 48.
+ *
+ * What it does **not** compare: columns, constraints, indexes, defaults,
+ * enums. A pass here is not a statement about the whole schema, and the
+ * output says so rather than leaving it to be assumed.
  */
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
