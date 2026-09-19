@@ -112,10 +112,19 @@ type Tab = 'description' | 'editorial' | 'submissions';
 export function ProblemPanel({
   problem,
   submissions,
+  liveSessionId,
+  startControl,
 }: {
   problem: ProblemPanelView;
   /** F1.5's attempt history, rendered by its own component. */
   submissions: React.ReactNode;
+  /**
+   * The live session **for this problem**, or null. Resolved on the server, so
+   * a session running on a different problem does not count as one here.
+   */
+  liveSessionId: string | null;
+  /** "Start solving", passed as a node so the action stays on the page. */
+  startControl: React.ReactNode;
 }) {
   const [tab, setTab] = useState<Tab>('description');
 
@@ -302,7 +311,11 @@ export function ProblemPanel({
                   </Link>
                 ) : null}
 
-                <ProblemRecord record={problem.record} />
+                <ProblemRecord
+                  record={problem.record}
+                  liveSessionId={liveSessionId}
+                  startControl={startControl}
+                />
                 <RelatedTags patterns={problem.patterns} topics={problem.topics} />
               </div>
             )}
@@ -439,7 +452,30 @@ function RelatedTags({ patterns, topics }: { patterns: string[]; topics: string[
  * attempted but never solved has no "first solved" date, and printing the
  * label with a dash draws the eye to an absence that is completely normal.
  */
-function ProblemRecord({ record }: { record: ProblemRecordView | null }) {
+/*
+ * `record` is FINISHED history, and a live session is not in it.
+ *
+ * The empty state used to read "You haven't started a sitting on this one yet"
+ * whenever there were no completed attempts — which is true of a session that
+ * is running right now, so the panel said nothing had started while the timer
+ * ticked at the top of the screen. `liveSessionId` is the session for THIS
+ * problem, resolved on the server; it cannot come from `useActiveSessionId`,
+ * because that carries an id without a problem and would claim a sitting on
+ * whichever problem happened to be open.
+ *
+ * The same paragraph also told the reader to start the timer on a page with no
+ * control to do it. `startControl` is that control, so the instruction and the
+ * means to follow it are the same block.
+ */
+function ProblemRecord({
+  record,
+  liveSessionId,
+  startControl,
+}: {
+  record: ProblemRecordView | null;
+  liveSessionId: string | null;
+  startControl: React.ReactNode;
+}) {
   if (!record) return null;
 
   if (record.totalAttempts === 0 && !record.lastAttempted) {
@@ -448,10 +484,20 @@ function ProblemRecord({ record }: { record: ProblemRecordView | null }) {
         <h2 className="text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
           Your record
         </h2>
-        <p className="mt-1.5 text-[var(--text-muted)]">
-          You haven&apos;t started a sitting on this one yet. Start the timer before you read
-          the statement — the first minutes are the ones worth measuring.
-        </p>
+        {liveSessionId ? (
+          <p className="mt-1.5 text-[var(--text-muted)]">
+            A sitting is running now — the timer is at the top of the page. Nothing appears here
+            until it finishes.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1.5 text-[var(--text-muted)]">
+              You haven&apos;t started a sitting on this one yet. Start the timer before you
+              read the statement — the first minutes are the ones worth measuring.
+            </p>
+            <div className="mt-2.5">{startControl}</div>
+          </>
+        )}
       </section>
     );
   }
