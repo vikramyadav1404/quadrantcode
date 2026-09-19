@@ -19,6 +19,7 @@
  */
 import { notFound } from 'next/navigation';
 import { AttemptHistory } from '@/components/session/AttemptHistory';
+import { StartSolvingButton } from '@/components/session/StartSolvingButton';
 import { ProblemPanel } from '@/components/solve/ProblemPanel';
 import { SplitPane } from '@/components/solve/SplitPane';
 import { RunPanel } from '@/components/editor/RunPanel';
@@ -29,6 +30,7 @@ import { EXECUTION_LIMITS } from '@/server/services/execution';
 import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
+import { startSessionAction } from '../../../sessions/actions';
 import { submitRunAction } from './actions';
 import { getPublicNativeProblem } from '@/server/services/native-content';
 
@@ -133,6 +135,19 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
             native,
           }}
           submissions={<AttemptHistory attempts={history} />}
+          liveSessionId={sessionId}
+          /*
+            The same control the problem page carries, on the page that told
+            people to use it. `startSessionAction` is shared rather than
+            duplicated, so the conflict handling is identical in both places.
+
+            This does not make the timer a toll booth -- the editor is still
+            reachable and usable without starting anything. It only means the
+            page that says "start the timer" now has a way to.
+          */
+          startControl={
+            <StartSolvingButton onStart={startSessionAction} problemId={problem.id} />
+          }
         />
       }
       right={
