@@ -15,14 +15,40 @@ deliberately not rounded up.
 
 | Criterion                                                                       | Status                 | Evidence                                                                                             |
 | ------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| Exactly 100 original problems with the requested difficulty/topic split         | **DONE**               | `npm run native:validate`; `tests/native-content/actual-library.test.ts`                             |
+| ~~Exactly 100 original problems with the requested difficulty/topic split~~     | **WITHDRAWN**          | Was DONE on a count. See the correction below and **D27**                                            |
 | Five language contracts, references and at least six coverage cases per problem | **DONE locally**       | `npm run native:validate-references`: 3,000/3,000 local executions matched                           |
 | Real Judge0 verification before publish                                         | **BLOCKED externally** | Publish gate exists; a production Judge0 URL/key was not available, so imports remain `needs_review` |
 | Run/Submit with hidden-test privacy and persisted attempts                      | **DONE**               | execution integration tests and `e2e/native-platform.spec.ts`                                        |
 | Honest company evidence and moderated reports                                   | **DONE**               | company/report services, admin moderation and browser assertions                                     |
-| Exactly 20 original pattern-based mocks, two per company                        | **DONE**               | `npm run papers:validate`; assessment content tests                                                  |
+| ~~Exactly 20 original pattern-based mocks, two per company~~                    | **WITHDRAWN**          | Was DONE on a count. See the correction below and **D27**                                            |
 | Admin author/review/preview/publish/import/export/audit                         | **DONE**               | protected admin routes, services and security tests                                                  |
-| Responsive production UI                                                        | **DONE**               | Playwright at 375, 768 and 1440 px; full suite 118/118                                               |
+| Responsive production UI                                                        | **DONE**               | Playwright at 375, 768 and 1440 px; suite 143 tests in 23 files (`--list`, 2026-09-20)               |
+
+> ### ⚠️ Two criteria withdrawn, 2026-09-20
+>
+> Both were marked DONE because a **count** was right, and neither check ever
+> compared the records to each other.
+>
+> **The 100 problems are not 100 problems.** Measured 2026-09-20 by hashing each
+> record's test cases: 100 records resolve to **16 unique test-case sets**, in
+> groups of 14 / 12 / 12 / 11 / 9 / 8 / 7 / 7 / 7 / 7 and six singletons. The six
+> singletons are the hand-authored replacements — `cold-store-aisle-sweep`,
+> `kiln-soak-window`, `ferry-weight-rating`, `strait-ice-floes`,
+> `one-counter-open`, `rising-corridor`. The other 94 are ten problems in
+> ninety-four skins. **None of it is published**; every record imports at
+> `needs_review`.
+>
+> When D27 was written on 2026-09-17 the figure was **10** unique sets. The
+> authored pass has moved it to 16, which is progress and is not the criterion.
+>
+> **The 20 papers are ten question-sets, each used twice**, and every question
+> points into the generated pool above. The timed attempt engine and
+> per-question scoring are real and unaffected.
+>
+> `npm run native:validate` and `npm run papers:validate` still pass, because
+> they check that each record is structurally valid — which it is. That is the
+> defect: a validator that never compares two records cannot see a duplicate.
+> Same shape as **D28**, one level up.
 
 The implementation and operating instructions are in
 `docs/native-platform.md`; human/provider checks are in
