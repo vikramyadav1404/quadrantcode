@@ -50,9 +50,14 @@
  */
 import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { schema } from '@/server/db/client';
+import { localDateFor, recomputeStreak } from '@/server/services/streak';
 
 const DEMO_EMAIL = 'demo@quadrantcode.local';
+/** The demo user's timezone, and therefore the one its day boundary uses. */
+const DEMO_TIMEZONE = 'Asia/Kolkata';
 
 /*
  * The fifth field is the real LeetCode slug, and it is separate from ours on
@@ -185,7 +190,7 @@ async function main(): Promise<void> {
   // is printed, and admin would carry /admin and /api/admin with it.
   const [user] = await sql`
     INSERT INTO users (email, role, timezone, email_verified_at)
-    VALUES (${DEMO_EMAIL}, 'user', 'Asia/Kolkata', now())
+    VALUES (${DEMO_EMAIL}, 'user', ${DEMO_TIMEZONE}, now())
     RETURNING id
   `;
   const userId = String(user!['id']);
@@ -227,22 +232,53 @@ async function main(): Promise<void> {
   }
 
   /*
-   * Sessions across the last month, so the streak, the heatmap and the trend
-   * windows all have something to work with. Every one is finished — a live
-   * session would put the timer bar into a running state on every screenshot.
+   * Sessions across the last month. Every one is finished — a live session
+   * would put the timer bar into a running state on every screenshot.
+   *
+   * ## Why the recent days come in pairs
+   *
+   * A day counts toward the streak when `solvedCount >= targetProblems`
+   * (`server/services/streak/rules.ts`), and the goal seeded above is **2**.
+   * The first version of this array gave every day at most one solve on eleven
+   * distinct dates, so **no day could ever complete** and the dashboard showed
+   * `CURRENT STREAK 0` — on a demo account whose entire purpose is not looking
+   * empty. It was not a streak bug; the fixture could not satisfy the rule it
+   * was being measured against.
+   *
+   * Days 0–6 therefore carry two solves each, which is a seven-day streak
+   * ending **today**. Ending yesterday would render 0 just as convincingly.
+   *
+   * The extra stuck sittings on days 2 and 4 are deliberate: they give the
+   * mistake panel something to say without touching `solvedCount`, so the
+   * streak survives them. That is also what real practice looks like.
    */
   const outcomes: { daysAgo: number; problem: number; solved: boolean; minutes: number }[] = [
-    { daysAgo: 26, problem: 0, solved: true, minutes: 14 },
-    { daysAgo: 24, problem: 1, solved: true, minutes: 22 },
-    { daysAgo: 21, problem: 2, solved: false, minutes: 41 },
-    { daysAgo: 19, problem: 2, solved: true, minutes: 33 },
-    { daysAgo: 16, problem: 3, solved: false, minutes: 47 },
-    { daysAgo: 13, problem: 4, solved: true, minutes: 28 },
-    { daysAgo: 9, problem: 3, solved: true, minutes: 35 },
-    { daysAgo: 6, problem: 5, solved: true, minutes: 24 },
-    { daysAgo: 4, problem: 6, solved: false, minutes: 52 },
-    { daysAgo: 2, problem: 1, solved: true, minutes: 11 },
+    // The live streak — two solves a day, today included.
+    { daysAgo: 0, problem: 1, solved: true, minutes: 12 },
+    { daysAgo: 0, problem: 5, solved: true, minutes: 27 },
     { daysAgo: 1, problem: 2, solved: true, minutes: 18 },
+    { daysAgo: 1, problem: 0, solved: true, minutes: 9 },
+    { daysAgo: 2, problem: 3, solved: true, minutes: 31 },
+    { daysAgo: 2, problem: 1, solved: true, minutes: 15 },
+    { daysAgo: 2, problem: 6, solved: false, minutes: 44 },
+    { daysAgo: 3, problem: 4, solved: true, minutes: 26 },
+    { daysAgo: 3, problem: 2, solved: true, minutes: 20 },
+    { daysAgo: 4, problem: 0, solved: true, minutes: 11 },
+    { daysAgo: 4, problem: 3, solved: true, minutes: 38 },
+    { daysAgo: 4, problem: 2, solved: false, minutes: 49 },
+    { daysAgo: 5, problem: 5, solved: true, minutes: 23 },
+    { daysAgo: 5, problem: 1, solved: true, minutes: 14 },
+    { daysAgo: 6, problem: 2, solved: true, minutes: 29 },
+    { daysAgo: 6, problem: 4, solved: true, minutes: 21 },
+
+    // Earlier weeks — partial days, which the heatmap renders differently.
+    { daysAgo: 9, problem: 3, solved: true, minutes: 35 },
+    { daysAgo: 12, problem: 6, solved: false, minutes: 52 },
+    { daysAgo: 16, problem: 3, solved: false, minutes: 47 },
+    { daysAgo: 19, problem: 2, solved: true, minutes: 33 },
+    { daysAgo: 21, problem: 2, solved: false, minutes: 41 },
+    { daysAgo: 24, problem: 1, solved: true, minutes: 22 },
+    { daysAgo: 26, problem: 0, solved: true, minutes: 14 },
   ];
 
   let timelineSessionId = '';
@@ -372,6 +408,26 @@ async function main(): Promise<void> {
     `;
   }
 
+  /*
+   * Compute the streak with the real engine, not by writing a number.
+   *
+   * `user_streaks` is what the dashboard reads
+   * (`server/services/analytics/dashboard.ts` → `streak?.currentStreak ?? 0`),
+   * and nothing had ever written it here — so the headline read 0 no matter
+   * what the sessions said. Asserting a streak directly would also mean
+   * restating a rule that already exists in one place, and a fixture that
+   * disagrees with `evaluateDayCompletion` is worse than no fixture.
+   *
+   * `recomputeStreak` is importable from a plain script because it takes
+   * `Database` as a TYPE-only import; the schema it pulls in at runtime has no
+   * `server-only` guard. Drizzle wraps the connection this script already
+   * opened rather than calling `getDb()`, so the streak is computed against
+   * exactly the database whose host was printed above — a second pool resolved
+   * from the environment could differ from the one just written to.
+   */
+  const db = drizzle(sql, { schema, casing: 'snake_case' });
+  const streak = await recomputeStreak(db, userId, localDateFor(new Date(), DEMO_TIMEZONE));
+
   const sessionToken = randomBytes(32).toString('hex');
   await sql`
     INSERT INTO auth_sessions (session_token, user_id, expires)
@@ -386,6 +442,10 @@ async function main(): Promise<void> {
         userId,
         sessions: outcomes.length,
         problems: PROBLEMS.length,
+        // Printed because it is the thing most likely to be silently zero, and
+        // a zero here is the difference between a demo and an empty page.
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
         timelineSessionId,
         sessionToken,
       },
