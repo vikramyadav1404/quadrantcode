@@ -13,13 +13,14 @@
  */
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Heatmap } from '@/components/heatmap/Heatmap';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatCard } from '@/components/ui/StatCard';
 import { formatAsOf, formatDuration } from '@/lib/analytics/view';
 import { getDb } from '@/server/db';
 import { ensureFreshRollup, readDashboard } from '@/server/services/analytics';
 import { requireCurrentUser } from '@/server/services/auth/session';
-import { localDateFor } from '@/server/services/streak';
+import { buildHeatmap, localDateFor } from '@/server/services/streak';
 
 export const metadata: Metadata = { title: 'Dashboard · Quadrantcode' };
 
@@ -30,7 +31,21 @@ export default async function DashboardPage() {
   const now = new Date();
   const today = localDateFor(now, user.timezone);
 
-  const status = await ensureFreshRollup(db, { userId: user.id, today, now });
+  /*
+   * The heatmap read runs ALONGSIDE the rollup, not after it.
+   *
+   * `readDashboard` needs `status`, so those two are genuinely sequential.
+   * `buildHeatmap` needs neither, and chaining it would add its latency to a
+   * page that is the first thing a signed-in user sees. That is not a
+   * hypothetical cost here: adding a second read to the problem page earlier
+   * measurably worsened the cold-start flake in `e2e/session.spec.ts`, because
+   * every test there navigates and clicks immediately.
+   */
+  const [status, days] = await Promise.all([
+    ensureFreshRollup(db, { userId: user.id, today, now }),
+    buildHeatmap(db, user.id, today),
+  ]);
+
   const data = await readDashboard(db, {
     userId: user.id,
     today,
@@ -67,6 +82,28 @@ export default async function DashboardPage() {
           See the full breakdown
         </Link>
       </p>
+
+      {/*
+        The heatmap belongs here, not only on /settings/goals.
+
+        It is the most legible thing the product makes — a year of practice in
+        one glance — and it was rendered on a settings page, behind a goal form,
+        which almost nobody opens. The dashboard is where a signed-in user
+        lands, and the four stat cards left most of it empty.
+
+        It stays on /settings/goals too: there it is feedback on the goal being
+        edited a few lines below, which is a different job from being the
+        landing screen's headline.
+      */}
+      <section className="mt-8">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold">Last 365 days</h2>
+          <Link className="text-xs underline" href="/settings/goals">
+            Change your daily goal
+          </Link>
+        </div>
+        <Heatmap days={days} />
+      </section>
 
       {data.weakTopics.length > 0 ? (
         <section className="mt-8">
