@@ -6,9 +6,15 @@ README links to them by name, so a rename breaks the front page.
 | File               | Route                    | Viewport   | What it has to show                                                                                    |
 | ------------------ | ------------------------ | ---------- | ------------------------------------------------------------------------------------------------------ |
 | `01-solve.png`     | `/problems/<slug>/solve` | 1440 × 900 | The editor beside the problem panel, with the timer bar running. This is the differentiator; it leads. |
-| `02-dashboard.png` | `/dashboard`             | 1440 × 900 | Streak, daily goal and the activity heatmap with real history behind it.                               |
+| `02-dashboard.png` | `/dashboard`             | 1440 × 900 | Streak, this week's solving, average time, and the weak-topic callout.                                 |
 | `03-session.png`   | `/sessions/<id>`         | 1440 × 900 | The timeline of one solve — run attempts, snapshots, and a confirmed stuck point.                      |
 | `04-revision.png`  | `/revision`              | 1440 × 900 | The queue with items actually due, not an empty state.                                                 |
+
+> **The heatmap is not on the dashboard.** It renders on `/settings/goals` and
+> nowhere else — `app/(app)/dashboard/page.tsx` never imports it. An earlier
+> revision of this table said otherwise, which sent someone looking for a
+> component that was never on that page. If the four frames should include it,
+> it needs a fifth capture or a decision to move it.
 
 ## Before capturing
 
