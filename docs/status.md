@@ -357,6 +357,22 @@ Not fixed because it is a change to eight existing tests and belongs in its own
 ticket. The fix is to wait for the button to be interactive rather than present
 — the same reason the suite already waits on regions elsewhere.
 
+**`e2e/timeline.spec.ts` shares the fault.** On 2026-09-20 CI failed
+`deleting the history keeps the session itself`, on
+`expect(page.getByText(/session started/i)).toBeVisible()` inside `solveAndRun`
+— which does exactly what the paragraph above describes: `goto` the problem
+page, click `Start solving`, assert immediately. All nine passed locally against
+a warm server on the same commit, so it is not a regression.
+
+There is a second ingredient specific to this assertion, worth knowing before
+anyone "fixes" it by extending the timeout. The notice it waits for is
+**deliberately suppressed** until the shell's context carries the new session:
+`StartSolvingButton` hides a message about a session that is not the live one,
+which is the bug `ActiveSessionContext` was added to fix. So between the action
+returning and the LAYOUT re-rendering, the notice is correctly absent. A cold
+server widens that window past the 10s timeout. Waiting on the timer bar — the
+thing the layout actually renders — would be the honest wait here.
+
 ### The generated library's difficulty labels are cosmetic
 
 **The same problem appears as easy, medium and hard.** Inside each of the ten
