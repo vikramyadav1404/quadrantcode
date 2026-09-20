@@ -123,7 +123,7 @@ it needs a database and an environment.
 cp .env.example .env.local
 ```
 
-`.env.example` documents **43 variables**, each with a one-line comment. The
+`.env.example` documents **44 variables**, each with a one-line comment. The
 minimum to get running is far smaller than that:
 
 | Variable              | Requirement                                                                                                   |

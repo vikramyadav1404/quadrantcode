@@ -78,6 +78,11 @@ const optionalServerSchema = z.object({
   /** Provider-neutral alias used by migration tooling; Neon also supplies the legacy name. */
   DIRECT_DATABASE_URL: optionalString,
   DATABASE_URL_UNPOOLED: optionalString,
+  /**
+   * Opt in to a REMOTE database outside production. See the guard below; set
+   * this only for a deliberate session against a deployed database.
+   */
+  ALLOW_REMOTE_DB: optionalString,
   UPSTASH_REDIS_REST_URL: optionalUrl,
   UPSTASH_REDIS_REST_TOKEN: optionalString,
   /** Test-only escape from the production rate-limiter guard. See ratelimit.ts. */
@@ -191,7 +196,66 @@ const serverEnvSchema = requiredServerSchema
           'AUTH_SECRET must be a cryptographically random string of at least 32 characters',
       });
     }
+
+    /*
+     * A development server must not silently talk to a deployed database.
+     *
+     * Next reads `.env.local` at HIGHER priority than `.env`, so a `.env.local`
+     * holding production values means `npm run dev` connects to production
+     * while `.env` sits there looking local and authoritative. Nothing about
+     * the running app says which one won.
+     *
+     * That is not a theoretical cost. `/settings/goals` calls `recomputeStreak`
+     * on load, which WRITES — so opening a page on localhost mutates the
+     * deployed database, and the only symptom is data changing somewhere you
+     * were not looking.
+     *
+     * Production is exempt because there the remote database IS the database.
+     * `ALLOW_REMOTE_DB=1` is the deliberate override for a session that really
+     * does mean to point at a deployment; it has to be typed, which is the
+     * whole point.
+     */
+    if (value.NODE_ENV !== 'production' && value.ALLOW_REMOTE_DB !== '1') {
+      const remote = remoteHostOf(value.DATABASE_URL);
+      if (remote) {
+        context.addIssue({
+          code: 'custom',
+          path: ['DATABASE_URL'],
+          message:
+            `refusing to run against the remote database at ${remote} with ` +
+            `NODE_ENV=${value.NODE_ENV}. Next loads .env.local before .env, so a ` +
+            'production URL there silently wins. Point DATABASE_URL at a local ' +
+            'instance, or set ALLOW_REMOTE_DB=1 if you mean it.',
+        });
+      }
+    }
   });
+
+/**
+ * The host of `url` when it is somewhere other than this machine, else null.
+ *
+ * Matched on the loopback names rather than on a provider suffix: the risk is
+ * "this is not my machine", and enumerating every hosting provider is a list
+ * that goes stale. An unparseable URL returns null and is left to the
+ * `postgres://` check above, which reports it better.
+ */
+function remoteHostOf(url: string): string | null {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return null;
+  }
+  const local =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname === '[::1]' ||
+    hostname === '0.0.0.0' ||
+    hostname === 'host.docker.internal' ||
+    hostname.endsWith('.localhost');
+  return local ? null : hostname;
+}
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
