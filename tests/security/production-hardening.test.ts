@@ -113,3 +113,66 @@ describe('client address trust boundary', () => {
     expect(clientIp(request)).toBe('unknown');
   });
 });
+
+/*
+ * The guard exists because Next reads `.env.local` before `.env`, so a
+ * `.env.local` holding deployed values makes `npm run dev` connect to the
+ * deployment while `.env` sits there looking local. `/settings/goals` calls
+ * `recomputeStreak` on load, which writes — so the failure mode is a page view
+ * on localhost mutating a deployed database.
+ *
+ * Both directions are asserted. A refusal check that only tests the refusal
+ * cannot tell a working guard from one that rejects everything.
+ */
+describe('a development server refuses a remote database', () => {
+  const development = {
+    NODE_ENV: 'development',
+    DATABASE_URL: 'postgresql://postgres:postgres@localhost:55432/quadrantcode_dev',
+  } as const;
+
+  const remote =
+    'postgresql://u:p@ep-winter-term-b3ibi9et-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb';
+
+  it('refuses, and names the host it refused', () => {
+    expect(() => __testing.parseServerEnv({ ...development, DATABASE_URL: remote })).toThrow(
+      /refusing to run against the remote database at ep-winter-term/,
+    );
+  });
+
+  it('refuses under NODE_ENV=test too, which is also not production', () => {
+    expect(() =>
+      __testing.parseServerEnv({ ...development, NODE_ENV: 'test', DATABASE_URL: remote }),
+    ).toThrow(/refusing to run against the remote database/);
+  });
+
+  it('allows a local database', () => {
+    expect(() => __testing.parseServerEnv(development)).not.toThrow();
+  });
+
+  it('allows loopback spellings, so the guard is about location and not a name', () => {
+    for (const host of ['127.0.0.1', '[::1]', 'host.docker.internal']) {
+      expect(() =>
+        __testing.parseServerEnv({
+          ...development,
+          DATABASE_URL: `postgresql://postgres:postgres@${host}:55432/quadrantcode_dev`,
+        }),
+      ).not.toThrow();
+    }
+  });
+
+  it('allows a remote database when ALLOW_REMOTE_DB is typed out', () => {
+    expect(() =>
+      __testing.parseServerEnv({
+        ...development,
+        DATABASE_URL: remote,
+        ALLOW_REMOTE_DB: '1',
+      }),
+    ).not.toThrow();
+  });
+
+  it('does not fire in production, where the remote database IS the database', () => {
+    expect(() =>
+      __testing.parseServerEnv({ ...production, DATABASE_URL: remote }),
+    ).not.toThrow();
+  });
+});
