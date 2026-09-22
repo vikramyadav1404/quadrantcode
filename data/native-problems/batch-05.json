@@ -121,7 +121,7 @@
           "referenceSolution": "def solve(v: list[int]) -> int:\n    st=[];best=0\n    for i,h in enumerate(v+[0]):\n        start=i\n        while st and st[-1][1]>h:\n            s,x=st.pop();best=max(best,x*(i-s));start=s\n        if not st or st[-1][1]<h:st.append((start,h))\n    return best"
         },
         "javascript": {
-          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st.at(-1)[1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st.at(-1)[1]<h)st.push([s,h]);}return b;}"
+          "referenceSolution": "function solve(v){const st=[];let b=0;for(let i=0;i<=v.length;i++){const h=i<v.length?v[i]:0;let s=i;while(st.length&&st[st.length - 1][1]>h){const p=st.pop();b=Math.max(b,p[1]*(i-p[0]));s=p[0];}if(!st.length||st[st.length - 1][1]<h)st.push([s,h]);}return b;}"
         }
       },
       "provenance": {

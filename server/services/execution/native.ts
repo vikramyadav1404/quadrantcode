@@ -33,12 +33,84 @@ export type NativeExecutionResult = ExecutionResult & {
   testResults: SafeTestResult[];
 };
 
-export function wrapUserSource(wrapperTemplate: string, userSource: string): string {
+/**
+ * A module-level `from __future__ import a, b` — never an indented one, which
+ * Python rejects anyway, and never one inside a string (see the caveat below).
+ */
+const PYTHON_FUTURE_IMPORT = /^from __future__ import (.+)$/gm;
+
+/**
+ * Makes PEP 585 annotations survive Python 3.8.
+ *
+ * Judge0 runs **Python 3.8.1** and there is nothing newer: the instance offers
+ * 3.8.1 and 2.7.17 only, Judge0 CE's language set has been frozen since 2020,
+ * and Extra CE is the same vintage. So `def solve(v: list[int])` — which every
+ * one of the native library's 100 reference solutions uses — dies at import
+ * time with `TypeError: 'type' object is not subscriptable`, because builtin
+ * generics are 3.9+.
+ *
+ * `from __future__ import annotations` (PEP 563, 3.7+) makes every annotation a
+ * string that is never evaluated, so the syntax parses and nothing is resolved.
+ * It fixes the whole class without editing a single type.
+ *
+ * ## Why this HOISTS rather than just prepending
+ *
+ * Python requires future imports to precede every statement except a module
+ * docstring. Blindly prepending ours breaks the case where the user's own code
+ * opens with a docstring and then its own future import:
+ *
+ *     from __future__ import annotations   <- ours
+ *     """My solution."""                   <- now an expression, not a docstring
+ *     from __future__ import division      <- SyntaxError: not at the beginning
+ *
+ * So every future import in the assembled source is collected, removed, and
+ * re-emitted as ONE line at the very top, with `annotations` merged in. Two
+ * adjacent future imports would have been legal; a future import after a
+ * statement is not, and that is the case this exists for.
+ *
+ * Hoisting only ever makes previously-invalid code valid — a future import
+ * below other statements could not have run in the first place.
+ *
+ * CAVEAT: the match is textual, so a line inside a triple-quoted string that
+ * begins `from __future__ import ` at column zero would be lifted out of it.
+ * Accepted: the alternative is parsing Python to run Python, and the failure is
+ * loud rather than silent.
+ */
+export function hoistPythonFutureImports(source: string): string {
+  const features = new Set<string>(['annotations']);
+
+  const withoutFutures = source.replace(PYTHON_FUTURE_IMPORT, (_line, imported: string) => {
+    for (const feature of imported.split(',')) {
+      const name = feature.trim();
+      // `from __future__ import annotations as _a` is legal; keep it whole.
+      if (name.length > 0) features.add(name);
+    }
+    // Replaced by an empty line, so reported line numbers do not shift.
+    return '';
+  });
+
+  return `from __future__ import ${[...features].join(', ')}\n${withoutFutures}`;
+}
+
+/**
+ * Splices user code into a problem's wrapper.
+ *
+ * `language` is optional only so existing callers that genuinely have no
+ * language keep working; both real call sites — reference validation and user
+ * submissions — pass it, and Python needs it (see `hoistPythonFutureImports`).
+ */
+export function wrapUserSource(
+  wrapperTemplate: string,
+  userSource: string,
+  language?: ExecutionLanguage,
+): string {
   const parts = wrapperTemplate.split(USER_CODE_MARKER);
   if (parts.length !== 2) {
     throw new Error('Execution wrapper must contain the user-code marker exactly once.');
   }
-  return `${parts[0]}${userSource}${parts[1]}`;
+
+  const assembled = `${parts[0]}${userSource}${parts[1]}`;
+  return language === 'python3' ? hoistPythonFutureImports(assembled) : assembled;
 }
 
 export function outputsMatch(actual: string | null, expected: string): boolean {
@@ -121,7 +193,7 @@ export async function executeNativeProblem(
     throw new ExecutionConfigurationError('No test cases are configured for this problem.');
   }
 
-  const wrappedSource = wrapUserSource(configuration.wrapperTemplate, job.source);
+  const wrappedSource = wrapUserSource(configuration.wrapperTemplate, job.source, job.language);
   const limits = {
     cpuSeconds: Math.max(
       0.1,
