@@ -1,16 +1,23 @@
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { count } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { assessmentPapers, problemVersions, problems } from '@/server/db/schema';
 import {
   importAssessmentPaperLibrary,
+  RETIRED_PAPER_LIBRARY_PATH,
   loadAssessmentPaperLibrary,
 } from '@/server/services/assessments';
 import {
+  NATIVE_PROBLEM_DATA_DIR,
+  RETIRED_PROBLEM_DIR,
   importNativeProblemLibrary,
   loadNativeProblemBatches,
 } from '@/server/services/native-content';
+
+/** The 84 duplicates retired on 2026-09-22; still importable, just not active. */
+const RETIRED_PROBLEM_BATCH_DIR = `${NATIVE_PROBLEM_DATA_DIR}/${RETIRED_PROBLEM_DIR}`;
 import { buildNativeContentExport } from '@/server/services/admin';
 import { type TestContext, hasTestDatabase, setupTestDb } from '../helpers/db';
 
@@ -27,9 +34,24 @@ suite('native library importer', () => {
   afterAll(async () => ctx?.close());
 
   it('imports the whole library and every paper idempotently', async () => {
-    const [batches, paperLibrary, companies] = await Promise.all([
+    /*
+     * ACTIVE AND RETIRED, both halves, deliberately.
+     *
+     * The subject here is that the importer is idempotent over a corpus, not
+     * which part of that corpus is live. The retired paper library references
+     * retired PROBLEMS, so importing the papers without those problems fails
+     * with `Unknown original problem budget-match-counter` — importing only the
+     * active sixteen while asking for all twenty papers is not a smaller test,
+     * it is an inconsistent one.
+     *
+     * Dropping the paper half instead would quietly delete all coverage of
+     * `importAssessmentPaperLibrary`, which still has to work the day a library
+     * exists again.
+     */
+    const [activeBatches, retiredBatches, paperLibrary, companies] = await Promise.all([
       loadNativeProblemBatches(),
-      loadAssessmentPaperLibrary(),
+      loadNativeProblemBatches(RETIRED_PROBLEM_BATCH_DIR),
+      loadAssessmentPaperLibrary(resolve(RETIRED_PAPER_LIBRARY_PATH)),
       readFile('data/companies.json', 'utf8').then((source) =>
         companiesSchema.parse(JSON.parse(source)),
       ),
@@ -43,7 +65,21 @@ suite('native library importer', () => {
      * to that, and hard-coding it meant authoring one more problem would fail
      * this test for a reason unrelated to what it tests.
      */
+    /*
+     * Retired batches are renumbered before concatenating. Both directories
+     * number their files from 1, so joining them raw trips the duplicate-batch
+     * guard - which is that guard working, not an obstacle to route around.
+     */
+    const batches = [
+      ...activeBatches,
+      ...retiredBatches.map((batch, index) => ({
+        ...batch,
+        batch: activeBatches.length + index + 1,
+      })),
+    ];
     const problemTotal = batches.flatMap((batch) => batch.problems).length;
+    if (paperLibrary === null)
+      throw new Error('retired paper library should still be loadable');
     const paperTotal = paperLibrary.papers.length;
     const firstProblems = await importNativeProblemLibrary(ctx.db, batches, companies);
     const firstPapers = await importAssessmentPaperLibrary(ctx.db, paperLibrary);

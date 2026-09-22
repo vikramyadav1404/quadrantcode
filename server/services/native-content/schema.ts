@@ -3,23 +3,59 @@ import { EVIDENCE_TYPES, PROBLEM_TYPES, TEST_CASE_VISIBILITIES } from '@/lib/nat
 import { EXECUTION_LANGUAGES, type ExecutionLanguage } from '@/lib/execution/languages';
 import { WRAPPER_SHAPES, WRAPPER_SHAPE_IDS, type WrapperShapeId } from './wrapper-shapes';
 
+/*
+ * Floors for the ACTIVE library, re-based on 2026-09-22.
+ *
+ * These were 15/10/8/8/7/12/8/12/8/12 and 35/45/20 — a distribution over 100
+ * records. That was never 100 problems: 94 of them were ten tasks reskinned,
+ * with the same reference solution, the same contract and the same worked
+ * example under different titles, labelled easy AND medium AND hard. The 84
+ * duplicates now live in `retired/`, which nothing loads.
+ *
+ * So the old floors measured a population that no longer exists, and were
+ * unmeetable by construction: 35 easy problems cannot come out of a 16-problem
+ * library. They are re-based on what is actually here.
+ *
+ * They remain FLOORS, for the reason the previous comment gave: they stop a
+ * topic or difficulty being starved without pinning the library to a size.
+ * Topic floors are 1 because with 16 problems across 10 topics, "at least one"
+ * is the only honest reading of "not starved" — raise them as the library grows
+ * rather than pretending a shape it does not have.
+ *
+ * `medium` is 4 rather than the 6 it will eventually support: four difficulty
+ * corrections are still deferred behind the shape work (connected components
+ * and subset-sum both move up), so today's count is 5. A floor that a correct
+ * library fails is worse than a loose one.
+ *
+ * ## The two tables must sum to the same number
+ *
+ * Every problem carries exactly one primary topic and exactly one difficulty,
+ * so a library sitting exactly on both sets of floors has to have the same size
+ * measured either way. The old constants held this (both summed to 100) and the
+ * schema fixture relies on it to build the tightest library that still passes.
+ * Both sum to 12 here. `tests/native-content/schema.test.ts` asserts it, so
+ * changing one table without the other fails rather than producing a fixture
+ * that cannot satisfy itself.
+ *
+ * The two topics at 2 are the ones the active library actually has most of.
+ */
 export const NATIVE_TOPIC_DISTRIBUTION = {
-  'arrays-hashing': 15,
-  'two-pointers-sliding-window': 10,
-  'binary-search': 8,
-  'stack-queue': 8,
-  'linked-list': 7,
-  'trees-bst': 12,
-  'heap-greedy': 8,
-  graphs: 12,
-  'backtracking-trie-bit': 8,
-  'dynamic-programming': 12,
+  'arrays-hashing': 2,
+  'two-pointers-sliding-window': 1,
+  'binary-search': 1,
+  'stack-queue': 1,
+  'linked-list': 1,
+  'trees-bst': 1,
+  'heap-greedy': 1,
+  graphs: 1,
+  'backtracking-trie-bit': 1,
+  'dynamic-programming': 2,
 } as const;
 
 export const NATIVE_DIFFICULTY_DISTRIBUTION = {
-  easy: 35,
-  medium: 45,
-  hard: 20,
+  easy: 5,
+  medium: 4,
+  hard: 3,
 } as const;
 
 export const NATIVE_TOPIC_SLUGS = Object.keys(

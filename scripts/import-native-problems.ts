@@ -36,10 +36,17 @@ try {
     batches,
     companySeeds,
   );
-  const papers = await importAssessmentPaperLibrary(
-    drizzle(client, { casing: 'snake_case' }) as never,
-    paperLibrary,
-  );
+  /*
+   * No active paper library since 2026-09-22 — F4.5's twenty papers were
+   * retired with the duplicate problems they referenced. `null` is the absence,
+   * not an error: importing nothing is the correct outcome until one exists.
+   */
+  const papers = paperLibrary
+    ? await importAssessmentPaperLibrary(
+        drizzle(client, { casing: 'snake_case' }) as never,
+        paperLibrary,
+      )
+    : { papers: 0, questions: 0, skipped: 'no active paper library' };
   console.log(JSON.stringify({ problems, papers }, null, 2));
 } finally {
   await client.end();

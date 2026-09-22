@@ -1,0 +1,1465 @@
+{
+  "schemaVersion": 1,
+  "batch": 1,
+  "reviewStatus": "needs_review",
+  "problems": [
+    {
+      "slug": "archive-duplicate-pulse",
+      "title": "Archive Duplicate Pulse",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Archive Duplicate Pulse is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Archive Duplicate Pulse. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "warehouse-mode-counter",
+      "title": "Warehouse Mode Counter",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Warehouse Mode Counter is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Warehouse Mode Counter. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "telemetry-majority-meter",
+      "title": "Telemetry Majority Meter",
+      "difficulty": "hard",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Telemetry Majority Meter is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Telemetry Majority Meter. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "parcel-repeat-index",
+      "title": "Parcel Repeat Index",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Parcel Repeat Index is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Parcel Repeat Index. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "microsoft",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "uber",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "beacon-crowd-measure",
+      "title": "Beacon Crowd Measure",
+      "difficulty": "easy",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "Beacon Crowd Measure is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Beacon Crowd Measure. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "workshop-frequency-peak",
+      "title": "Workshop Frequency Peak",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Workshop Frequency Peak is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Workshop Frequency Peak. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "meta",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "goldman-sachs",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "survey-answer-concentration",
+      "title": "Survey Answer Concentration",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Survey Answer Concentration is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Survey Answer Concentration. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "adobe",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "walmart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "sensor-echo-counter",
+      "title": "Sensor Echo Counter",
+      "difficulty": "hard",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 55,
+      "difficultyCalibration": 0,
+      "story": "Sensor Echo Counter is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Sensor Echo Counter. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "google",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "atlassian",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    },
+    {
+      "slug": "notebook-symbol-density",
+      "title": "Notebook Symbol Density",
+      "difficulty": "medium",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing", "max-frequency"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 35,
+      "difficultyCalibration": 0,
+      "story": "Notebook Symbol Density is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise maximum frequency result before the next decision can be made.",
+      "statement": "Implement the required function for Notebook Symbol Density. Interpret the supplied sequence exactly as described in the input contract, compute the maximum frequency, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
+      "inputFormat": "The function receives all integer observations as one array named values.",
+      "outputFormat": "Return the largest number of occurrences of any one integer; return 0 for an empty array.",
+      "functionContract": {
+        "functionName": "solve",
+        "parameters": [
+          {
+            "name": "values",
+            "type": "integer[]",
+            "description": "The complete integer encoding described by this problem."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "0 <= values.length <= 200000",
+        "-1000000000 <= values[i] <= 1000000000",
+        "Equal values represent the same observation."
+      ],
+      "examples": [
+        {
+          "input": "4 4 2 4",
+          "output": "3",
+          "explanation": "Example 1 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 3."
+        },
+        {
+          "input": "",
+          "output": "0",
+          "explanation": "Example 2 follows the stated maximum frequency process. Every contributing value is visible in the input, and the computed result is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "4 4 2 4",
+          "expectedOutput": "3",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "",
+          "expectedOutput": "0",
+          "explanation": "Applying the maximum frequency rule to this input produces the stated result without using any unstated data.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9",
+          "expectedOutput": "1",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 3 3",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0",
+          "expectedOutput": "18",
+          "coverage": "maximum",
+          "isPerformance": true
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1 -1 0 -1 0",
+          "expectedOutput": "3",
+          "coverage": "adversarial",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 1500,
+      "memoryLimitKb": 128000,
+      "hints": [
+        "Record how often each distinct value has appeared.",
+        "The answer changes only when one stored count exceeds the current maximum."
+      ],
+      "editorial": {
+        "overview": "Maintain a frequency table while scanning the observations once, and retain the largest count reached.",
+        "bruteForceApproach": "For every position, scan the full array and count equal values, then take the largest count.",
+        "optimalApproach": "Use a hash table from value to count. Increment one entry for each observation and update a running maximum.",
+        "correctnessProof": "After processing any prefix, the table stores the exact count of every value in that prefix. The running maximum is therefore the greatest prefix count. After the full array it is exactly the requested maximum frequency.",
+        "timeComplexity": "O(n) expected",
+        "spaceComplexity": "O(n)"
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(!n)return 0;long long*a=malloc(sizeof(long long)*n);memcpy(a,v,sizeof(long long)*n);qsort(a,n,sizeof(long long),cmp_ll);long long best=1,run=1;for(int i=1;i<n;i++){run=a[i]==a[i-1]?run+1:1;if(run>best)best=run;}free(a);return best;}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long solve(const vector<long long>&v){unordered_map<long long,long long>f;long long best=0;for(auto x:v)best=max(best,++f[x]);return best;}"
+        },
+        "java": {
+          "referenceSolution": "static long solve(long[]v){Map<Long,Long>f=new HashMap<>();long best=0;for(long x:v){long n=f.getOrDefault(x,0L)+1;f.put(x,n);best=Math.max(best,n);}return best;}"
+        },
+        "python3": {
+          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import Counter\n    return max(Counter(values).values(), default=0)"
+        },
+        "javascript": {
+          "referenceSolution": "function solve(v){const f=new Map();let b=0;for(const x of v){const n=(f.get(x)||0)+1;f.set(x,n);b=Math.max(b,n);}return b;}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "licenseUrl": null,
+        "author": "Quadrantcode editorial team",
+        "note": "Independently authored for Quadrantcode; no third-party statement, example, editorial, solution, or test was copied."
+      },
+      "companies": [
+        {
+          "companySlug": "flipkart",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        },
+        {
+          "companySlug": "amazon",
+          "evidenceType": "company_pattern",
+          "role": null,
+          "round": null,
+          "candidateLevel": null,
+          "yearFrom": null,
+          "yearTo": null,
+          "location": null,
+          "sourceUrl": null,
+          "reportCount": 0,
+          "confidenceScore": 0,
+          "verificationStatus": "unverified",
+          "lastReviewedDate": null
+        }
+      ]
+    }
+  ]
+}
