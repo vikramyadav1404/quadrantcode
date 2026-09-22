@@ -47,6 +47,7 @@ export function RunPanel({
   onSubmit,
   allowSubmit = true,
   starters,
+  exampleInputs,
 }: {
   problemId: string;
   /**
@@ -60,6 +61,8 @@ export function RunPanel({
   defaultLanguage: ExecutionLanguage;
   allowSubmit?: boolean;
   starters?: Partial<Record<ExecutionLanguage, string>>;
+  /** Worked-example inputs, one per console case tab. Empty for external problems. */
+  exampleInputs?: readonly string[];
   onSubmit: (input: {
     problemId: string;
     sessionId: string | null;
@@ -364,7 +367,11 @@ export function RunPanel({
         </p>
       ) : null}
 
-      <ConsoleTabs onStdinChange={setStdin} result={result} stdin={stdin} />
+      <ConsoleTabs
+        exampleInputs={exampleInputs ?? []}
+        onStdinChange={setStdin}
+        result={result}
+      />
     </div>
   );
 }

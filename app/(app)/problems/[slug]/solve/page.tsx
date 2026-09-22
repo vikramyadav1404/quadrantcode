@@ -166,6 +166,12 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
                     )
                   : undefined
               }
+              /*
+                The console's Case 1 / Case 2 / … tabs are the statement's own
+                worked examples, editable. Same data the left panel renders —
+                no extra query, and the two cannot disagree.
+              */
+              exampleInputs={native?.examples.map((example) => example.input) ?? []}
               onSubmit={submitRunAction}
               problemId={problem.id}
               sessionId={sessionId}
