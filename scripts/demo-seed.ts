@@ -52,10 +52,10 @@ import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { DEMO_EMAIL } from '@/lib/auth/demo';
 import { schema } from '@/server/db/client';
 import { localDateFor, recomputeStreak } from '@/server/services/streak';
 
-const DEMO_EMAIL = 'demo@quadrantcode.local';
 /** The demo user's timezone, and therefore the one its day boundary uses. */
 const DEMO_TIMEZONE = 'Asia/Kolkata';
 
