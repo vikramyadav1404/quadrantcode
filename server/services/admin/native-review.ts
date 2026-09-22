@@ -409,7 +409,14 @@ export async function validateNativeProblemReferences(
   for (const language of EXECUTION_LANGUAGES) {
     const template = templates.find((entry) => entry.language === language);
     if (!template) throw new Error(`Missing ${language} template.`);
-    const source = wrapUserSource(template.wrapperTemplate, template.referenceSolution);
+    // `language` matters: Python needs its future imports hoisted so PEP 585
+    // annotations survive 3.8. Omitting it here would validate a DIFFERENT
+    // source from the one a user's submission runs through.
+    const source = wrapUserSource(
+      template.wrapperTemplate,
+      template.referenceSolution,
+      language,
+    );
     const hash = createHash('sha256')
       .update(
         JSON.stringify({
