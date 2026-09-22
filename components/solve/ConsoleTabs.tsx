@@ -142,8 +142,20 @@ export function ConsoleTabs({
               </button>
             </div>
 
+            {/*
+              The accessible name keeps "input (stdin)" in it deliberately.
+              The visible tab already says "Case 1", so this label is sr-only —
+              but `e2e/execution.spec.ts` and `e2e/timeline.spec.ts` reach the
+              box with getByLabel('Input (stdin)'), which is a case-insensitive
+              SUBSTRING match. Naming it "Case 1 input (stdin)" is both more
+              accurate than the old label and still findable by those specs.
+
+              I originally kept only `id="run-stdin"` stable and said in the PR
+              that existing selectors would resolve. They did not: nothing used
+              the id. CI caught it.
+            */}
             <label className="sr-only" htmlFor="run-stdin">
-              {caseLabel(active)} input
+              {caseLabel(active)} input (stdin)
             </label>
             <textarea
               className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
