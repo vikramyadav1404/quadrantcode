@@ -15,7 +15,7 @@
 import { z } from 'zod';
 import { getServerEnv } from '@/server/env';
 import { RATE_LIMITS, createRateLimiter } from '@/server/lib/ratelimit';
-import { signIn } from '@/server/services/auth/config';
+import { signIn, signOut } from '@/server/services/auth/config';
 import { validateReturnTo } from '@/lib/auth/return-to';
 import { maskEmail } from '@/lib/auth/mask-email';
 
@@ -115,4 +115,29 @@ export async function signInWithGitHubAction(returnTo?: string): Promise<void> {
   const safeReturnTo = validateReturnTo(returnTo, env.NEXT_PUBLIC_APP_URL) ?? '/dashboard';
 
   await signIn('github', { redirectTo: safeReturnTo });
+}
+
+/**
+ * Leave the current session, THEN hand off to GitHub.
+ *
+ * The recovery path for `OAuthAccountNotLinked`, which `@auth/core` throws when
+ * the GitHub account resolves to a user other than the one whose session cookie
+ * the browser is sending. Retrying cannot help while that cookie is still
+ * attached, so the button offering the retry has to drop it first — which is
+ * why this exists rather than the caller simply rendering the GitHub button.
+ *
+ * `signOut` does two things and only one of them is belt-and-braces: it clears
+ * the cookie, and it DELETES the `auth_sessions` row. The delete is what
+ * actually fixes this. With no row, `getSessionAndUser` returns null during the
+ * callback and Auth.js takes the branch that creates a session for the account's
+ * real owner — so a cookie that somehow survived would resolve to nothing
+ * anyway.
+ *
+ * `redirect: false` because the redirect belongs to `signIn` one line down.
+ * Letting `signOut` redirect would land the person back on /login having done
+ * half the operation.
+ */
+export async function signOutAndContinueWithGitHubAction(returnTo?: string): Promise<void> {
+  await signOut({ redirect: false });
+  await signInWithGitHubAction(returnTo);
 }
