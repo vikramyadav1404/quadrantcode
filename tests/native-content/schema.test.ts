@@ -19,6 +19,18 @@ function fixtureLanguage(_language: (typeof EXECUTION_LANGUAGES)[number]) {
   } as const;
 }
 
+/**
+ * The smallest library that still meets every floor.
+ *
+ * Derived from the constants rather than stated, so re-basing the floors — as
+ * happened when the 84 duplicates were retired — moves the fixture with them
+ * instead of leaving a test asserting a size the library no longer has.
+ */
+const FLOOR_TOTAL = Object.values(NATIVE_DIFFICULTY_DISTRIBUTION).reduce(
+  (sum, count) => sum + count,
+  0,
+);
+
 function libraryFixture() {
   const topics = Object.entries(NATIVE_TOPIC_DISTRIBUTION).flatMap(([topic, count]) =>
     Array.from({ length: count }, () => topic),
@@ -163,22 +175,68 @@ function libraryFixture() {
     ],
   }));
 
-  return Array.from({ length: 10 }, (_, index) =>
+  /*
+   * Chunked, not a fixed ten batches of ten.
+   *
+   * The library used to be pinned at 100, so `length: 10` and `slice(i*10)`
+   * happened to line up. The floors were re-based on the 16-problem active
+   * library in 2026-09-22, and a fixed ten batches now yields eight EMPTY ones,
+   * which the schema rejects for `problems: min(1)` before any assertion runs.
+   * Chunking keeps the fixture tied to the constants rather than to a size.
+   */
+  const perBatch = 10;
+  const chunks: (typeof problems)[] = [];
+  for (let start = 0; start < problems.length; start += perBatch) {
+    chunks.push(problems.slice(start, start + perBatch));
+  }
+
+  return chunks.map((chunk, index) =>
     nativeProblemBatchSchema.parse({
       schemaVersion: 1,
       batch: index + 1,
       reviewStatus: 'needs_review',
-      problems: problems.slice(index * 10, index * 10 + 10),
+      problems: chunk,
     }),
   );
 }
+
+describe('native problem content floors', () => {
+  it('the two tables sum to the same number', () => {
+    /*
+     * Every problem has exactly one primary topic and exactly one difficulty,
+     * so a library sitting exactly on both sets of floors must be the same size
+     * measured either way — and `libraryFixture` zips the two expansions
+     * positionally, so a mismatch silently pairs some problems with
+     * `undefined`.
+     *
+     * Asserted because the constants were re-based by hand in 2026-09-22 and
+     * the first attempt broke this: topics summed to 10, difficulties to 12.
+     */
+    const topics = Object.values(NATIVE_TOPIC_DISTRIBUTION).reduce((a, b) => a + b, 0);
+    const difficulties = Object.values(NATIVE_DIFFICULTY_DISTRIBUTION).reduce(
+      (a, b) => a + b,
+      0,
+    );
+    expect(topics).toBe(difficulties);
+  });
+
+  it('the fixture pairs every problem with a real difficulty', () => {
+    // The symptom a mismatch produces, asserted directly.
+    for (const batch of libraryFixture()) {
+      for (const problem of batch.problems) {
+        expect(problem.difficulty).toBeTruthy();
+        expect(problem.primaryTopic).toBeTruthy();
+      }
+    }
+  });
+});
 
 describe('native problem content schema', () => {
   it('accepts a library that meets every floor, and reports what it found', () => {
     // The fixture is built from the constants, so it sits exactly ON the floors
     // — the tightest library that can still pass. Anything smaller breaches one.
     expect(validateNativeLibrary(libraryFixture())).toEqual({
-      total: 100,
+      total: FLOOR_TOTAL,
       difficulty: NATIVE_DIFFICULTY_DISTRIBUTION,
       primaryTopics: NATIVE_TOPIC_DISTRIBUTION,
     });
@@ -196,7 +254,11 @@ describe('native problem content schema', () => {
      * change.
      */
     const batches = libraryFixture();
-    batches[9] = { ...batches[9]!, problems: batches[9]!.problems.slice(0, 9) };
+    const last = batches.length - 1;
+    batches[last] = {
+      ...batches[last]!,
+      problems: batches[last]!.problems.slice(0, batches[last]!.problems.length - 1),
+    };
     expect(() => validateNativeLibrary(batches)).toThrow(/expected at least/);
   });
 
@@ -212,8 +274,8 @@ describe('native problem content schema', () => {
       title: `Original Extra ${String(index + 1).padStart(3, '0')}`,
     }));
 
-    const grown = [...batches, { ...batches[0]!, batch: 11, problems: extra }];
-    expect(validateNativeLibrary(grown).total).toBe(105);
+    const grown = [...batches, { ...batches[0]!, batch: batches.length + 1, problems: extra }];
+    expect(validateNativeLibrary(grown).total).toBe(FLOOR_TOTAL + extra.length);
   });
 
   it('rejects fabricated verified evidence in generated batches', () => {
@@ -306,7 +368,7 @@ describe('validateNativeLibrary rejects a broken library', () => {
     // simply not be read. The fixed 1..10 range used to throw ENOENT for that;
     // contiguity is what replaces it.
     const batches = libraryFixture();
-    batches[9] = { ...batches[9]!, batch: 11 };
+    batches[batches.length - 1] = { ...batches[batches.length - 1]!, batch: 11 };
 
     expect(() => validateNativeLibrary(batches)).toThrow('contiguous');
   });
