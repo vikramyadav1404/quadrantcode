@@ -57,6 +57,41 @@ export function selectJudge0Language(
 }
 
 /**
+ * Explicit language ids, because "highest id" is not "newest runtime".
+ *
+ * `selectJudge0Language` sorts by id descending as a proxy for recency. On a
+ * real Judge0 CE instance that proxy is wrong in two places, both found by
+ * querying the live catalogue rather than by reading this code:
+ *
+ *   c11     id 75 `C (Clang 7.0.1)`   beat  id 50 `C (GCC 9.2.0)`
+ *   cpp17   id 76 `C++ (Clang 7.0.1)` beat  id 54 `C++ (GCC 9.2.0)`
+ *
+ * Clang 7 predates complete C++17 library support — `<charconv>` and parts of
+ * `<filesystem>` are missing — so the heuristic was selecting the WORSE
+ * compiler for the standard we advertise in the language label.
+ *
+ * `python3` is pinned for a different and sharper reason: its matcher is
+ * `/^Python \(/`, which also matches `Python (2.7.17)` (id 70). Today id 71 is
+ * 3.8.1 and the sort happens to win, but that is luck, not design — an
+ * instance that exposed a higher-id Python 2 would silently run Python 2 for
+ * every submission and every reference validation. A pin costs one line; the
+ * failure costs a corrupt publication record.
+ *
+ * `java` and `javascript` are deliberately left unpinned: each has exactly one
+ * candidate on the instance, so a pin would add a number to maintain without
+ * removing any ambiguity.
+ *
+ * Ids are stable across Judge0 CE deployments because they are seeded from the
+ * same fixture. `npm run judge0:languages` re-checks them against the live
+ * instance and fails on drift.
+ */
+export const JUDGE0_PINNED_LANGUAGE_IDS: Partial<Record<ExecutionLanguage, number>> = {
+  c11: 50,
+  cpp17: 54,
+  python3: 71,
+};
+
+/**
  * Judge0 status id → our verdict.
  *
  * Pure, exported and tested, because it is the one part of this file that can
@@ -136,9 +171,9 @@ export class Judge0Provider implements ExecutionProvider {
       verdict,
       runtimeMs: submission.time ? Math.round(Number(submission.time) * 1000) : null,
       memoryKb,
-      stdout: truncate(submission.stdout),
-      stderr: truncate(submission.stderr),
-      compileOutput: truncate(submission.compile_output),
+      stdout: truncate(decodeField(submission.stdout)),
+      stderr: truncate(decodeField(submission.stderr)),
+      compileOutput: truncate(decodeField(submission.compile_output)),
       compilerRuntimeVersion: (await this.languageFor(request.language)).name,
     };
   }
@@ -146,13 +181,13 @@ export class Judge0Provider implements ExecutionProvider {
   private async submit(request: ExecutionRequest): Promise<string> {
     const language = await this.languageFor(request.language);
     const limits = request.limits ?? EXECUTION_LIMITS;
-    const response = await this.fetchJson('/submissions?base64_encoded=false&wait=false', {
+    const response = await this.fetchJson(`${SUBMISSIONS_PATH}&wait=false`, {
       method: 'POST',
       body: JSON.stringify({
         language_id: language.id,
-        source_code: request.source,
-        stdin: request.stdin ?? '',
-        expected_output: request.expectedOutput ?? null,
+        source_code: encodeField(request.source),
+        stdin: encodeField(request.stdin ?? ''),
+        expected_output: encodeField(request.expectedOutput),
         cpu_time_limit: limits.cpuSeconds,
         wall_time_limit: limits.wallSeconds,
         memory_limit: limits.memoryKb,
@@ -168,9 +203,6 @@ export class Judge0Provider implements ExecutionProvider {
 
   private async languageFor(requested: ExecutionLanguage): Promise<Judge0Language> {
     const configured = this.config.languageIds?.[requested];
-    if (configured !== undefined) {
-      return { id: configured, name: `${requested} (configured id ${configured})` };
-    }
 
     this.languageCatalogPromise ??= this.fetchJson('/languages').then((payload) => {
       if (!Array.isArray(payload)) {
@@ -186,7 +218,33 @@ export class Judge0Provider implements ExecutionProvider {
       );
     });
 
-    const selected = selectJudge0Language(await this.languageCatalogPromise, requested);
+    const catalogue = await this.languageCatalogPromise;
+
+    /*
+     * A pin selects the id, but the NAME still comes from the catalogue.
+     *
+     * This used to short-circuit before fetching and return a synthetic
+     * `"c11 (configured id 50)"`. That name is not cosmetic: it is what
+     * `execute()` returns as `compilerRuntimeVersion`, which F4.1 stores in
+     * `problemVersions.referenceValidationSummary.runtimeVersions` as the
+     * evidence that a problem's reference solutions were validated against a
+     * known runtime. Pinning would therefore have replaced real provenance
+     * ("C (GCC 9.2.0)") with a restatement of our own config, on every problem
+     * published from then on.
+     *
+     * The synthetic name survives only as a fallback, for an instance that
+     * accepts the id but does not list it.
+     */
+    if (configured !== undefined) {
+      return (
+        catalogue.find((language) => language.id === configured) ?? {
+          id: configured,
+          name: `${requested} (configured id ${configured})`,
+        }
+      );
+    }
+
+    const selected = selectJudge0Language(catalogue, requested);
     if (!selected) {
       throw new ProviderUnavailableError(
         this.name,
@@ -203,7 +261,7 @@ export class Judge0Provider implements ExecutionProvider {
 
     while (Date.now() < deadline) {
       const submission = (await this.fetchJson(
-        `/submissions/${token}?base64_encoded=false`,
+        `/submissions/${token}?base64_encoded=true`,
       )) as Judge0Submission;
 
       const statusId = submission.status?.id ?? 0;
@@ -241,6 +299,49 @@ export class Judge0Provider implements ExecutionProvider {
       if (error instanceof ProviderUnavailableError) throw error;
       throw new ProviderUnavailableError(this.name, error);
     }
+  }
+}
+
+/**
+ * Every payload field is base64, in BOTH directions. This is not an optimisation.
+ *
+ * The provider used to submit and retrieve with `base64_encoded=false`, and
+ * that is broken against a real instance: retrieving a submission whose output
+ * is not clean UTF-8 returns
+ *
+ *   HTTP 400 {"error":"some attributes for this submission cannot be converted
+ *             to UTF-8, use base64_encoded=true query parameter"}
+ *
+ * which `fetchJson` turns into `ProviderUnavailableError` — reported to the
+ * user as "your code was not executed" when in fact it ran to completion and
+ * the result was thrown away at the last step.
+ *
+ * It is not an edge case. GCC 9.2.0 writes diagnostics with typographic quotes
+ * (`In function ‘main’:`), so ANY C or C++ submission that produces a compiler
+ * warning hits it — and the user sees an infrastructure failure instead of
+ * their own compile error. Clang 7 happened not to, which is why the plain
+ * path appeared to work until C/C++ were pinned to GCC.
+ *
+ * Found by running the code against the instance, not by reading it — the
+ * file header said the base64 handling was unverified, and it was wrong.
+ */
+const SUBMISSIONS_PATH = '/submissions?base64_encoded=true';
+
+function encodeField(value: string | null): string | null {
+  return value === null ? null : Buffer.from(value, 'utf8').toString('base64');
+}
+
+/**
+ * Judge0 returns base64 for the text fields. A field that is not valid base64
+ * is passed through rather than discarded: a mangled result is more useful to
+ * whoever is debugging than a silent null.
+ */
+function decodeField(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return Buffer.from(value, 'base64').toString('utf8');
+  } catch {
+    return value;
   }
 }
 

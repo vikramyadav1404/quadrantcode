@@ -18,6 +18,9 @@ export default async function AdminProblemsPage({
   const raw = await searchParams;
   const { rows } = await listProblems({
     db: getDb(),
+    // Review is how an original becomes publishable, so the admin catalog must
+    // show them whether or not FEATURE_ORIGINAL_PROBLEMS is on for users.
+    includeOriginals: true,
     filters: parseFilters({
       limit: 100,
       includeHidden: true,

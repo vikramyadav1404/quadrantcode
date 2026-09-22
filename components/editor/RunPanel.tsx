@@ -23,6 +23,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   EXECUTION_LANGUAGES,
   EXECUTION_LANGUAGE_LABELS,
+  EXECUTION_RUNTIME_CAVEATS,
+  EXECUTION_RUNTIME_LABELS,
   LANGUAGE_STARTERS,
   isExecutionLanguage,
   type ExecutionLanguage,
@@ -248,6 +250,14 @@ export function RunPanel({
           Language
         </label>
         <select
+          // The runtime and its caveat describe what this control selects, so
+          // a screen reader hears "Python 3 … Python 3.8.1 … no match
+          // statements" rather than the version being visual-only.
+          aria-describedby={
+            EXECUTION_RUNTIME_CAVEATS[language]
+              ? 'run-language-runtime run-language-caveat'
+              : 'run-language-runtime'
+          }
           className="h-7 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 text-[0.8125rem] transition-colors hover:border-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
           id="run-language"
           onChange={(event) => {
@@ -262,6 +272,19 @@ export function RunPanel({
             </option>
           ))}
         </select>
+
+        {/*
+          The runtime, next to the picker rather than buried in docs.
+
+          Judge0's language set has not moved since 2020 and there is no
+          release that moves it, so "Python 3" in the dropdown is a promise the
+          executor cannot keep for anything after 3.8. Without this line a
+          `match` statement is a compile error with no explanation, and the
+          obvious reading is that our executor is broken.
+        */}
+        <span className="text-[0.75rem] text-[var(--text-muted)]" id="run-language-runtime">
+          {EXECUTION_RUNTIME_LABELS[language]}
+        </span>
 
         <button
           className="h-7 rounded-[var(--radius)] px-2.5 text-[0.8125rem] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
@@ -299,6 +322,21 @@ export function RunPanel({
           </button>
         ) : null}
       </div>
+
+      {/*
+        The caveat sits on its own line rather than in the control row: it is a
+        sentence, and the row is a flex-wrap of h-7 controls that it would
+        break. Only the two languages old enough to reject current syntax get
+        one, so this is usually absent.
+      */}
+      {EXECUTION_RUNTIME_CAVEATS[language] ? (
+        <p
+          className="border-b border-[var(--border)] px-3 py-1.5 text-[0.75rem] text-[var(--text-muted)]"
+          id="run-language-caveat"
+        >
+          {EXECUTION_RUNTIME_CAVEATS[language]}
+        </p>
+      ) : null}
 
       {/*
         `min-h-[45vh]` below the breakpoint, released at `md`.

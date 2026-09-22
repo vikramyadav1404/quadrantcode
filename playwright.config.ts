@@ -76,6 +76,20 @@ export default defineConfig({
           : '',
         FEATURE_EXECUTION: 'true',
         /*
+         * F4.1 · `native-platform.spec.ts` exists to exercise ORIGINAL problems
+         * end to end — opening one, running code against it, submitting.
+         *
+         * That is precisely what `FEATURE_ORIGINAL_PROBLEMS` gates, so with the
+         * flag off those problems 404 by design and the whole spec fails. This
+         * turns the feature under test ON rather than weakening the gate.
+         *
+         * The OFF state is covered at the service layer in
+         * `tests/problems/original-gate.test.ts`, across all three catalog
+         * entry points, which is cheaper than a second browser server just to
+         * hold a different env.
+         */
+        FEATURE_ORIGINAL_PROBLEMS: 'true',
+        /*
          * `next start` sets NODE_ENV=production, where the rate limiter refuses
          * the in-memory fallback — correctly, since it would not limit anything
          * across serverless instances. This single-process test server is the one

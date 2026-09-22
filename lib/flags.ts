@@ -32,7 +32,10 @@ export const FEATURE_FLAGS = [
   'FEATURE_EXECUTION', // F3.1 execution-pipeline — enforced
   'FEATURE_MOCKS', // F4.5 mock-assessment — enforced
   'FEATURE_TIMELINE', // F3.2 solve-timeline — NOT wired; see docs/status.md
-  'FEATURE_ORIGINAL_PROBLEMS', // F4.1 authoring-cms — NOT wired; see docs/status.md
+  // Gates originals out of list, search AND detail — all three doors, because
+  // a gate on one is a gate the other two route around. `/admin/problems`
+  // opts back in explicitly, since review is how an original gets published.
+  'FEATURE_ORIGINAL_PROBLEMS', // F4.1 authoring-cms — enforced
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
