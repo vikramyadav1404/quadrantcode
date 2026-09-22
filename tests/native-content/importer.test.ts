@@ -1,10 +1,12 @@
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { count } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { assessmentPapers, problemVersions, problems } from '@/server/db/schema';
 import {
   importAssessmentPaperLibrary,
+  RETIRED_PAPER_LIBRARY_PATH,
   loadAssessmentPaperLibrary,
 } from '@/server/services/assessments';
 import {
@@ -29,7 +31,15 @@ suite('native library importer', () => {
   it('imports the whole library and every paper idempotently', async () => {
     const [batches, paperLibrary, companies] = await Promise.all([
       loadNativeProblemBatches(),
-      loadAssessmentPaperLibrary(),
+      /*
+       * The RETIRED library, loaded by explicit path.
+       *
+       * There is no active paper library any more, but the subject here is the
+       * importer's idempotency, not whether a library is live. Dropping the
+       * paper half would quietly delete coverage of code that still has to work
+       * the day a library exists again.
+       */
+      loadAssessmentPaperLibrary(resolve(RETIRED_PAPER_LIBRARY_PATH)),
       readFile('data/companies.json', 'utf8').then((source) =>
         companiesSchema.parse(JSON.parse(source)),
       ),
@@ -44,6 +54,8 @@ suite('native library importer', () => {
      * this test for a reason unrelated to what it tests.
      */
     const problemTotal = batches.flatMap((batch) => batch.problems).length;
+    if (paperLibrary === null)
+      throw new Error('retired paper library should still be loadable');
     const paperTotal = paperLibrary.papers.length;
     const firstProblems = await importNativeProblemLibrary(ctx.db, batches, companies);
     const firstPapers = await importAssessmentPaperLibrary(ctx.db, paperLibrary);
