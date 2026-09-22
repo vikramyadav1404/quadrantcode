@@ -9,7 +9,32 @@ import type { Database } from '@/server/db';
 import { problemTags, problems, userProblems } from '@/server/db/schema';
 import { type Cursor, decodeCursor, encodeCursor } from './cursor';
 import { ProblemNotFoundError } from './errors';
+import { isFeatureEnabled } from '@/lib/flags';
 import { type ParsedListFilters, listFiltersSchema } from '@/lib/problems/schemas';
+
+/**
+ * F4.1 · whether ORIGINAL problems are visible to ordinary users.
+ *
+ * `FEATURE_ORIGINAL_PROBLEMS` was declared with the flags but never read — the
+ * comment in `lib/flags.ts` said "NOT wired", and a flag that gates nothing is
+ * worse than no flag, because it implies a control that does not exist.
+ *
+ * It is wired here rather than at the page, because there are three entry
+ * points to the catalog — list, search and detail — and a gate applied at one
+ * of them is a gate the other two route around. A problem hidden from the list
+ * but reachable by slug is not hidden.
+ *
+ * Note this gates VISIBILITY, not status: `status = 'published'` still governs
+ * whether a problem is finished. This is the separate question of whether the
+ * original-content catalog is switched on at all, which is what lets a bad
+ * import be hidden without archiving a hundred rows one at a time.
+ */
+function originalsVisible(): boolean {
+  return isFeatureEnabled('FEATURE_ORIGINAL_PROBLEMS');
+}
+
+/** Restricts a query to external links while the flag is off. */
+const EXTERNAL_ONLY: SQL = eq(problems.sourceType, 'external_link');
 
 export type ProblemListItem = {
   id: string;
@@ -62,10 +87,26 @@ export type ListOptions = {
   filters: ParsedListFilters;
   /** Signed-in user, if any. Required for the `userStatus` filter to apply. */
   userId?: string | null;
+  /**
+   * Show original problems regardless of `FEATURE_ORIGINAL_PROBLEMS`.
+   *
+   * Only `/admin/problems` passes this: review is how an original becomes
+   * publishable, so gating the admin catalog on the flag would make the
+   * feature impossible to turn on. Explicit rather than inferred from
+   * `includeHidden`, which is about status and is a different question.
+   */
+  includeOriginals?: boolean;
 };
 
-export async function listProblems({ db, filters, userId }: ListOptions): Promise<ProblemPage> {
+export async function listProblems({
+  db,
+  filters,
+  userId,
+  includeOriginals,
+}: ListOptions): Promise<ProblemPage> {
   const conditions: SQL[] = [];
+
+  if (!(includeOriginals ?? originalsVisible())) conditions.push(EXTERNAL_ONLY);
 
   /*
    * Visibility. Archived problems are excluded from the catalog by default —
@@ -217,6 +258,9 @@ export async function searchProblems(
     .where(
       and(
         eq(problems.status, 'published'),
+        // Search is a third route into the catalog; gating only the list would
+        // leave originals findable by typing their title.
+        ...(originalsVisible() ? [] : [EXTERNAL_ONLY]),
         sql`${problems.searchVector} @@ websearch_to_tsquery('english', ${term})`,
       ),
     )
@@ -274,6 +318,18 @@ export async function getProblemBySlug(
   // Hidden and no history with it — behave as if it does not exist rather than
   // confirming a draft problem's slug.
   if (row.status !== 'published' && history.length === 0) {
+    throw new ProblemNotFoundError(slug);
+  }
+
+  /*
+   * Same rule for an original while the flag is off: a 404, not a 403.
+   *
+   * History is honoured for the same reason archiving honours it — someone who
+   * has already solved a problem keeps their link to it even after the catalog
+   * stops offering it. Turning the flag off is a catalog change, not a
+   * retroactive deletion of anyone's work.
+   */
+  if (row.sourceType === 'original' && !originalsVisible() && history.length === 0) {
     throw new ProblemNotFoundError(slug);
   }
 

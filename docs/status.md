@@ -396,19 +396,27 @@ Recorded because the count looks right and the data does not, and a reviewer
 checking the distribution would find it correct. See **D27** for the full
 measurement and what was done about it.
 
-### Two feature flags are deliberately unwired
+### One feature flag is deliberately unwired
 
-`FEATURE_TIMELINE` (F3.2) and `FEATURE_ORIGINAL_PROBLEMS` (F4.1) are declared in
-`lib/flags.ts` and read by nothing. **Setting either to `true` or `false`
-changes no behaviour.** Timeline capture runs regardless; native problem content
-is reachable regardless.
+`FEATURE_TIMELINE` (F3.2) is declared in `lib/flags.ts` and read by nothing.
+**Setting it to `true` or `false` changes no behaviour** — timeline capture runs
+regardless.
 
-They survived the 2026-09-16 cull that deleted ten flags for exactly this fault,
-because unlike those ten they guard features that exist and would benefit from a
-switch — a kill switch for snapshot capture has real value given the ninety-day
-retention promise, and native content is the premium tier. They are kept as
-_intent_, not as a control, and are labelled that way in `.env.example` so
-nobody reads `FEATURE_TIMELINE=false` and concludes capture is off.
+It survived the 2026-09-16 cull that deleted ten flags for exactly this fault,
+because unlike those ten it guards a feature that exists and would benefit from
+a switch: a kill switch for snapshot capture has real value given the ninety-day
+retention promise. It is kept as _intent_, not as a control, and is labelled
+that way in `.env.example` so nobody reads `FEATURE_TIMELINE=false` and
+concludes capture is off.
+
+**`FEATURE_ORIGINAL_PROBLEMS` (F4.1) was wired on 2026-09-22** and is now a real
+control. It gates originals out of all three catalog entry points — list, search
+and detail-by-slug — because a gate on one is a gate the other two route around.
+`/admin/problems` opts back in explicitly, since review is how an original
+becomes publishable. An original a user already has history with stays reachable
+when the flag goes off; that is a catalog change, not a retroactive deletion of
+anyone's work. Covered by `tests/problems/original-gate.test.ts`, which asserts
+both flag states and that the two differ.
 
 **Anyone wiring these owes the same two-layer treatment `FEATURE_MOCKS` got:**
 `isFeatureEnabled` at the page to avoid offering a control that throws, and
