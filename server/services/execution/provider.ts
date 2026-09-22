@@ -14,7 +14,7 @@
  * configuration provides, and verifying that is a deployment question this
  * project has not been able to ask yet — there is no Judge0 instance.
  */
-import { Judge0Provider } from './judge0';
+import { JUDGE0_PINNED_LANGUAGE_IDS, Judge0Provider } from './judge0';
 import type { ExecutionLanguage, ExecutionVerdict } from './types';
 
 /**
@@ -239,5 +239,7 @@ export function resolveProvider(env: ExecutionProviderEnv): ExecutionProvider {
   return new Judge0Provider({
     baseUrl: env.JUDGE0_URL,
     ...(env.JUDGE0_API_KEY ? { apiKey: env.JUDGE0_API_KEY } : {}),
+    // See JUDGE0_PINNED_LANGUAGE_IDS: "highest id" is not "newest runtime".
+    languageIds: JUDGE0_PINNED_LANGUAGE_IDS,
   });
 }

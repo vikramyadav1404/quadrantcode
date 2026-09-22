@@ -47,6 +47,7 @@
     "library:verify": "tsx scripts/verify-library-urls.ts",
     "native:validate": "tsx scripts/validate-native-problems.ts",
     "native:validate-references": "tsx scripts/validate-native-references.ts",
+    "judge0:languages": "tsx scripts/judge0-languages.ts",
     "native:import": "tsx scripts/import-native-problems.ts",
     "native:generate": "tsx scripts/generate-native-problem-library.ts",
     "papers:generate": "tsx scripts/generate-assessment-papers.ts",
