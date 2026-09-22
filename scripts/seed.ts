@@ -12,6 +12,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { problemTags, problems } from '@/server/db/schema';
 import { normaliseProblemUrl } from '@/server/services/ingest/normalise-url';
+import { requireDirectDatabaseUrl } from '@/server/db/direct-url';
 import { SEED_PROBLEMS } from './seed-problems';
 
 export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<number> {
@@ -76,8 +77,7 @@ export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<numb
 }
 
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL must be set to seed.');
+  const url = requireDirectDatabaseUrl(process.env, 'seed');
 
   const client = postgres(url, { max: 1 });
   try {

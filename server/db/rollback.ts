@@ -14,6 +14,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import 'dotenv/config';
 import postgres from 'postgres';
+import { requireDirectDatabaseUrl } from './direct-url';
 
 const DOWN_DIR = 'server/db/migrations/down';
 
@@ -25,8 +26,7 @@ export function downFiles(): string[] {
 }
 
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL must be set.');
+  const url = requireDirectDatabaseUrl(process.env, 'roll a migration back');
 
   const all = process.argv.includes('all');
   const files = downFiles();
