@@ -11,6 +11,7 @@ import {
   importAssessmentPaperLibrary,
   loadAssessmentPaperLibrary,
 } from '@/server/services/assessments';
+import { requireDirectDatabaseUrl } from '@/server/db/direct-url';
 
 const companySeedSchema = z.array(
   z.object({
@@ -20,8 +21,7 @@ const companySeedSchema = z.array(
   }),
 );
 
-const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
-if (!url) throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL must be set.');
+const url = requireDirectDatabaseUrl(process.env, 'import the native library');
 
 const batches = await loadNativeProblemBatches();
 const paperLibrary = await loadAssessmentPaperLibrary();

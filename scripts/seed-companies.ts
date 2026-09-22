@@ -38,6 +38,7 @@ import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { companies } from '@/server/db/schema';
+import { requireDirectDatabaseUrl } from '@/server/db/direct-url';
 
 /**
  * The same shape `import-native-problems.ts` validates, deliberately duplicated
@@ -56,8 +57,7 @@ const companySeedSchema = z.array(
   }),
 );
 
-const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
-if (!url) throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL must be set.');
+const url = requireDirectDatabaseUrl(process.env, 'seed companies');
 
 const seeds = companySeedSchema.parse(
   JSON.parse(await readFile('data/companies.json', 'utf8')),

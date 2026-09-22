@@ -8,17 +8,10 @@ import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
+import { requireDirectDatabaseUrl } from './direct-url';
 
 async function main(): Promise<void> {
-  const url =
-    process.env.DIRECT_DATABASE_URL ??
-    process.env.DATABASE_URL_UNPOOLED ??
-    process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      'DIRECT_DATABASE_URL, DATABASE_URL_UNPOOLED or DATABASE_URL must be set to run migrations.',
-    );
-  }
+  const url = requireDirectDatabaseUrl(process.env, 'run migrations');
 
   const client = postgres(url, { max: 1 });
   try {

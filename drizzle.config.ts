@@ -1,16 +1,8 @@
 import 'dotenv/config';
 import { defineConfig } from 'drizzle-kit';
+import { requireDirectDatabaseUrl } from './server/db/direct-url';
 
-const url =
-  process.env.DIRECT_DATABASE_URL ??
-  process.env.DATABASE_URL_UNPOOLED ??
-  process.env.DATABASE_URL;
-
-if (!url) {
-  throw new Error(
-    'DIRECT_DATABASE_URL, DATABASE_URL_UNPOOLED or DATABASE_URL must be set for drizzle-kit. See .env.example.',
-  );
-}
+const url = requireDirectDatabaseUrl(process.env, 'run drizzle-kit');
 
 export default defineConfig({
   dialect: 'postgresql',
