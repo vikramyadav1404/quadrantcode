@@ -76,7 +76,13 @@ export default async function ProblemsPage({
           timer, stuck markers and reflection are one click away. The old copy
           undersold the whole differentiator on the first page anyone lands on.
         */
-        description="Solve on the original platform or in the built-in editor — Quadrantcode records how the solve went, never the problem text."
+        /*
+          "never the problem text" stopped being true when original problems
+          went live: those carry a statement that is ours. C1 still holds for
+          external links, and the wording now says which is which rather than
+          making one claim about both.
+        */
+        description="Solve on the original platform or in the built-in editor — Quadrantcode records how the solve went. External problems link out; original problems are ours."
       />
 
       <form className="mb-6 flex flex-wrap gap-2" method="get">
