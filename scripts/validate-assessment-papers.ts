@@ -1,41 +1,50 @@
-import { loadAssessmentPaperLibrary } from '@/server/services/assessments';
+/**
+ * Validate the ACTIVE assessment paper library against the active problems.
+ *
+ * Reports rather than throws when there is no active library: the papers were
+ * retired on 2026-09-22 with the duplicate problems they referenced, and
+ * "nothing to check" is a legitimate state, not a failure.
+ */
+import {
+  ACTIVE_PAPER_LIBRARY_PATH,
+  findPaperIntegrityProblems,
+  loadAssessmentPaperLibrary,
+} from '@/server/services/assessments';
 import { loadNativeProblemBatches } from '@/server/services/native-content';
 
 const [library, batches] = await Promise.all([
   loadAssessmentPaperLibrary(),
   loadNativeProblemBatches(),
 ]);
-const problems = new Map(
-  batches.flatMap((batch) => batch.problems).map((problem) => [problem.slug, problem]),
-);
 
-for (const paper of library.papers) {
-  for (const question of paper.questions) {
-    const problem = problems.get(question.problemSlug);
-    if (!problem)
-      throw new Error(`${paper.slug} references unknown problem ${question.problemSlug}.`);
-    if (
-      !problem.companies.some((association) => association.companySlug === paper.companySlug)
-    ) {
-      throw new Error(
-        `${question.problemSlug} has no honest company-pattern association for ${paper.companySlug}.`,
-      );
+if (library === null) {
+  console.log(
+    JSON.stringify(
+      {
+        activePapers: 0,
+        note: `No library at ${ACTIVE_PAPER_LIBRARY_PATH}; papers are retired.`,
+      },
+      null,
+      2,
+    ),
+  );
+} else {
+  const problems = batches.flatMap((batch) => batch.problems);
+  const found = findPaperIntegrityProblems(library, problems);
+
+  if (found.length > 0) {
+    console.error(`${found.length} paper question(s) do not match the active problem library:`);
+    for (const entry of found) {
+      console.error(`  ${entry.paperSlug} -> ${entry.problemSlug} (${entry.reason})`);
     }
+    process.exit(1);
   }
-}
 
-console.log(
-  JSON.stringify(
-    {
-      total: library.papers.length,
-      byCompany: Object.fromEntries(
-        [...new Set(library.papers.map((paper) => paper.companySlug))].map((companySlug) => [
-          companySlug,
-          library.papers.filter((paper) => paper.companySlug === companySlug).length,
-        ]),
-      ),
-    },
-    null,
-    2,
-  ),
-);
+  console.log(
+    JSON.stringify(
+      { activePapers: library.papers.length, questionsChecked: problems.length },
+      null,
+      2,
+    ),
+  );
+}
