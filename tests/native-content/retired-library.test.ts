@@ -3,14 +3,29 @@
  *
  * 94 of the original 100 records were ten tasks reskinned — same reference
  * solution, same contract, same worked example, different titles, and labelled
- * easy AND medium AND hard. 84 duplicates now sit in `data/native-problems/
- * retired/`, archived in the database and still in git, loaded by nothing.
+ * easy AND medium AND hard. 84 duplicates moved to `data/native-problems/
+ * retired/` on 2026-09-22, archived in the database and loaded by nothing.
  *
- * Two things need holding down. The first is that the retired folder really is
- * invisible to the loader — "it is ignored" is exactly the sort of claim that
- * passes because the test looked in the wrong place. The second is that a slug
- * cannot be in both, which is only worth asserting if the assertion can fail,
- * so there is a positive control for it.
+ * Five of those ten batch files were then deleted for holding example inputs
+ * copied from an external platform. **That is why this file no longer asserts a
+ * count of 84.** A count is the wrong guard for a folder whose whole purpose is
+ * to shrink: it would have to be edited every time a record is removed, which
+ * makes it a chore rather than a check, and a chore gets edited to match
+ * whatever happened rather than to state what should be true.
+ *
+ * What is worth holding down survives the delete unchanged:
+ *
+ * 1. The retired folder really is invisible to the loader — "it is ignored" is
+ *    exactly the sort of claim that passes because the test looked in the wrong
+ *    place, so it is asserted against the folder's actual contents.
+ * 2. A slug cannot be in both halves. That is only worth asserting if the
+ *    assertion can fail, so there is a positive control for it.
+ * 3. Retiring means relocating, not editing: a record still in `retired/` must
+ *    still be a well-formed record, or "we kept it" is not true.
+ *
+ * The one thing deliberately NOT asserted here is that the five deleted files
+ * are gone from git. They are not — history still holds them, and a test that
+ * implied otherwise would be worse than no test. See D29.
  */
 import {
   mkdtempSync,
@@ -35,16 +50,18 @@ import {
 
 const RETIRED_PATH = join(NATIVE_PROBLEM_DATA_DIR, RETIRED_PROBLEM_DIR);
 
-function readSlugs(directory: string): string[] {
+function readRecords(directory: string): { slug: string; title: string; difficulty: string }[] {
   return readdirSync(directory)
     .filter((name) => /^batch-\d+\.json$/.test(name))
     .flatMap((name) => {
       const payload = JSON.parse(readFileSync(join(directory, name), 'utf8')) as {
-        problems: { slug: string }[];
+        problems: { slug: string; title: string; difficulty: string }[];
       };
-      return payload.problems.map((problem) => problem.slug);
+      return payload.problems;
     });
 }
+
+const readSlugs = (directory: string) => readRecords(directory).map((problem) => problem.slug);
 
 describe('F4.1 · the real library on disk', () => {
   it('loads exactly the active records, and none of the retired ones', async () => {
@@ -53,7 +70,11 @@ describe('F4.1 · the real library on disk', () => {
     const retired = readSlugs(RETIRED_PATH);
 
     expect(loaded).toHaveLength(16);
-    expect(retired).toHaveLength(84);
+
+    // Not a count — a non-vacuity check. `not.toContain` over an empty list
+    // passes for the wrong reason, so the loop below has to have something to
+    // loop over before its result means anything.
+    expect(retired.length).toBeGreaterThan(0);
 
     // The claim that matters: nothing retired came through the loader.
     for (const slug of retired) expect(loaded).not.toContain(slug);
@@ -65,10 +86,22 @@ describe('F4.1 · the real library on disk', () => {
     expect(overlap).toEqual([]);
   });
 
-  it('every retired slug is still present in git-tracked content', () => {
-    // Retired means relocated, not deleted. If this drops below 84 somebody
-    // removed records rather than moving them.
-    expect(readSlugs(RETIRED_PATH).length).toBe(84);
+  it('what is still retired is still a whole record, not a stub', () => {
+    // Retiring is relocation. A record that survived the 2026-09-22 delete must
+    // still carry everything that made it a record — if some later cleanup
+    // starts hollowing files out in place instead of removing them, this is
+    // what notices.
+    const retired = readRecords(RETIRED_PATH);
+    expect(retired.length).toBeGreaterThan(0);
+    for (const problem of retired) {
+      expect(problem.slug, problem.slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(problem.title?.length ?? 0, problem.slug).toBeGreaterThan(0);
+      expect(['easy', 'medium', 'hard'], problem.slug).toContain(problem.difficulty);
+    }
+
+    // Slugs are unique across the surviving files, so nothing was duplicated in
+    // by a botched restore.
+    expect(new Set(retired.map((problem) => problem.slug)).size).toBe(retired.length);
   });
 });
 
