@@ -1,5 +1,6 @@
 /** Fails a deployment before compilation when its production contract is incomplete. */
 import 'dotenv/config';
+import { resolveDeploymentOrigin } from '@/lib/deployment/origin';
 import { __testing } from '@/server/env';
 
 const env = __testing.parseServerEnv(process.env);
@@ -9,9 +10,23 @@ if (process.env.E2E_EMAIL_CAPTURE === '1') {
   issues.push('E2E_EMAIL_CAPTURE must never be enabled in a deployment');
 }
 
-const origin = new URL(env.NEXT_PUBLIC_APP_URL);
-if (origin.protocol !== 'https:' || /^(localhost|127\.0\.0\.1)$/i.test(origin.hostname)) {
-  issues.push('NEXT_PUBLIC_APP_URL must be the final HTTPS deployment origin');
+/*
+ * On preview this is Vercel's own hostname for the deployment, not a configured
+ * value — see `lib/deployment/origin.ts` for why a configured one cannot work.
+ * On production it is `NEXT_PUBLIC_APP_URL` and nothing else.
+ */
+const resolved = resolveDeploymentOrigin({ ...process.env, ...env });
+let origin: URL | null = null;
+try {
+  origin = new URL(resolved.url);
+} catch {
+  issues.push(`${resolved.source} is not a valid URL: ${resolved.url || '(unset)'}`);
+}
+if (
+  origin &&
+  (origin.protocol !== 'https:' || /^(localhost|127\.0\.0\.1)$/i.test(origin.hostname))
+) {
+  issues.push(`${resolved.source} must be the final HTTPS deployment origin`);
 }
 
 if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
