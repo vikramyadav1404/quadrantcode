@@ -7,11 +7,25 @@ export const NATIVE_PROBLEM_DATA_DIR = 'data/native-problems';
 /**
  * Where a record goes when it stops being part of the library.
  *
- * Retired, not deleted: the 84 duplicates moved here on 2026-09-22 are still in
- * git and their rows are still in the database, archived. Nothing loads this
- * folder — `BATCH_FILE` does not match a directory name, so `readdir` skips it
- * without needing a rule — but it IS read by `assertRetiredDisjoint` below, so
- * a retired slug cannot quietly come back.
+ * 84 duplicates moved here on 2026-09-22. Five of those ten batch files were
+ * then DELETED on 2026-09-22 — `batch-04`, `-05`, `-07`, `-09` and `-10` — for
+ * holding example inputs copied from an external platform (C1/C2). The 42
+ * records in the surviving five hold none and stay. **Deleting them from the
+ * tip does not remove them from history**; see D29.
+ *
+ * Two consequences of that delete, both deliberate:
+ *
+ * - The surviving batch numbers are 1, 2, 3, 6, 8 — a gap. That is harmless
+ *   because nothing runs `validateNativeLibrary` over this folder any more;
+ *   `assertRetiredDisjoint` reads the files directly and does not validate.
+ *   Do not renumber them to close the gap: the numbers are what tie a file to
+ *   the batch it was retired from.
+ * - Retired records are no longer a corpus anything imports. `importer.test.ts`
+ *   used to load this folder for its idempotency run and does not any more.
+ *
+ * Nothing loads this folder as a library — `BATCH_FILE` does not match a
+ * directory name, so `readdir` skips it without needing a rule — but it IS read
+ * by `assertRetiredDisjoint` below, so a retired slug cannot quietly come back.
  */
 export const RETIRED_PROBLEM_DIR = 'retired';
 
