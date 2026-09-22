@@ -1545,3 +1545,140 @@ it.
 Not true: that production was affected. Its triggers are correct, its migration
 record is complete, and the only difference is how a line ending was encoded on
 the machine that ran it.
+
+---
+
+## D29 · Copied example inputs: cleaned at the tip, left in history, and why the rewrite waits for the repo to go public
+
+**Date:** 2026-09-22 · **Status:** tip cleaned. **History deliberately NOT
+rewritten.** The rewrite is a precondition of going public, recorded here so it
+is not rediscovered at the moment it becomes urgent.
+
+### What was found
+
+Eight numeric example inputs copied from an external platform — `2 7 9 3 1`,
+`1 2 3 1`, `2 1 5 6 2 3`, `2 4`, `4 3 2 6`, `5 10 -5`, `8 -8`, `10 2 -5` — with
+their matching outputs. A C1/C2 breach, but a narrow one, and the distinction
+matters for the remedy: **the statement prose was never copied.** The stories,
+formats, constraints and explanations in those records are Quadrantcode's own
+templated boilerplate. What was taken was example data.
+
+Measured with exact match after whitespace normalisation, not substring —
+`2 4` appears inside `12 41`, and any substring scan reports noise as findings.
+
+| Where                                                      | Count                                                                                                                                                      |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data/native-problems/retired/batch-{04,05,07,09,10}.json` | 76 fields in 22 records — 38 in `examples[].input`, 38 in `testCases[].input`                                                                              |
+| `test_cases.input` (production)                            | 45 rows                                                                                                                                                    |
+| `problem_examples.input` (production)                      | 46 rows                                                                                                                                                    |
+| `problems.examples` JSONB entries (production)             | 38, all on archived problems                                                                                                                               |
+| Affected problems                                          | 26 — 22 archived, 4 published                                                                                                                              |
+| User history attached to any of them                       | **zero** rows in `solve_sessions`, `user_problems`, `run_attempts`, `revision_schedule`, `execution_jobs`, `assessment_paper_questions`, `import_job_rows` |
+
+Nothing was ever served. The four published problems held theirs on **v1 only**
+and all four are `current_version = 2` — residue of the PR #10 statement
+rewrites, surviving because `problem_versions` rows are not edited in place. The
+solve page reads `currentVersion` and requires `status = 'published'` on the
+version; the admin export filters to current versions. Verified by query, with a
+positive control proving the query reached data (98 test cases on current
+published versions) rather than returning zero because it was pointed at nothing.
+
+### What was done
+
+1. **The four published problems' v1 rows** took the approved v2 input, output
+   and explanation at the matching ordinal — 8 examples and 7 test cases.
+   Ordinals lined up one-to-one in all four, checked before writing. Copying all
+   three fields rather than blanking the input was the point: the v1 explanations
+   embed the numeric result (_"…the computed result is 12"_), so replacing an
+   input alone would have left a row that states a falsehood. A blanked input
+   removes the breach and creates a lie.
+2. **The 22 archived problems were left alone.** Unreachable by every code path,
+   no user data, and step 3 closes the only route by which they could come back.
+   A write with no reader is a write that can only go wrong.
+3. **The five retired batch files were deleted from the tip.** 42 records. The
+   other 42, in `batch-{01,02,03,06,08}.json`, hold nothing copied and stay.
+   `data/retired/assessment-papers.json` also stays — papers reference problems
+   by slug and contain none of the eight.
+
+### What the delete cost, and what was not done about it
+
+The retired corpus was load-bearing for `importer.test.ts`, which used it as the
+idempotency corpus. The delete broke it three ways: surviving batch numbers run
+1, 2, 3, 6, 8 and `validateNativeLibrary` rejects a gap; the surviving records
+cover 5 of 10 topics, below the floors; and 40 of the retired library's 80 paper
+questions now dangle.
+
+**None of those were fixed by editing retired content.** Renumbering the files to
+close the gap would rewrite records precisely to keep a test alive, which inverts
+what the test is for. Instead the importer test now runs over the active sixteen,
+and `importAssessmentPaperLibrary` keeps its coverage through a fixture library
+built in the test and parsed by the real `assessmentPaperLibrarySchema` — so the
+twenty-paper, two-per-company, hundred-mark rules being exercised are the shipped
+ones, not the fixture's own idea of them.
+
+`retired-library.test.ts` lost its `=== 84` assertion. A count is the wrong guard
+for a folder whose purpose is to shrink: it needs editing every time a record
+leaves, which turns it into a chore, and a chore gets edited to match whatever
+happened rather than to state what should be true. What replaced it is
+non-vacuity (`retired.length > 0` before a `not.toContain` loop that would
+otherwise pass over an empty list) and a check that surviving records are still
+whole records rather than hollowed-out stubs.
+
+### Why history is not being rewritten now
+
+The copied data is in **4 commits** — earliest `c49c2ff` (2026-09-08), latest
+`31b3fc4` (2026-09-22). Deleting the files from the tip does not touch any of
+them. That is stated plainly rather than implied, because the tempting version of
+this entry is one that reads as if the problem is solved.
+
+Rejected: `git filter-repo` now. The cost, counted:
+
+- **169 commits on `main` get new SHAs**, from `c49c2ff` forward.
+- **13 remote branches** need force-pushing; 8 of them contain `c49c2ff`.
+- Every commit hash cited in `docs/decisions.md`, `docs/acceptance-status.md`,
+  `CLAUDE.md` and merged PR bodies becomes a dangling reference.
+- **It would not actually remove the data from GitHub.** `refs/pull/7|8|9|10/head`
+  all still hold it — verified by fetching each ref and grepping it. Those refs
+  are GitHub-owned and cannot be force-pushed or deleted by the repository owner.
+  After a rewrite the old objects stay reachable by SHA through the web UI and
+  API until GitHub Support runs GC on the repository.
+
+Against that: the repository is **private**, has been private since it was
+created on 2026-08-13, and has **0 forks, 0 stars, 0 watchers, 0 deploy keys and
+one collaborator** — the owner. Nothing has ever been fetched by a third party,
+so there is no search index, fork or archive copy to chase. The rewrite buys
+nothing today and breaks a large number of references.
+
+### The precondition on going public
+
+`CLAUDE.md` says the repo is _"private until there is a real README, then
+public."_ **That flip is the moment this becomes real**, and it must not be done
+casually. Before it:
+
+1. Run `git filter-repo` in **one pass** over all refs (not installed;
+   `pip install git-filter-repo`. BFG is the weaker tool here — it selects blobs
+   by size or name, and this needs selection by content).
+2. Force-push every branch, and fix the commit hashes cited across the docs.
+3. **File a GitHub Support request to garbage-collect stale `refs/pull/*`
+   objects.** Without this step the rewrite is cosmetic. This is the part that
+   cannot be done from a terminal, and it is the part with a lead time.
+
+Until all three are done, the repository stays private. A public repo with the
+history unrewritten is strictly worse than a private one with it, because it
+converts a contained problem into an indexed one.
+
+### The shape to notice
+
+This is the third entry in this file about a verdict outrunning its evidence,
+and the first where the failure was caught mid-investigation rather than after.
+The first sweep of git history reported **0 commits** for every copied string.
+That number came from `git log --all -S"…" --pickaxe-regex=false` with stderr
+sent to `/dev/null` — `--pickaxe-regex=false` is not a flag, git exited on the
+parse error, and `wc -l` counted the empty output as a clean result. A positive
+control — a string known to be absent, which must return 0, run alongside strings
+known to be present, which must not — is what separated the two cases.
+
+Same shape as D27 and D28: the check ran, produced a number, and the number was
+about to become a sentence it could not support. **The control is not optional on
+an "X is absent" check.** It is the only thing that distinguishes absence from a
+broken query, and a broken query looks exactly like good news.
