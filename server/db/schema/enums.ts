@@ -10,6 +10,7 @@ import { EXECUTION_LANGUAGES, EXECUTION_VERDICTS } from '@/lib/execution/languag
 import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/reflection/taxonomy';
 import { SESSION_EVENT_TYPES, SNAPSHOT_TRIGGERS } from '@/lib/timeline/events';
 import { STUCK_CONFIDENCE, STUCK_STATUS } from '@/lib/inference/confidence';
+import { CONFIDENCE_LEVELS } from '@/lib/session/confidence';
 import { MISTAKE_TRENDS } from '@/server/services/mistakes/trend';
 import {
   ASSESSMENT_ATTEMPT_STATUSES,
@@ -90,7 +91,7 @@ export const targetRoleEnum = pgEnum('target_role', [
 ]);
 
 /** Self-reported confidence, reused by reflections (F1.5) and revision (F2.1). */
-export const confidenceEnum = pgEnum('confidence', ['low', 'medium', 'high']);
+export const confidenceEnum = pgEnum('confidence', CONFIDENCE_LEVELS);
 
 /**
  * F1.2 import job lifecycle.

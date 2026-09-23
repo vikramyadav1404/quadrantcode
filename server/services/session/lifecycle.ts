@@ -27,7 +27,11 @@ import {
 } from './state';
 import { abandonIfStale, applyIdleAutopause } from './sweep';
 
-export type Confidence = 'low' | 'medium' | 'high';
+import type { Confidence } from '@/lib/session/confidence';
+
+/* Re-exported so existing importers keep their path; declared in lib/ so
+   client components can reach it without crossing the server boundary. */
+export type { Confidence };
 
 /** What a caller gets back. There is no duration field on the row it came from. */
 export type SessionView = {
