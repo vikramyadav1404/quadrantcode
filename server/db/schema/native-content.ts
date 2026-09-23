@@ -355,6 +355,30 @@ export const problemCompanyEvidence = pgTable(
       'problem_company_evidence_frequent_threshold',
       sql`${table.evidenceType} <> 'frequently_reported' or ${table.reportCount} >= 3`,
     ),
+
+    /*
+     * C3, at the database, for company ASSOCIATIONS.
+     *
+     * The two checks above make a provenance claim well-formed - a
+     * `verified_pyq` row must carry a source URL and a verified status. They do
+     * not stop one being made, and were never meant to. Reading them as a C3
+     * guard is the mistake `docs/c3-company-associations.md` exists to prevent.
+     *
+     * `problem_tags_company_style_suffix` does not cover this table either: it
+     * constrains `problem_tags`. So until 2026-09-22 nothing prevented an admin
+     * action from putting "Verified PYQ" on a problem, with no review workflow
+     * behind the claim.
+     *
+     * Blocked rather than removed from the enum: dropping a `pgEnum` member is a
+     * migration with real cost, whereas relaxing this CHECK is one line on the
+     * day a review workflow exists. All 104 existing rows are `company_pattern`,
+     * so this is a no-op against current data - which is exactly why the test
+     * for it asserts a REJECTION rather than an accepted insert.
+     */
+    check(
+      'problem_company_evidence_no_unreviewed_provenance',
+      sql`${table.evidenceType} in ('company_pattern', 'unverified')`,
+    ),
   ],
 );
 

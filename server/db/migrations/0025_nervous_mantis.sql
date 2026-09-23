@@ -1,0 +1,1 @@
+ALTER TABLE "problem_company_evidence" ADD CONSTRAINT "problem_company_evidence_no_unreviewed_provenance" CHECK ("problem_company_evidence"."evidence_type" in ('company_pattern', 'unverified'));
