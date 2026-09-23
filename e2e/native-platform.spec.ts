@@ -254,6 +254,42 @@ test('Run Code and Submit use native tests without leaking hidden values', async
   expect(await page.locator('body').innerText()).not.toContain(HIDDEN_SENTINEL);
 });
 
+test('C3 · the solve page names the company as "-style" and does not link it', async ({
+  page,
+}) => {
+  /*
+   * Verified in the browser rather than against the helper, because C3 is a
+   * claim about what a reader sees. The unit test proves `solveCompanyLabel`
+   * returns the right string; only this proves the component uses it, and that
+   * nothing else on the route reintroduces a bare name or a company link.
+   */
+  const companyLink = `a[href*="/companies/${COMPANY_SLUG}"]`;
+
+  await page.goto(`/problems/${SLUG}/solve`);
+  const panel = page.locator('main');
+  await expect(panel.getByRole('heading', { name: 'Native Signal Count' })).toBeVisible();
+
+  await expect(panel.getByText('E2E Native Company-style · pattern practice')).toBeVisible();
+
+  // The company must not appear as a link anywhere on a problem page.
+  await expect(panel.locator(companyLink)).toHaveCount(0);
+  await expect(panel.getByRole('link', { name: /E2E Native Company/i })).toHaveCount(0);
+
+  // The disclaimer belongs on this route too, not only on /companies.
+  await expect(panel.getByText(/not affiliated with or endorsed by/i)).toBeVisible();
+
+  /*
+   * Positive control for the two `toHaveCount(0)` assertions above.
+   *
+   * A selector that matches nothing returns 0 on a correct page and on a
+   * mistyped selector alike. So the SAME selector is pointed at /companies,
+   * where that link legitimately exists and must be found. If it comes back
+   * empty here, the assertions above proved nothing.
+   */
+  await page.goto('/companies');
+  await expect(page.locator('main').locator(companyLink).first()).toBeVisible();
+});
+
 test('company and mock-paper routes show honest labels', async ({ page }) => {
   await page.goto(`/companies/${COMPANY_SLUG}`);
   await expect(page.getByRole('heading', { name: 'E2E Native Company' })).toBeVisible();

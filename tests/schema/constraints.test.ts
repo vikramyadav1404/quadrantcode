@@ -7,7 +7,19 @@
  * fails for an unrelated reason cannot make the test pass.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { problemTags, problems, userProblems, users } from '@/server/db/schema';
+import {
+  EVIDENCE_TYPES,
+  PERMITTED_EVIDENCE_TYPES,
+  type EvidenceType,
+} from '@/lib/native/constants';
+import {
+  companies,
+  problemCompanyEvidence,
+  problemTags,
+  problems,
+  userProblems,
+  users,
+} from '@/server/db/schema';
 import {
   type TestContext,
   createUser,
@@ -116,6 +128,86 @@ suite('F0.2 · database constraints', () => {
           .insert(problemTags)
           .values({ problemId, tagType: 'company_style', tagValue: 'faang-style' }),
       ).resolves.toBeDefined();
+    });
+  });
+
+  /*
+   * C3 — the OTHER table, which the check above does not cover.
+   *
+   * `problem_tags_company_style_suffix` constrains `problem_tags`. Company
+   * associations live in `problem_company_evidence`, and until 2026-09-22
+   * nothing stopped an admin action recording `verified_pyq` — "this company
+   * really asked this" — with no review workflow behind the claim.
+   *
+   * Every existing row is `company_pattern`, so the new CHECK is a no-op
+   * against current data. That is precisely why the assertion that matters is
+   * the REJECTION: an accepted `company_pattern` insert would pass whether or
+   * not the constraint had applied.
+   */
+  describe('C3 — company associations cannot assert unreviewed provenance', () => {
+    async function evidenceRow(evidenceType: EvidenceType) {
+      const [problem] = await ctx.db.insert(problems).values(externalLink).returning();
+      const [company] = await ctx.db
+        .insert(companies)
+        .values({ slug: 'acme', name: 'Acme', overview: 'x'.repeat(50) })
+        .returning();
+      return {
+        problemId: problem!.id,
+        companyId: company!.id,
+        evidenceType,
+        /*
+         * Satisfies the two pre-existing well-formedness CHECKs, so a rejection
+         * below can only be the provenance one. Without these a `verified_pyq`
+         * insert would fail on `problem_company_evidence_verified_source` and
+         * the test would pass while proving nothing about the new constraint.
+         */
+        sourceUrl: 'https://example.com/evidence',
+        verificationStatus: 'verified' as const,
+        reportCount: 3,
+      };
+    }
+
+    /*
+     * Driven from PERMITTED_EVIDENCE_TYPES rather than a hand-written pair.
+     *
+     * The constant and the CHECK are two declarations of one rule, and the way
+     * that rule breaks is drift — someone widens the array to re-enable a type
+     * and the database still refuses it, or drops the CHECK and the UI never
+     * catches up. Iterating the full enum and asserting accept-iff-permitted is
+     * what couples them.
+     *
+     * Non-vacuous by construction: it needs at least one acceptance and at least
+     * one rejection to mean anything, and the two expects below enforce that
+     * before the loop runs.
+     */
+    it('accepts exactly the permitted types and rejects every other one', async () => {
+      const permitted = EVIDENCE_TYPES.filter((type) =>
+        (PERMITTED_EVIDENCE_TYPES as readonly EvidenceType[]).includes(type),
+      );
+      const blocked = EVIDENCE_TYPES.filter(
+        (type) => !(PERMITTED_EVIDENCE_TYPES as readonly EvidenceType[]).includes(type),
+      );
+      expect(
+        permitted.length,
+        'nothing permitted — the loop would prove nothing',
+      ).toBeGreaterThan(0);
+      expect(blocked.length, 'nothing blocked — the CHECK would be vacuous').toBeGreaterThan(0);
+
+      for (const evidenceType of blocked) {
+        await truncateAll(ctx.sql);
+        await expectDbRejection(
+          ctx.db.insert(problemCompanyEvidence).values(await evidenceRow(evidenceType)),
+          'problem_company_evidence_no_unreviewed_provenance',
+        );
+      }
+
+      for (const evidenceType of permitted) {
+        await truncateAll(ctx.sql);
+        await expect(
+          ctx.db.insert(problemCompanyEvidence).values(await evidenceRow(evidenceType)),
+          evidenceType,
+        ).resolves.toBeDefined();
+      }
     });
   });
 
