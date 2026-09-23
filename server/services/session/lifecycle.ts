@@ -10,23 +10,12 @@
  * (D18): a lifecycle that reads the clock cannot be tested across a five-minute
  * idle gap or a seven-hour abandonment without changing the machine's time.
  */
-import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Database, Transaction } from '@/server/db';
-import {
-  dailyGoals,
-  dailySessions,
-  problems,
-  solveSessions,
-  userProblems,
-} from '@/server/db/schema';
-import {
-  DEFAULT_TARGET_PROBLEMS,
-  type LocalDate,
-  evaluateDayCompletion,
-  localDateFor,
-  recomputeStreak,
-} from '@/server/services/streak';
+import { problems, solveSessions, userProblems } from '@/server/db/schema';
+import { creditSolvedDay, localDateFor, recomputeStreak } from '@/server/services/streak';
 import { scheduleAfterSolveTx } from '@/server/services/revision';
+import { countStuckAttempts } from './signals';
 import { activeDurationSeconds, isPausedAt } from './duration';
 import { ActiveSessionExistsError, SessionNotFoundError } from './errors';
 import { loadEvents, recordEvent } from './events';
@@ -319,7 +308,7 @@ export async function completeSession(
     });
 
     if (outcome === 'solved') {
-      await creditSolvedDay(tx, { userId, localDate: endedLocalDate, now });
+      await creditSolvedDay(tx, { userId, localDate: endedLocalDate, timeZone, now });
 
       /*
        * Schedule the revision inside the same transaction (F2.1).
@@ -510,27 +499,6 @@ async function recordAttempt(
       },
     });
 }
-
-/** How many sittings on this problem ended `stuck` — the ladder's own signal. */
-async function countStuckAttempts(
-  tx: Transaction,
-  userId: string,
-  problemId: string,
-): Promise<number> {
-  const [row] = await tx
-    .select({ total: sql<number>`count(*)::int` })
-    .from(solveSessions)
-    .where(
-      and(
-        eq(solveSessions.userId, userId),
-        eq(solveSessions.problemId, problemId),
-        eq(solveSessions.status, 'stuck'),
-      ),
-    );
-
-  return row?.total ?? 0;
-}
-
 /** The problem's own estimate, which the "slow solve" signal compares against. */
 async function estimatedSecondsFor(tx: Transaction, problemId: string): Promise<number> {
   const [row] = await tx
@@ -551,62 +519,4 @@ async function estimatedSecondsFor(tx: Transaction, problemId: string): Promise<
  * would put a second copy of it in the codebase — the exact drift that makes a
  * streak disagree with the heatmap beside it.
  */
-async function creditSolvedDay(
-  tx: Transaction,
-  input: { userId: string; localDate: LocalDate; now: Date },
-): Promise<void> {
-  const { userId, localDate, now } = input;
-
-  // "Which goal applied on date D" — the query daily_goals_user_effective_idx
-  // was built for.
-  const [goal] = await tx
-    .select({ targetProblems: dailyGoals.targetProblems })
-    .from(dailyGoals)
-    .where(
-      and(
-        eq(dailyGoals.userId, userId),
-        eq(dailyGoals.active, true),
-        lte(dailyGoals.effectiveFrom, localDate),
-      ),
-    )
-    .orderBy(desc(dailyGoals.effectiveFrom))
-    .limit(1);
-
-  const targetProblems = goal?.targetProblems ?? DEFAULT_TARGET_PROBLEMS;
-
-  const [day] = await tx
-    .insert(dailySessions)
-    .values({
-      userId,
-      localDate,
-      targetCount: targetProblems,
-      solvedCount: 1,
-      revisionCount: 0,
-      completed: false, // decided below, by the one function allowed to decide it
-    })
-    .onConflictDoUpdate({
-      target: [dailySessions.userId, dailySessions.localDate],
-      set: {
-        solvedCount: sql`${dailySessions.solvedCount} + 1`,
-        targetCount: targetProblems,
-        updatedAt: now,
-      },
-    })
-    .returning({
-      solvedCount: dailySessions.solvedCount,
-      revisionCount: dailySessions.revisionCount,
-    });
-
-  const { completed } = evaluateDayCompletion({
-    solvedCount: day!.solvedCount,
-    revisionCount: day!.revisionCount,
-    targetProblems,
-  });
-
-  await tx
-    .update(dailySessions)
-    .set({ completed, updatedAt: now })
-    .where(and(eq(dailySessions.userId, userId), eq(dailySessions.localDate, localDate)));
-}
-
 export type { TerminalStatus };

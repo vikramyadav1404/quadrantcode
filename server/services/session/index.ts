@@ -9,5 +9,6 @@ export * from './duration';
 export * from './errors';
 export * from './events';
 export * from './lifecycle';
+export * from './signals';
 export * from './state';
 export * from './sweep';

@@ -1,14 +1,10 @@
-import { and, desc, eq, lte, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Transaction } from '@/server/db';
-import { dailyGoals, dailySessions, problems, userProblems, users } from '@/server/db/schema';
+import { problems, userProblems, users } from '@/server/db/schema';
 import type { ExecutionVerdict } from './types';
-import {
-  DEFAULT_TARGET_PROBLEMS,
-  evaluateDayCompletion,
-  localDateFor,
-  type LocalDate,
-} from '@/server/services/streak';
+import { creditSolvedDay, localDateFor, type LocalDate } from '@/server/services/streak';
 import { scheduleAfterSolveTx } from '@/server/services/revision';
+import { activeSecondsForSession, countStuckAttempts } from '@/server/services/session/signals';
 
 export type VerifiedSubmissionEffect = {
   acceptedForFirstTime: boolean;
@@ -64,7 +60,20 @@ export async function applyVerifiedSubmissionEffectsTx(
     .where(eq(problems.id, input.problemId));
 
   const nowSql = sql`${input.now.toISOString()}::timestamptz`;
-  const bestSeconds = Math.max(1, Math.ceil((input.runtimeMs ?? 1_000) / 1_000));
+
+  /*
+   * `best_time_seconds` is how long the USER took, not how long their program
+   * ran. This used to be `ceil(runtimeMs / 1000)` — the Judge0 execution time —
+   * which put values like `1` in a column the session path fills with real
+   * solve durations. One column, two meanings, depending on which path wrote.
+   *
+   * `null` when there is no live session: a Submit from the editor outside a
+   * timed sitting has no solve time, and the `least(coalesce(...))` below then
+   * leaves any existing best untouched rather than overwriting it with a
+   * fabricated one.
+   */
+  const activeSeconds = await activeSecondsForSession(tx, input.sessionId, input.now);
+  const bestSeconds = activeSeconds !== null ? Math.max(1, activeSeconds) : null;
   await tx
     .insert(userProblems)
     .values({
@@ -85,7 +94,12 @@ export async function applyVerifiedSubmissionEffectsTx(
         ...(accepted
           ? {
               firstSolvedAt: sql`coalesce(${userProblems.firstSolvedAt}, ${nowSql})`,
-              bestTimeSeconds: sql`least(coalesce(${userProblems.bestTimeSeconds}, ${bestSeconds}), ${bestSeconds})`,
+              // Only a timed sitting can improve a best time.
+              ...(bestSeconds !== null
+                ? {
+                    bestTimeSeconds: sql`least(coalesce(${userProblems.bestTimeSeconds}, ${bestSeconds}), ${bestSeconds})`,
+                  }
+                : {}),
             }
           : {}),
         lastAttemptedAt: input.now,
@@ -100,73 +114,39 @@ export async function applyVerifiedSubmissionEffectsTx(
   await creditSolvedDay(tx, {
     userId: input.userId,
     localDate,
+    timeZone: user[0].timezone,
     now: input.now,
   });
+
+  /*
+   * Real signals, from the session this submission belongs to.
+   *
+   * These were `failedAttempts: 0` and `activeSeconds = estimatedSeconds`, and
+   * the combination was worse than "approximate": with confidence null, zero
+   * hints, zero failures and a ratio of exactly 1.0, NOT ONE rule in
+   * `scheduleAfterSolve` can fire. Every accepted submit stepped the ladder by
+   * exactly zero, so a forty-minute struggle on a twenty-minute problem was
+   * scheduled identically to a clean five-minute solve.
+   *
+   * `activeSeconds` stays null when there is no session rather than falling
+   * back to the estimate: the ladder reads a fast solve as evidence of mastery,
+   * and inventing one is how a problem quietly stops coming back.
+   */
+  const estimatedSeconds = problem[0].estimatedMinutes * 60;
   await scheduleAfterSolveTx(tx, {
     userId: input.userId,
     problemId: input.problemId,
     today: localDate,
     signals: {
+      // No prompt has been shown at submit time, so this is genuinely unknown.
       confidence: null,
+      // F3.4 is cut, so nothing produces a hint; the signal is inert.
       hintsUsed: 0,
-      failedAttempts: 0,
-      activeSeconds: problem[0].estimatedMinutes * 60,
-      estimatedSeconds: problem[0].estimatedMinutes * 60,
+      failedAttempts: await countStuckAttempts(tx, input.userId, input.problemId),
+      activeSeconds: activeSeconds ?? estimatedSeconds,
+      estimatedSeconds,
     },
   });
 
   return { acceptedForFirstTime, streakDate: localDate };
-}
-
-async function creditSolvedDay(
-  tx: Transaction,
-  input: { userId: string; localDate: LocalDate; now: Date },
-): Promise<void> {
-  const [goal] = await tx
-    .select({ targetProblems: dailyGoals.targetProblems })
-    .from(dailyGoals)
-    .where(
-      and(
-        eq(dailyGoals.userId, input.userId),
-        eq(dailyGoals.active, true),
-        lte(dailyGoals.effectiveFrom, input.localDate),
-      ),
-    )
-    .orderBy(desc(dailyGoals.effectiveFrom))
-    .limit(1);
-  const targetProblems = goal?.targetProblems ?? DEFAULT_TARGET_PROBLEMS;
-  const [day] = await tx
-    .insert(dailySessions)
-    .values({
-      userId: input.userId,
-      localDate: input.localDate,
-      targetCount: targetProblems,
-      solvedCount: 1,
-      revisionCount: 0,
-      completed: false,
-    })
-    .onConflictDoUpdate({
-      target: [dailySessions.userId, dailySessions.localDate],
-      set: {
-        solvedCount: sql`${dailySessions.solvedCount} + 1`,
-        targetCount: targetProblems,
-        updatedAt: input.now,
-      },
-    })
-    .returning({
-      solvedCount: dailySessions.solvedCount,
-      revisionCount: dailySessions.revisionCount,
-    });
-
-  const { completed } = evaluateDayCompletion({
-    solvedCount: day!.solvedCount,
-    revisionCount: day!.revisionCount,
-    targetProblems,
-  });
-  await tx
-    .update(dailySessions)
-    .set({ completed, updatedAt: input.now })
-    .where(
-      and(eq(dailySessions.userId, input.userId), eq(dailySessions.localDate, input.localDate)),
-    );
 }
