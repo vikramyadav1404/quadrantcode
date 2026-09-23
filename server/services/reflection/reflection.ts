@@ -19,7 +19,11 @@ import type { MistakeCategory, StuckCategory } from '@/lib/reflection/taxonomy';
 import { loadOwnedSession } from '@/server/services/session';
 import { SessionNotReflectableError } from './errors';
 
-export type Confidence = 'low' | 'medium' | 'high';
+import type { Confidence } from '@/lib/session/confidence';
+
+/* Re-exported so existing importers keep their path; declared in lib/ so
+   client components can reach it without crossing the server boundary. */
+export type { Confidence };
 
 export type ReflectionView = {
   sessionId: string;

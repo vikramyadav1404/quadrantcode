@@ -62,6 +62,21 @@ async function startSolving(page: Page) {
   await expect(page.getByRole('region', { name: /solve session timer/i })).toBeVisible();
 }
 
+/**
+ * End the sitting as solved.
+ *
+ * Two clicks now, not one: Solved reveals a confidence row and the answer
+ * completes the session. That is deliberate — confidence is the revision
+ * ladder's strongest signal and nothing collected it before the schedule was
+ * written (D32) — and it is NOT a confirmation dialog: every option here,
+ * `Skip` included, finishes. Defaults to `Skip` so tests that do not care about
+ * the signal read as they did before.
+ */
+async function finishAsSolved(page: Page, choice: RegExp = /^skip$/i) {
+  await page.getByRole('button', { name: /^solved$/i }).click();
+  await page.getByTestId('confidence-picker').getByRole('button', { name: choice }).click();
+}
+
 test('a stuck marker is captured from the timer bar', async ({ page }) => {
   await startSolving(page);
 
@@ -95,7 +110,7 @@ test('FINISHING TAKES THE USER TO THE REFLECTION', async ({ page }) => {
   // The nudge, as the ticket describes it: shown on completion, not offered
   // somewhere the user has to find.
   await startSolving(page);
-  await page.getByRole('button', { name: /^solved$/i }).click();
+  await finishAsSolved(page);
 
   await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
   await expect(page.getByRole('heading', { name: /how did reflect alpha go/i })).toBeVisible();
@@ -103,7 +118,7 @@ test('FINISHING TAKES THE USER TO THE REFLECTION', async ({ page }) => {
 
 test('SKIPPING LEAVES NO ROW AND THE SESSION STILL COUNTS', async ({ page }) => {
   await startSolving(page);
-  await page.getByRole('button', { name: /^solved$/i }).click();
+  await finishAsSolved(page);
   await expect(page).toHaveURL(/\/reflect/);
 
   await page.getByRole('button', { name: /skip for now/i }).click();
@@ -130,9 +145,60 @@ test('SKIPPING LEAVES NO ROW AND THE SESSION STILL COUNTS', async ({ page }) => 
   expect(Number(day!.solved_count)).toBe(1);
 });
 
-test('a saved reflection appears on the problem page', async ({ page }) => {
+test('Solved asks for confidence, and Skip still finishes the sitting', async ({ page }) => {
+  /*
+   * The picker must not become a gate. `TimerBar` records a deliberate decision
+   * that the success path is unconfirmed, and this change asks a question on the
+   * way past rather than standing in the doorway — so Skip has to complete the
+   * session exactly as the single click used to.
+   */
   await startSolving(page);
   await page.getByRole('button', { name: /^solved$/i }).click();
+
+  const picker = page.getByTestId('confidence-picker');
+  await expect(picker).toBeVisible();
+
+  /*
+   * The full reflection path, not `/\/reflect/`.
+   *
+   * This fixture's slug is `reflect-alpha`, so `/problems/reflect-alpha`
+   * CONTAINS `/reflect` — the loose pattern matches the page we are still on,
+   * and the negative assertion fails against a correct app. (The positive
+   * `toHaveURL(/\/reflect/)` assertions elsewhere in this file have the mirror
+   * problem: they would pass without navigating anywhere.)
+   */
+  await expect(page).not.toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
+
+  await picker.getByRole('button', { name: /^skip$/i }).click();
+  await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
+});
+
+test('a confidence answer is recorded on the session', async ({ page }) => {
+  // The end of the chain D32 is about: the value has to reach the row, not just
+  // the click handler.
+  await startSolving(page);
+  await finishAsSolved(page, /^shaky$/i);
+
+  /*
+   * The FULL path, and it is load-bearing rather than pedantic.
+   *
+   * `/\/reflect/` matches `/problems/reflect-alpha` — this fixture's own slug —
+   * so it resolves instantly without waiting for navigation, and the database
+   * read below then races the server action. Asserting the real destination is
+   * what makes the read happen after the write.
+   */
+  await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
+
+  // Scoped to this spec's user, per the rule at the top of this file: the
+  // browser suite shares a database and an unscoped read picks up other rows.
+  const [session] = await ownSessions();
+  expect(String(session!.status)).toBe('solved');
+  expect(String(session!.confidence)).toBe('low');
+});
+
+test('a saved reflection appears on the problem page', async ({ page }) => {
+  await startSolving(page);
+  await finishAsSolved(page);
   await expect(page).toHaveURL(/\/reflect/);
 
   await page.getByLabel(/how did you approach it/i).fill('Two pointers after sorting.');
@@ -169,7 +235,7 @@ test("another user's reflection page is a 404, not a 403", async ({
   // Confirming the id exists is information the requester has no claim to —
   // the IDOR rule F4.8 makes explicit.
   await startSolving(page);
-  await page.getByRole('button', { name: /^solved$/i }).click();
+  await finishAsSolved(page);
   await expect(page.getByRole('heading', { name: /how did reflect alpha go/i })).toBeVisible();
 
   /*

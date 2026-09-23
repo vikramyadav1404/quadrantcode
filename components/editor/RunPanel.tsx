@@ -20,6 +20,7 @@
  * wait for a result that is not coming.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   EXECUTION_LANGUAGES,
   EXECUTION_LANGUAGE_LABELS,
@@ -32,6 +33,8 @@ import {
 import { draftKey, isPending, type ExecutionResultView } from '@/lib/execution/view';
 import { CodeEditor } from './CodeEditor';
 import { ConsoleTabs } from '@/components/solve/ConsoleTabs';
+import { SolvedPrompt } from '@/components/solve/SolvedPrompt';
+import type { Confidence } from '@/lib/session/confidence';
 
 const POLL_INTERVAL_MS = 700;
 
@@ -48,6 +51,7 @@ export function RunPanel({
   allowSubmit = true,
   starters,
   exampleInputs,
+  onCompleteSession,
 }: {
   problemId: string;
   /**
@@ -71,7 +75,17 @@ export function RunPanel({
     source: string;
     stdin: string;
   }) => Promise<SubmitResult>;
+  /**
+   * Ends the live sitting as solved. Absent outside a session, and absent for
+   * external problems, where an accepted run is not a correctness claim (C1).
+   */
+  onCompleteSession?: (input: {
+    sessionId: string;
+    outcome: 'solved';
+    confidence?: Confidence;
+  }) => Promise<{ ok: boolean; message?: string }>;
 }) {
+  const router = useRouter();
   const [language, setLanguage] = useState<ExecutionLanguage>(defaultLanguage);
   const [source, setSource] = useState<string>(
     starters?.[defaultLanguage] ?? LANGUAGE_STARTERS[defaultLanguage],
@@ -166,6 +180,23 @@ export function RunPanel({
 
         if (!isPending(next.status)) {
           setBusy(false);
+
+          /*
+           * Refresh the server-rendered halves of the page, ONCE, and only on a
+           * terminal status.
+           *
+           * The Submissions tab and the problem's attempt record are props
+           * computed when the page rendered. `submitRunAction` deliberately
+           * does not revalidate — the poll is a route handler precisely so it
+           * does not revalidate the layout every 700 ms — so nothing was ever
+           * telling them a run had finished, and the tab stayed stale until a
+           * manual reload.
+           *
+           * Here rather than in the action, and inside this branch rather than
+           * beside `setResult`, so the cost is one refresh per run instead of
+           * one per poll.
+           */
+          router.refresh();
           return;
         }
 
@@ -187,7 +218,7 @@ export function RunPanel({
         poll(jobId, attempt + 1);
       }, POLL_INTERVAL_MS);
     },
-    [language, pendingMode],
+    [language, pendingMode, router],
   );
 
   async function execute(mode: 'run' | 'submit') {
@@ -365,6 +396,33 @@ export function RunPanel({
         >
           {refusal}
         </p>
+      ) : null}
+
+      {/*
+        The prompt, not an auto-stop.
+
+        An accepted Submit already marks the PROBLEM solved server-side; the
+        SESSION is a separate fact and only the user knows whether they are
+        finished with it. Stopping the timer automatically would also destroy
+        the legitimate case of submitting, passing, and carrying on working.
+
+        And the timer is server-authoritative: a client-observed event must not
+        end it silently. Asking keeps the decision — and the confidence answer,
+        which nothing else collects before the schedule is written — with the
+        person who has it.
+      */}
+      {onCompleteSession && sessionId && result && !result.scratchpad ? (
+        <SolvedPrompt
+          jobId={result.jobId}
+          onComplete={(confidence) =>
+            onCompleteSession({
+              sessionId,
+              outcome: 'solved',
+              ...(confidence ? { confidence } : {}),
+            })
+          }
+          result={result}
+        />
       ) : null}
 
       <ConsoleTabs

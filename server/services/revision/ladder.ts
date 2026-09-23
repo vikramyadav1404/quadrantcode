@@ -36,7 +36,11 @@ export const FAILED_ATTEMPTS_THRESHOLD = 2;
 
 export type LadderKind = 'standard' | 'compressed';
 export type RevisionOutcome = 'clean' | 'struggled' | 'failed';
-export type Confidence = 'low' | 'medium' | 'high';
+import type { Confidence } from '@/lib/session/confidence';
+
+/* Re-exported so existing importers keep their path; declared in lib/ so
+   client components can reach it without crossing the server boundary. */
+export type { Confidence };
 
 /** What the solve looked like. Everything here is already known when it ends. */
 export type SolveSignals = {
