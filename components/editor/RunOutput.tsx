@@ -79,9 +79,26 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
     );
   }
 
+  const submitted = result.mode === 'submit';
+
   return (
     <div aria-live="polite" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        {/*
+          Say WHICH action produced this.
+          `mode` was on the result all along and rendered nowhere, so an
+          accepted Submit and an accepted Run were byte-identical on screen —
+          the submission landed, the problem was marked solved, and the only
+          way to find out was to reload the page. "No visible submitted state"
+          was reported as a lost submission; it was a missing sentence.
+        */}
+        <span
+          className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[0.7rem] font-medium uppercase tracking-wide text-[var(--text-muted)]"
+          data-testid="run-mode"
+        >
+          {submitted ? 'Submitted' : 'Ran'}
+        </span>
+
         {result.verdict ? (
           <span
             className="font-medium"
@@ -107,6 +124,22 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
           </span>
         ) : null}
       </div>
+
+      {/*
+        The consequence, not just the verdict.
+        An accepted Submit sets `user_problems.status = 'solved'` server-side.
+        Saying so here is the difference between "my code passed" and "this is
+        recorded" — and the second is what the user was looking for and could
+        not find.
+
+        Scoped to a verified submit: a Run that happens to pass every visible
+        case changes nothing, and claiming otherwise would be worse than silence.
+      */}
+      {submitted && result.verdict === 'accepted' && !result.scratchpad ? (
+        <p className="text-sm text-[var(--success)]" data-testid="run-solved-note">
+          Recorded — this problem is marked solved.
+        </p>
+      ) : null}
 
       {result.compilerRuntimeVersion ? (
         <p className="text-xs text-[var(--text-muted)]">
