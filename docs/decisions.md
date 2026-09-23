@@ -1972,3 +1972,247 @@ than deleted: it is an always-zero _input_, not a guard giving false assurance,
 so it misleads nobody, and deleting it would mean re-deriving the rule from the
 spec when F3.4 returns. The price of keeping it is a test proving it still
 compresses when a hint is used, so the branch is not merely trusted.
+
+---
+
+## D33 · Wrapper shapes: the order, what each one costs, and what shape 1 unblocks
+
+**Date:** 2026-09-23 · **Status:** plan, agreed before building. Shape 1 only;
+shapes 2 and 3 wait until shape 1 has landed and been used.
+
+Recorded here rather than in a PR body because the ordering and the migration
+list outlive any one PR, and because the previous version of this plan existed
+only in a conversation — which is exactly the failure `CLAUDE.md`'s "a missing
+artifact is missing, not absent" rule is about. Everything below is derived from
+the library and the registry, not from recollection.
+
+### Why a shape at all
+
+`server/services/native-content/wrapper-shapes.ts` holds the per-language
+execution contract once, instead of each record carrying its own byte-identical
+copy. A record names a `shape` and supplies only `referenceSolution` per
+language. Measured across the old hundred-record library that removed 117,900
+bytes of duplication.
+
+**One shape exists: `int-array-to-int`.** All 16 active problems use it, and all
+16 therefore declare the identical contract:
+
+```
+solve(values: integer[]) -> 64-bit integer
+```
+
+### What a shape supplies: seven fields, five languages
+
+From `ShapeTemplate` in `wrapper-shapes.ts` — these are the seven, exactly:
+
+| #   | Field               | What it is                                               |
+| --- | ------------------- | -------------------------------------------------------- |
+| 1   | `displayName`       | The language's name in the picker                        |
+| 2   | `runtimeVersion`    | Pinned runtime label, or null                            |
+| 3   | `judge0LanguageId`  | Pinned Judge0 id, or null                                |
+| 4   | `functionSignature` | The signature shown above the editor                     |
+| 5   | `starterCode`       | What the editor opens with                               |
+| 6   | `wrapperTemplate`   | Reads stdin, calls the solver, prints the result         |
+| 7   | `serialization`     | `{ input, output, equality }` — how a verdict is decided |
+
+Five languages — `c11`, `cpp17`, `java`, `python3`, `javascript` — so **35
+pieces per shape**, each of which has to be proven against a real problem in
+that language. `docs/authoring-problems.md` §2 budgets **about a day per shape**,
+and that is the estimate this plan adopts rather than a more optimistic one.
+
+### The ordering, and the evidence for it
+
+**`int[] + int` → `string` → `graph n + edges`.**
+
+Chosen by how much each unblocks per day spent, measured against what the
+library already contains.
+
+**Shape 1, `int[] + int`, fixes six records that are lying about their input
+today.** Six of the sixteen smuggle a scalar into `values[0]`, and their own
+`inputFormat` text says so:
+
+| Problem                     | What is smuggled into `values[0]`     | Difficulty |
+| --------------------------- | ------------------------------------- | ---------- |
+| `kiln-soak-window`          | the soak length (window size)         | medium     |
+| `museum-ticket-pair-count`  | _"values[0] is the target"_           | easy       |
+| `sorted-dock-insertion`     | _"values[0] is the query target"_     | easy       |
+| `ferry-weight-rating`       | how many crossings (days)             | hard       |
+| `donation-target-subsets`   | _"values[0] is a nonnegative target"_ | easy       |
+| `pipeline-segment-from-end` | _"values[0] is k"_                    | easy       |
+
+Two of those statements name the array index in prose. That is the wrapper's
+limitation leaking into the problem text, where a reader meets it as though it
+were part of the puzzle. It is the clearest signal in the library that this
+shape is the one to build first.
+
+`functionContract.parameters[0].description` currently reads _"The complete
+integer encoding described by this problem"_ — a description that exists because
+there is nowhere else to put the second argument.
+
+**Shape 2, `string`, migrates nothing — it unblocks new authoring.** Every one
+of the 16 records is `integer[]`; there is not a single string problem, because
+there has been no way to write one. So its value is entirely in what comes next,
+which is why it is second rather than first: shape 1 repairs existing records,
+shape 2 widens the catalogue.
+
+**Shape 3, `graph n + edges`, is last because it is the most work for two
+records.** Candidates:
+
+- `constellation-connection-groups` — _"values[0] is node count n. Remaining
+  values are endpoint pairs for undirected edges"_
+- `decision-tree-levels` — a level-order binary tree flattened into an int array
+  with `-1` for a missing node
+
+A tree may want its own shape rather than sharing the graph one; that is decided
+when shape 3 is built, not now.
+
+### Migration is a new version, not an edit
+
+Each migrated problem becomes **version 2**. All six are still at v1 — the
+2026-09-22 rewrites took five OTHER records to v2, and none of those five is a
+shape-1 candidate. (An earlier draft of this plan said v3, from assuming the
+whole batch had moved.) `problem_versions` rows are not edited in place,
+and the live path reads `current_version`, so the old version stays as the record
+of what was served.
+
+Each migrated record gets:
+
+1. **A rewritten statement** — except `kiln-soak-window`, which already
+   describes stdin the way the house style should and needs only its contract
+   changed. The `values[0] is the target` sentences elsewhere exist only to
+   describe the workaround and must not survive the shape that removes the need
+   for them.
+2. **Descriptive function and parameter names.** Every one of the 16 currently
+   declares `solve(values)`. A contract that can express two arguments should
+   name them — `countPairs(prices, target)` rather than `solve(values)` — and the
+   generic name was itself a symptom of the single-argument shape.
+3. **Re-validated reference solutions** in all five languages, since the
+   signature changes.
+
+### Amendment · a shape holds STRUCTURE; a record holds NAMES
+
+The first version of this plan asked for descriptive names without checking
+where a signature comes from, and it comes from two places that must agree:
+
+| What                               | Lives on                                            | Rendered by                                    |
+| ---------------------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| `functionSignature`, `starterCode` | the **shape** — identical for every record using it | the editor                                     |
+| `functionContract`                 | the **record**                                      | `ProblemPanel`, as `name(params) → returnType` |
+
+`expandShape` copies the shape's templates verbatim and swaps in only
+`referenceSolution`. Today both sides say `solve(values)` and agree by accident
+of being equally generic. Giving a record `countPairs(prices, target)` while the
+shape still supplied the signature would have made the statement panel and the
+editor **contradict each other** — and a contract mismatch is worse than a
+generic name, because the reader cannot tell which one the grader believes.
+
+Rejected: one fixed signature per shape (`solve(values, k)` for all six). It is
+cheaper and stays consistent, but it keeps `solve` forever and makes the name a
+property of the wrapper rather than of the problem.
+
+Rejected: placeholders for the new shape only. Two shapes with different rules
+about where names come from costs more later than it saves now.
+
+**So the registry's contract changes.** `functionSignature`, `starterCode` and
+`wrapperTemplate` carry placeholders — the wrapper included, because it has to
+call the function by name — expanded from the record's `functionContract` during
+`expandShape`. Applied to `int-array-to-int` in the same change, so there is one
+rule.
+
+The duplication argument that created this file is about the 35 template pieces
+per shape, not about three identifiers. Names were never the thing being
+deduplicated.
+
+**The guard that matters is that the two cannot diverge.** A test asserting the
+panel and the editor show the same name passes today for the wrong reason —
+both strings happen to be `solve`. It is only a guard if it fails when they
+differ, so it is written with a positive control: a record whose
+`functionContract` disagrees with its expanded signature must be rejected, and
+the test proves the rejection fires rather than assuming it.
+
+### Difficulty floors shift, and it is not incidental
+
+`server/services/native-content/schema.ts` records that `medium` sits at 4
+rather than 6 because _"four difficulty corrections are still deferred behind the
+shape work (connected components and subset-sum both move up)"_.
+
+So migration changes the distribution. `donation-target-subsets` (subset-sum) is
+a shape-1 problem and moves up; `constellation-connection-groups` (connected
+components) is a shape-3 problem and moves later. **The floors must be re-based
+in the same change that moves a problem**, and the two distribution tables must
+still sum to the same number — there is a test asserting that, because the
+schema fixture zips them positionally.
+
+### Structured testcase inputs land after shape 2, not now
+
+Today a test case is a flat whitespace-separated line, which is why a scalar can
+be smuggled into it at all. Structured inputs — a JSON object per case, with
+named fields — are the general fix.
+
+They wait until after shape 2 deliberately. Shapes 1 and 3 can express what they
+need positionally (`values`, then the scalar; `n`, then edge pairs), but a string
+argument alongside an integer array cannot be split on whitespace without a
+quoting rule. Shape 2 is where the flat format actually breaks, so that is where
+the replacement earns its cost rather than being built speculatively.
+
+### Not in scope for shape 1
+
+- Shapes 2 and 3. Agreed explicitly: shape 1 lands and gets used first.
+- Structured testcase inputs, per above.
+- `className` / method-on-class contracts. The schema has the field; no wrapper
+  implements it; nothing in the library needs it.
+- Migrating `one-counter-open`, `signal-frequency-ledger`,
+  `cold-store-aisle-sweep`, `histogram-signal-block`, `strait-ice-floes`,
+  `audio-track-merge-cost`, `rising-corridor`, `archive-shelf-reward` — these are
+  genuinely `int[] -> int` and the existing shape describes them correctly.
+
+### Built · the guard, and the floor choice
+
+**The panel and the editor cannot disagree, and a test proves the refusal
+fires.** Two checks in `nativeProblemSchema`, both needed:
+
+- _Before_ expansion, `functionContract.parameters.length` must equal the shape's
+  arity, read by `shapeArity` from the placeholders the signatures actually
+  carry. Without it, a contract naming **more** parameters than the shape takes
+  passed silently — the panel showed three, the editor two — and one naming
+  **fewer** surfaced as a raw throw from `applyShapeNames` mid-transform rather
+  than as an issue on the record.
+- _After_ expansion, `findContractDivergence` requires every language's
+  `functionSignature` to name the contract's function and each parameter as a
+  whole word, and every name to be an identifier, because names are now spliced
+  into code in five languages.
+
+`tests/native-content/contract-divergence.test.ts` runs the agreement check on
+the six records whose names are **not** `solve` — agreement between two sides
+that both say `solve` proves nothing — and asserts each refusal. Positive
+control: with both checks disabled, the four schema-level refusals fail, each
+for its own reason (the "fewer" case turning back into the raw `__P2__` throw);
+restored, all nine pass.
+
+**Floors: easy 5 → 4, medium 4 → 5.** `donation-target-subsets` moved easy →
+medium, and one unit of floor moved with it; both tables still sum to 12.
+Lowering easy was not forced — 7 easy problems still clear 5. The alternative
+that lowered nothing was medium 5 and one _topic_ floor raised to 2, but six
+topics sit at 2 and choosing one would have been arbitrary. **A floor describes
+the library; it does not protect a figure.** Connected components moves with
+shape 3 and the floors move again then.
+
+**Two escaping bugs in the new shape, caught before first use.** In a
+single-quoted TS string `'\s'` is just `s`: the JavaScript wrapper split stdin
+on `/s+/` — every submission would have parsed `NaN` — and the Java wrapper on
+`"\s+"`, spaces only. Found by evaluating the emitted strings, not by reading
+the source, which looked right.
+
+**References are editorial, not minified.** Users read them. Guards the
+constraints rule out were removed; two stay because a graded case reaches them —
+`k > n → -1` in `pipeline-segment-from-end` (case `9 1 2`), and `n < 2` in the
+C `countPairs` only, because `memcpy` from a zero-size allocation is undefined.
+
+Validated locally without cache: 16 problems × 5 languages, 80 compilations,
+535 executions, all matching. Validated on the live Judge0 instance on
+2026-09-23, through the app's own `resolveProvider`, `wrapUserSource` and
+`outputsMatch`: the six migrated records × 5 languages × every graded case,
+**195 submissions, 195 accepted** — GCC 9.2.0 (C and C++), OpenJDK 13.0.1,
+Python 3.8.1, Node.js 12.14.0. Python 3.8 cannot evaluate `list[int]` in a
+signature; the wrapper's `from __future__ import annotations` is what makes the
+shape's signatures legal there, and this run is the evidence it does.

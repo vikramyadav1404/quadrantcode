@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { EVIDENCE_TYPES, PROBLEM_TYPES, TEST_CASE_VISIBILITIES } from '@/lib/native/constants';
 import { EXECUTION_LANGUAGES, type ExecutionLanguage } from '@/lib/execution/languages';
-import { WRAPPER_SHAPES, WRAPPER_SHAPE_IDS, type WrapperShapeId } from './wrapper-shapes';
+import {
+  WRAPPER_SHAPES,
+  WRAPPER_SHAPE_IDS,
+  applyShapeNames,
+  shapeArity,
+  type WrapperShapeId,
+} from './wrapper-shapes';
 
 /*
  * Floors for the ACTIVE library, re-based on 2026-09-22.
@@ -22,10 +28,12 @@ import { WRAPPER_SHAPES, WRAPPER_SHAPE_IDS, type WrapperShapeId } from './wrappe
  * is the only honest reading of "not starved" — raise them as the library grows
  * rather than pretending a shape it does not have.
  *
- * `medium` is 4 rather than the 6 it will eventually support: four difficulty
- * corrections are still deferred behind the shape work (connected components
- * and subset-sum both move up), so today's count is 5. A floor that a correct
- * library fails is worse than a loose one.
+ * Four difficulty corrections were deferred behind the shape work. Shape 1
+ * (2026-09-23, D33) made the first: subset-sum (`donation-target-subsets`)
+ * moved easy -> medium, so one unit of floor moved with it — easy 5 -> 4,
+ * medium 4 -> 5 — which keeps both tables summing to 12. Today's counts are
+ * 7/6/3. Connected components moves up with shape 3, and the floors move
+ * again then. A floor that a correct library fails is worse than a loose one.
  *
  * ## The two tables must sum to the same number
  *
@@ -53,8 +61,8 @@ export const NATIVE_TOPIC_DISTRIBUTION = {
 } as const;
 
 export const NATIVE_DIFFICULTY_DISTRIBUTION = {
-  easy: 5,
-  medium: 4,
+  easy: 4,
+  medium: 5,
   hard: 3,
 } as const;
 
@@ -143,18 +151,73 @@ const languageReferencesSchema = z.object({
   javascript: languageReferenceSchema,
 });
 
-/** Expand a shape into the full per-language block a record used to spell out. */
+/**
+ * Expand a shape into the full per-language block a record used to spell out.
+ *
+ * The shape supplies structure; the record's `functionContract` supplies the
+ * names, substituted into the signature, the starter code and the wrapper. Both
+ * halves matter: `ProblemPanel` renders `functionContract` as the stated
+ * contract and the editor renders `functionSignature`, so if names came from
+ * the shape while the contract came from the record the two would disagree
+ * about the same function. See D33.
+ */
 function expandShape(
   shape: WrapperShapeId,
   references: z.infer<typeof languageReferencesSchema>,
+  contract: { functionName: string; parameters: readonly { name: string }[] },
 ): Record<ExecutionLanguage, NativeLanguageTemplate> {
   const templates = WRAPPER_SHAPES[shape];
+  const names = {
+    functionName: contract.functionName,
+    parameterNames: contract.parameters.map((parameter) => parameter.name),
+  };
   return Object.fromEntries(
     EXECUTION_LANGUAGES.map((language) => [
       language,
-      { ...templates[language], referenceSolution: references[language].referenceSolution },
+      {
+        ...applyShapeNames(templates[language], names),
+        referenceSolution: references[language].referenceSolution,
+      },
     ]),
   ) as Record<ExecutionLanguage, NativeLanguageTemplate>;
+}
+
+const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * Every way the stated contract and the editor's signature disagree, or `[]`.
+ *
+ * `ProblemPanel` renders `functionContract`; the editor renders each language's
+ * `functionSignature`. Expansion derives the second from the first, so for a
+ * well-formed record they agree by construction — which is exactly why this is
+ * checked rather than assumed: a shape template that hard-codes a name, or a
+ * record that names more parameters than its shape takes, would otherwise ship
+ * a panel and an editor describing different functions. See D33.
+ *
+ * Names must be identifiers because they are spliced into code in five
+ * languages; anything else is a compile error far from the record causing it.
+ */
+export function findContractDivergence(
+  contract: { functionName: string; parameters: readonly { name: string }[] },
+  languages: Record<ExecutionLanguage, { functionSignature: string }>,
+): string[] {
+  const names = [
+    contract.functionName,
+    ...contract.parameters.map((parameter) => parameter.name),
+  ];
+  const divergences = names
+    .filter((name) => !IDENTIFIER.test(name))
+    .map((name) => `"${name}" is not an identifier.`);
+
+  for (const language of EXECUTION_LANGUAGES) {
+    const signature = languages[language].functionSignature;
+    for (const name of names.filter((candidate) => IDENTIFIER.test(candidate))) {
+      if (!new RegExp(`\\b${name}\\b`).test(signature)) {
+        divergences.push(`${language} signature "${signature}" does not name ${name}.`);
+      }
+    }
+  }
+  return divergences;
 }
 
 const companyAssociationSchema = z.object({
@@ -284,6 +347,17 @@ export const nativeProblemSchema = z
         message: 'Every supported language must be present exactly once.',
       });
     }
+
+    // Checked before expansion so a short contract is a schema issue on the
+    // record, not the raw throw `applyShapeNames` would raise mid-transform.
+    const arity = shapeArity(problem.shape);
+    if (problem.functionContract.parameters.length !== arity) {
+      context.addIssue({
+        code: 'custom',
+        path: ['functionContract', 'parameters'],
+        message: `Shape ${problem.shape} takes ${arity} parameter(s); the contract names ${problem.functionContract.parameters.length}.`,
+      });
+    }
   })
   /*
    * Expansion happens here, inside parsing, so it has exactly one gateway.
@@ -297,8 +371,13 @@ export const nativeProblemSchema = z
    */
   .transform((problem) => ({
     ...problem,
-    languages: expandShape(problem.shape, problem.languages),
-  }));
+    languages: expandShape(problem.shape, problem.languages, problem.functionContract),
+  }))
+  .superRefine((problem, context) => {
+    for (const message of findContractDivergence(problem.functionContract, problem.languages)) {
+      context.addIssue({ code: 'custom', path: ['functionContract'], message });
+    }
+  });
 
 export const nativeProblemBatchSchema = z.object({
   schemaVersion: z.literal(1),
