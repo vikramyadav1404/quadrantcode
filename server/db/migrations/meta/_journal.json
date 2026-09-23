@@ -176,6 +176,13 @@
       "when": 1788867716815,
       "tag": "0024_execution_queue_leases",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790134491062,
+      "tag": "0025_nervous_mantis",
+      "breakpoints": true
     }
   ]
 }

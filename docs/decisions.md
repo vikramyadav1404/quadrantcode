@@ -1799,3 +1799,81 @@ still bypass. That combination is load-bearing rather than incidental — D29's
 eventual `git filter-repo` pass needs exactly that force-push, and a protection
 rule that made the recorded plan impossible would be a rule quietly overruling
 a decision.
+
+---
+
+## D31 · C3 covered the wrong table, and the guard table said otherwise
+
+**Date:** 2026-09-22 · **Status:** fixed. Full analysis in
+`docs/c3-company-associations.md`; this entry records what was decided and what
+it cost.
+
+### The finding
+
+`CLAUDE.md` listed C3 as enforced at the database by
+`problem_tags_company_style_suffix`. That CHECK is real, and it constrains
+`problem_tags`. **Company associations are in `problem_company_evidence`**, which
+it does not touch.
+
+So the solve page rendered `{company.name} · {EVIDENCE_TYPE_LABELS[type]}` —
+"Amazon · Company pattern", hyperlinked to that company — with no `-style`
+suffix, no CHECK, no test, and no disclaimer on the route. The disclaimer sat on
+all five `/companies/*` pages, which is the surface that needs it least.
+
+Worse than any of that: **four of six evidence types assert real provenance**
+(`official_sample`, `verified_pyq`, `candidate_reported`, `frequently_reported`)
+and nothing forbade them. One admin action could have put "Verified PYQ" on a
+problem with no review workflow behind the claim.
+
+### Why the existing CHECKs were not the guard they resembled
+
+```sql
+evidence_type not in ('official_sample','verified_pyq')
+  or (source_url is not null and verification_status = 'verified')
+```
+
+This makes a provenance claim **well-formed**, not permitted. It is a sound rule
+for a platform that intends to make such claims after review. Mistaking it for a
+C3 guard is easy and was the trap here — it mentions `verified_pyq`, it lives on
+the right table, and it does nothing to stop the row existing.
+
+**A constraint that names the dangerous value is not the same as a constraint
+that forbids it.** That is the reusable part of this entry.
+
+### Decided
+
+1. **Solve-page chip: `-style`, and no link.** Both halves matter. The suffix is
+   the letter of C3; dropping the link is the spirit, because a hyperlink implies
+   something authoritative sits behind it. `/companies` keeps its links — it
+   opens with the disclaimer and is self-evidently an index.
+2. **Block the four provenance types at the database** —
+   `problem_company_evidence_no_unreviewed_provenance`. Rejected: removing them
+   from the `pgEnum`, because that is a painful migration, where relaxing a CHECK
+   is one line the day a review workflow exists.
+3. **Leave the 104 existing rows alone.** All `company_pattern`, all still legal.
+
+### The consequence that was not in the plan
+
+Blocking four types made the `/companies/[slug]` **filter dropdown offer four
+options that can never match a row**, and its "Evidence labels" legend describe
+four claims the platform cannot make. A UI asserting something the database
+forbids is the same defect as the guard-table row that started this — a stated
+capability that is not real.
+
+So `PERMITTED_EVIDENCE_TYPES` is declared once in `lib/native/constants.ts` and
+drives the dropdown, the legend, and the constraint test. The test iterates the
+full enum and asserts accept-**iff**-permitted, so the constant and the CHECK
+cannot drift apart: widening one without the other fails. Verified by doing
+exactly that — adding `verified_pyq` to the constant made the test fail, and
+removing the CHECK from the migration made the rejection fail while its control
+still passed.
+
+`tests/companies/queries.test.ts` had a `candidate_reported` fixture, now
+`unverified`. Worth noting rather than hiding: a fixture using a value the schema
+forbids is testing a row that cannot exist.
+
+### Not done
+
+No review workflow, and the enum keeps all six values. The day verified past
+questions become intended content, the change is dropping one CHECK and widening
+one array — and the test will insist both happen together.

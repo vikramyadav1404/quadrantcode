@@ -5,7 +5,7 @@ import { DifficultyPill } from '@/components/solve/DifficultyPill';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import {
-  EVIDENCE_TYPES,
+  PERMITTED_EVIDENCE_TYPES,
   EVIDENCE_TYPE_DESCRIPTIONS,
   EVIDENCE_TYPE_LABELS,
 } from '@/lib/native/constants';
@@ -87,7 +87,12 @@ export default async function CompanyPage({
             name="evidence"
           >
             <option value="">All evidence</option>
-            {EVIDENCE_TYPES.map((type) => (
+            {/*
+              PERMITTED_EVIDENCE_TYPES, not EVIDENCE_TYPES. The other four are
+              blocked at the database (C3), so offering them here would be four
+              filter options that can never match a row.
+            */}
+            {PERMITTED_EVIDENCE_TYPES.map((type) => (
               <option key={type} value={type}>
                 {EVIDENCE_TYPE_LABELS[type]}
               </option>
@@ -162,7 +167,11 @@ export default async function CompanyPage({
           <section className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
             <h2 className="font-semibold">Evidence labels</h2>
             <div className="mt-3 space-y-3">
-              {EVIDENCE_TYPES.map((type) => (
+              {/*
+                Same reason: a legend describing "Verified PYQ" is a claim this
+                platform cannot currently make about anything.
+              */}
+              {PERMITTED_EVIDENCE_TYPES.map((type) => (
                 <div key={type}>
                   <p className="text-xs font-medium">{EVIDENCE_TYPE_LABELS[type]}</p>
                   <p className="text-xs text-[var(--text-muted)]">

@@ -57,7 +57,13 @@ suite('company preparation filters', () => {
       round: 'Technical screen',
       yearFrom: 2025,
       yearTo: 2026,
-      evidenceType: 'candidate_reported',
+      /*
+       * `unverified`, not `candidate_reported`. The latter is blocked at the
+       * database by `problem_company_evidence_no_unreviewed_provenance` (C3),
+       * and a fixture using a value the schema forbids tests a row that cannot
+       * exist. The filter under test is indifferent to WHICH type it matches.
+       */
+      evidenceType: 'unverified',
       verificationStatus: 'reviewed',
     });
 
@@ -67,12 +73,12 @@ suite('company preparation filters', () => {
       year: 2026,
       difficulty: 'hard',
       topic: 'graphs',
-      evidence: 'candidate_reported',
+      evidence: 'unverified',
     });
     expect(result?.problems).toHaveLength(1);
     expect(result?.problems[0]).toMatchObject({
       slug: problem!.slug,
-      evidenceType: 'candidate_reported',
+      evidenceType: 'unverified',
       topics: ['graphs'],
     });
   });
