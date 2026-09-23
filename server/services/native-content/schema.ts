@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { EVIDENCE_TYPES, PROBLEM_TYPES, TEST_CASE_VISIBILITIES } from '@/lib/native/constants';
 import { EXECUTION_LANGUAGES, type ExecutionLanguage } from '@/lib/execution/languages';
-import { WRAPPER_SHAPES, WRAPPER_SHAPE_IDS, type WrapperShapeId } from './wrapper-shapes';
+import {
+  WRAPPER_SHAPES,
+  WRAPPER_SHAPE_IDS,
+  applyShapeNames,
+  type WrapperShapeId,
+} from './wrapper-shapes';
 
 /*
  * Floors for the ACTIVE library, re-based on 2026-09-22.
@@ -143,16 +148,33 @@ const languageReferencesSchema = z.object({
   javascript: languageReferenceSchema,
 });
 
-/** Expand a shape into the full per-language block a record used to spell out. */
+/**
+ * Expand a shape into the full per-language block a record used to spell out.
+ *
+ * The shape supplies structure; the record's `functionContract` supplies the
+ * names, substituted into the signature, the starter code and the wrapper. Both
+ * halves matter: `ProblemPanel` renders `functionContract` as the stated
+ * contract and the editor renders `functionSignature`, so if names came from
+ * the shape while the contract came from the record the two would disagree
+ * about the same function. See D33.
+ */
 function expandShape(
   shape: WrapperShapeId,
   references: z.infer<typeof languageReferencesSchema>,
+  contract: { functionName: string; parameters: readonly { name: string }[] },
 ): Record<ExecutionLanguage, NativeLanguageTemplate> {
   const templates = WRAPPER_SHAPES[shape];
+  const names = {
+    functionName: contract.functionName,
+    parameterNames: contract.parameters.map((parameter) => parameter.name),
+  };
   return Object.fromEntries(
     EXECUTION_LANGUAGES.map((language) => [
       language,
-      { ...templates[language], referenceSolution: references[language].referenceSolution },
+      {
+        ...applyShapeNames(templates[language], names),
+        referenceSolution: references[language].referenceSolution,
+      },
     ]),
   ) as Record<ExecutionLanguage, NativeLanguageTemplate>;
 }
@@ -297,7 +319,7 @@ export const nativeProblemSchema = z
    */
   .transform((problem) => ({
     ...problem,
-    languages: expandShape(problem.shape, problem.languages),
+    languages: expandShape(problem.shape, problem.languages, problem.functionContract),
   }));
 
 export const nativeProblemBatchSchema = z.object({
