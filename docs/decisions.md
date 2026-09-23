@@ -1682,3 +1682,120 @@ Same shape as D27 and D28: the check ran, produced a number, and the number was
 about to become a sentence it could not support. **The control is not optional on
 an "X is absent" check.** It is the only thing that distinguishes absence from a
 broken query, and a broken query looks exactly like good news.
+
+---
+
+## D30 · Preview gets its own database, and the one variable that still names production
+
+**Date:** 2026-09-22 · **Status:** preview builds pass. One cleanup item left
+open deliberately, recorded here rather than fixed, because fixing it needed a
+secret this session could not read.
+
+### The Vercel check had been red on every PR
+
+Not flaky, and not this PR: `deploy:check` ran before the build and failed with
+`DATABASE_URL: Invalid input: expected string, received undefined`. Preview had
+no database. The standing answer had been to leave it, which meant every PR
+carried a red check, and a permanently red check stops being read.
+
+Fixing it turned up a second failure waiting behind the first, and the second
+one is the interesting half.
+
+### `NEXT_PUBLIC_APP_URL` cannot be set correctly for Preview
+
+`check-deployment-env.ts` requires it to be a non-localhost HTTPS origin.
+Vercel mints a hostname per deployment and does not interpolate environment
+variable values, so:
+
+- Setting one value for the Preview environment is correct for at most one
+  branch and wrong for every other.
+- Leaving it unset falls back to the `http://localhost:3000` default in
+  `lib/env.ts`, which the check rejects by design.
+
+There was no value that worked. Rejected alternatives: a fixed placeholder
+origin (satisfies the check while making every preview link point at a host
+that is not the one you opened) and a per-branch env var (green on this branch,
+red on the next, and a manual step forever).
+
+`lib/deployment/origin.ts` resolves it from Vercel's own build-time variables
+instead — `VERCEL_BRANCH_URL` first because it is stable for the branch,
+`VERCEL_URL` as fallback.
+
+**Scoped to `VERCEL_ENV === 'preview'` on purpose, and there is a test for that
+direction specifically.** Production must keep failing when
+`NEXT_PUBLIC_APP_URL` is missing: it is what auth callbacks, emailed links and
+share cards are built from. Inferring it there would convert a failed build
+into a silently wrong deployment, which is the more expensive outcome. The
+useful question about a fallback is not "does it fix the error" but "what does
+it hide", and on production it would hide the thing most worth seeing.
+
+### Preview's database
+
+Neon branch `preview-db` (`br-spring-violet-b3veqw2q`), branched from
+production, then every user-owned table cleared **on the branch only**: 79
+session_events, 44 solve_sessions, 2 users, and eighteen more. The 12 content
+tables came through matching production exactly, so previews still have the
+full catalogue to render. Production was re-counted afterwards and was
+unchanged.
+
+Two things fought back, and both are recorded elsewhere as known behaviour:
+
+- `session_events` refuses DELETE without `quadrantcode.purging` set inside the
+  transaction (D25).
+- **`audit_logs` has no purge flag at all.** Its `BEFORE DELETE` trigger always
+  raises, which rolled the entire first attempt back — nothing was deleted until
+  the second run. It was cleared with `TRUNCATE`, which does not fire row
+  triggers. That is exactly the gap `docs/security-audit.md` lists as an
+  accepted risk, used deliberately on a disposable branch. On production it
+  remains the reason a least-privilege database role is the highest-value
+  hardening change.
+
+### The cleanup item: `DATABASE_URL_UNPOOLED`
+
+**Vercel holds it as a SINGLE entry targeting Production and Preview**, so it
+cannot carry a different value per environment, and on Preview it resolves to
+production.
+
+Repointing it for Preview alone would mean deleting that shared entry and
+re-adding two. The Production value cannot be read back without printing a
+secret, so the delete would have been irreversible from inside this session.
+**Deleting a secret that cannot be restored is not a step to take to tidy a
+variable**, so it was not taken.
+
+What was done instead: a Preview-scoped `DIRECT_DATABASE_URL`, plus
+`server/db/direct-url.ts`, which declares the precedence once —
+`DIRECT_DATABASE_URL` → `DATABASE_URL_UNPOOLED` → `DATABASE_URL` — and is used
+by all six consumers.
+
+That unification was not cosmetic. Two orderings existed:
+`drizzle.config.ts` and `migrate.ts` read `DIRECT_DATABASE_URL` first, while
+`seed.ts`, `seed-companies.ts`, `import-native-problems.ts` and `rollback.ts`
+went straight to `DATABASE_URL_UNPOOLED`. **A seed or a rollback run with
+preview credentials loaded would have reached past the preview database to the
+production one**, with nothing in the output saying which it had picked. Half
+the tooling pointing at a different database than the other half is the kind of
+defect that is invisible until it is expensive.
+
+Verified by running `db:migrate` against the preview branch with
+`DATABASE_URL_UNPOOLED` and `DATABASE_URL` both set to an invalid host: it
+connected to preview regardless. That is the precedence working, rather than a
+claim that it does.
+
+**Still open.** `DATABASE_URL_UNPOOLED` is shadowed, not corrected. Closing it
+takes a hand: delete the shared Vercel entry, re-add the Production value from
+your own copy, add a Preview-scoped one. Low urgency — nothing reaches it now —
+but it is the one remaining place where a Preview context names production, and
+that is a sentence that should not stay true indefinitely.
+
+### Branch protection
+
+`main` now requires the two Actions jobs and nothing else. **Vercel is
+deliberately not required**: it depends on a third party and on environment
+configuration, and a required check that can go red for reasons unrelated to
+the code is a check people learn to override.
+
+Force-push and delete are blocked, with `enforce_admins` off so an admin can
+still bypass. That combination is load-bearing rather than incidental — D29's
+eventual `git filter-repo` pass needs exactly that force-push, and a protection
+rule that made the recorded plan impossible would be a rule quietly overruling
+a decision.
