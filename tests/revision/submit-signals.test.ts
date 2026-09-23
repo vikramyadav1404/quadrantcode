@@ -132,6 +132,38 @@ describe('the positive control: a clean fast solve must NOT compress', () => {
   });
 });
 
+describe('hints-used is dormant, not broken', () => {
+  /*
+   * F3.4 (ai-gateway) is cut, so nothing in the product produces a hint and
+   * `hintsUsed` is always 0. The rule was kept rather than deleted, and this is
+   * the price of keeping it: proof that it works, so the day F3.4 lands nobody
+   * has to re-derive it from the spec.
+   *
+   * It is the honest version of "dead code". Deleting it would mean rewriting
+   * it later from a document; leaving it untested would mean trusting a branch
+   * nothing has ever taken.
+   */
+  it('compresses when a hint IS used', () => {
+    const step = scheduleAfterSolve({ ...PLACEHOLDER_SIGNALS, hintsUsed: 1 }, START_RUNG);
+    expect(step.applied).toContain('hints-used');
+    expect(step.index).toBeLessThan(START_RUNG);
+  });
+
+  it('and a hint also blocks clean-and-quick, however confident the solver', () => {
+    const step = scheduleAfterSolve(
+      {
+        confidence: 'high',
+        hintsUsed: 1,
+        failedAttempts: 0,
+        activeSeconds: Math.floor(ESTIMATED / 4),
+        estimatedSeconds: ESTIMATED,
+      },
+      START_RUNG,
+    );
+    expect(step.applied).not.toContain('clean-and-quick');
+  });
+});
+
 describe('why a missing session must not default to zero seconds', () => {
   it('activeSeconds 0 would read as the FASTEST possible solve', () => {
     // `activeSecondsForSession` returns null outside a timed sitting, and

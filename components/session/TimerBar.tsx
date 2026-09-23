@@ -20,6 +20,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StuckButton } from '@/components/session/StuckButton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ConfidencePicker } from '@/components/session/ConfidencePicker';
+import type { Confidence } from '@/lib/session/confidence';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
 
@@ -39,7 +41,11 @@ export function TimerBar({
   onPause: Action;
   onResume: Action;
   onAbandon: Action;
-  onComplete: (input: { sessionId: string; outcome: 'solved' | 'stuck' }) => Promise<{
+  onComplete: (input: {
+    sessionId: string;
+    outcome: 'solved' | 'stuck';
+    confidence?: Confidence;
+  }) => Promise<{
     ok: boolean;
     message?: string;
   }>;
@@ -61,6 +67,8 @@ export function TimerBar({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
+  /** Solved was pressed; the confidence row is showing. Not a confirmation gate. */
+  const [askingConfidence, setAskingConfidence] = useState(false);
 
   // Re-seed whenever the server sends a new state (a pause, a resume, a
   // navigation): the prop is the authority, not the last thing we counted to.
@@ -124,8 +132,10 @@ export function TimerBar({
    * skipping still costs one click, which is what keeps the answers worth
    * having: a form nobody can escape is answered to get past it.
    */
-  const finish = async (outcome: 'solved' | 'stuck') => {
-    const ok = await run(() => onComplete({ sessionId, outcome }));
+  const finish = async (outcome: 'solved' | 'stuck', confidence?: Confidence) => {
+    const ok = await run(() =>
+      onComplete({ sessionId, outcome, ...(confidence ? { confidence } : {}) }),
+    );
     if (ok) router.push(`/sessions/${sessionId}/reflect`);
   };
 
@@ -188,7 +198,7 @@ export function TimerBar({
         <button
           aria-disabled={busy}
           className="rounded-[var(--radius)] bg-[var(--success)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60"
-          onClick={() => void finish('solved')}
+          onClick={() => setAskingConfidence(true)}
           type="button"
         >
           Solved
@@ -222,6 +232,32 @@ export function TimerBar({
           Abandon
         </button>
       </div>
+
+      {/*
+        The confidence row, revealed by Solved.
+
+        Deliberately NOT a ConfirmDialog. The comment below records why Solved
+        is unconfirmed, and that reasoning still holds — this is not a
+        confirm/cancel gate in front of the success path. Every option here,
+        Skip included, completes the session; it asks a question on the way past
+        rather than standing in the doorway.
+
+        It earns the extra click because confidence is the ladder's strongest
+        signal — 'low' picks the compressed ladder, 'high' is a precondition of
+        the only rule that lengthens a gap — and until now nothing collected it
+        before the schedule was written.
+      */}
+      {askingConfidence ? (
+        <div className="flex w-full flex-wrap items-center gap-2 pt-0.5">
+          <ConfidencePicker
+            busy={busy}
+            onChoose={(confidence) => {
+              setAskingConfidence(false);
+              void finish('solved', confidence);
+            }}
+          />
+        </div>
+      ) : null}
 
       {/*
         Abandon is the only one of the five that DISCARDS. A solved or
