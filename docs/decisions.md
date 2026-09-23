@@ -1877,3 +1877,98 @@ forbids is testing a row that cannot exist.
 No review workflow, and the enum keeps all six values. The day verified past
 questions become intended content, the change is dropping one CHECK and widening
 one array — and the test will insist both happen together.
+
+---
+
+## D32 · Confidence was collected after the schedule it was meant to inform
+
+**Date:** 2026-09-23 · **Status:** both completion paths now collect it. **The
+reflection path still does not re-schedule, deliberately** — recorded below with
+the problem that makes it a decision rather than an oversight.
+
+### Two of the ladder's five rules had never fired
+
+`scheduleAfterSolve` reads confidence harder than any other signal: `'low'`
+selects the compressed ladder outright, and `'high'` is a precondition of
+`clean-and-quick`, the only rule that lengthens a gap.
+
+Nothing collected it before the schedule row was written.
+
+- `TimerBar.onComplete` was typed `{ sessionId, outcome }`. No confidence field
+  existed on the prop, so the Solved button could not have sent one.
+- `ReflectionForm` does ask — on `/sessions/[id]/reflect`, which the user reaches
+  **after** `completeSession` has already run `scheduleAfterSolveTx`.
+- Nothing under `server/services/reflection/` references `scheduleAfterSolve`.
+
+So the value was captured one step too late, every time, and the ladder ran on
+`failed-attempts` and `slow-solve` alone — `hints-used` being inert because F3.4
+is cut. Combined with D31's finding that accepted submits passed placeholder
+signals, the scheduler had been operating on a fraction of its inputs.
+
+**A unit test of `scheduleAfterSolve` would have passed throughout.** The
+function was always correct; the wiring never reached it. That is why the test
+added here drives `completeSession` against a real database and reads the
+persisted `revision_schedule` row — the assertion has to span the link that was
+broken, not the end of it that worked.
+
+### Asking without building a confirmation dialog
+
+`TimerBar` records a deliberate decision that Solved is unconfirmed: _"a dialog
+in front of the ordinary success path is the thing that teaches people to
+dismiss dialogs without reading them, which would blunt this one."_ That
+reasoning is sound and this does not overturn it.
+
+`ConfidencePicker` is therefore not a confirm/cancel gate. Every option,
+including `Skip`, completes the action; it asks on the way past rather than
+standing in the doorway. `Skip` sends `undefined` rather than a middle rating,
+because a rating standing in for silence is worse than silence — the ladder
+would read it as a real answer.
+
+### The same three values, in four places
+
+Fixing the client boundary surfaced a duplication. `'low' | 'medium' | 'high'`
+was written out in `server/db/schema/enums.ts` (the `pgEnum`),
+`session/lifecycle.ts`, `revision/ladder.ts` and `reflection/reflection.ts` —
+four declarations that must agree and cannot see each other.
+
+The picker is a client component, and `components/` may not import from
+`server/` (deny-by-default, F0.1), so the type had to move to `lib/` or be
+written a fifth time. It moved: `lib/session/confidence.ts` is now the source,
+`pgEnum` is built from it, and `db:generate` reports **"No schema changes"** —
+the refactor is byte-identical SQL. Same shape as D21's taxonomy.
+
+### Rejected for now: re-scheduling after a reflection
+
+The obvious completion of this work is to have `saveReflection` re-run
+`scheduleAfterSolveTx` when it captures a confidence the completion did not.
+It is **not** done, because it is not a simple re-run.
+
+`scheduleAfterSolveTx` steps from `existing?.ladderIndex ?? 0` — it continues
+from where the problem already sits, deliberately, so that solving a problem
+again does not drop a months-old interval back to one day. Calling it a second
+time for the _same_ solve would therefore step from the rung the first call just
+wrote, compounding rather than correcting: a `'high'` answer after a schedule
+already advanced by `clean-and-quick` would advance it twice for one solve.
+
+Doing it properly needs one of:
+
+1. **Recompute from a remembered starting rung**, which means storing the
+   `fromIndex` each schedule was derived from.
+2. **A distinct "revise this schedule" entry point** that replaces rather than
+   steps, with its own rules about what a late answer may change.
+3. **Collect confidence only at completion** and treat the reflection's copy as
+   commentary, which is effectively what shipping this change does.
+
+(3) is the status quo after today and is coherent: both completion paths now
+ask, so the common case is covered, and the reflection answer remains a record
+of what the user thought rather than an input to a schedule already written.
+Revisit if reflection-time answers turn out to differ materially from
+completion-time ones — which is now measurable, because both are stored.
+
+### hints-used: kept dormant, and tested
+
+F3.4 is cut, so `hintsUsed` is always 0 and the rule cannot fire. Kept rather
+than deleted: it is an always-zero _input_, not a guard giving false assurance,
+so it misleads nobody, and deleting it would mean re-deriving the rule from the
+spec when F3.4 returns. The price of keeping it is a test proving it still
+compresses when a hint is used, so the branch is not merely trusted.
