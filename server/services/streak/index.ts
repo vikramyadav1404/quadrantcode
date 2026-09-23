@@ -4,6 +4,7 @@
  * The recompute is the only writer to `user_streaks` and `streak_freezes`;
  * everything else here is pure and testable without a database.
  */
+export * from './daily-credit';
 export * from './day';
 export * from './freezes';
 export * from './goals';
