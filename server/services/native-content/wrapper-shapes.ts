@@ -308,3 +308,25 @@ export const WRAPPER_SHAPE_IDS = Object.keys(WRAPPER_SHAPES) as [
   WrapperShapeId,
   ...WrapperShapeId[],
 ];
+
+/**
+ * How many parameters a shape's function takes, read from the placeholders its
+ * signatures actually carry rather than declared alongside them, so the count
+ * cannot drift from the templates. Throws if two languages disagree, because a
+ * shape whose C signature takes two names and whose Python one takes one is
+ * broken whichever count a record picks.
+ */
+export function shapeArity(shape: WrapperShapeId): number {
+  const counts = new Set(
+    Object.values(WRAPPER_SHAPES[shape]).map(
+      (template: ShapeTemplate) =>
+        SHAPE_PARAM_PLACEHOLDERS.filter((placeholder) =>
+          template.functionSignature.includes(placeholder),
+        ).length,
+    ),
+  );
+  if (counts.size !== 1) {
+    throw new Error(`Shape ${shape} takes a different number of parameters per language.`);
+  }
+  return [...counts][0]!;
+}

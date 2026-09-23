@@ -2165,3 +2165,54 @@ the replacement earns its cost rather than being built speculatively.
   `cold-store-aisle-sweep`, `histogram-signal-block`, `strait-ice-floes`,
   `audio-track-merge-cost`, `rising-corridor`, `archive-shelf-reward` — these are
   genuinely `int[] -> int` and the existing shape describes them correctly.
+
+### Built · the guard, and the floor choice
+
+**The panel and the editor cannot disagree, and a test proves the refusal
+fires.** Two checks in `nativeProblemSchema`, both needed:
+
+- _Before_ expansion, `functionContract.parameters.length` must equal the shape's
+  arity, read by `shapeArity` from the placeholders the signatures actually
+  carry. Without it, a contract naming **more** parameters than the shape takes
+  passed silently — the panel showed three, the editor two — and one naming
+  **fewer** surfaced as a raw throw from `applyShapeNames` mid-transform rather
+  than as an issue on the record.
+- _After_ expansion, `findContractDivergence` requires every language's
+  `functionSignature` to name the contract's function and each parameter as a
+  whole word, and every name to be an identifier, because names are now spliced
+  into code in five languages.
+
+`tests/native-content/contract-divergence.test.ts` runs the agreement check on
+the six records whose names are **not** `solve` — agreement between two sides
+that both say `solve` proves nothing — and asserts each refusal. Positive
+control: with both checks disabled, the four schema-level refusals fail, each
+for its own reason (the "fewer" case turning back into the raw `__P2__` throw);
+restored, all nine pass.
+
+**Floors: easy 5 → 4, medium 4 → 5.** `donation-target-subsets` moved easy →
+medium, and one unit of floor moved with it; both tables still sum to 12.
+Lowering easy was not forced — 7 easy problems still clear 5. The alternative
+that lowered nothing was medium 5 and one _topic_ floor raised to 2, but six
+topics sit at 2 and choosing one would have been arbitrary. **A floor describes
+the library; it does not protect a figure.** Connected components moves with
+shape 3 and the floors move again then.
+
+**Two escaping bugs in the new shape, caught before first use.** In a
+single-quoted TS string `'\s'` is just `s`: the JavaScript wrapper split stdin
+on `/s+/` — every submission would have parsed `NaN` — and the Java wrapper on
+`"\s+"`, spaces only. Found by evaluating the emitted strings, not by reading
+the source, which looked right.
+
+**References are editorial, not minified.** Users read them. Guards the
+constraints rule out were removed; two stay because a graded case reaches them —
+`k > n → -1` in `pipeline-segment-from-end` (case `9 1 2`), and `n < 2` in the
+C `countPairs` only, because `memcpy` from a zero-size allocation is undefined.
+
+Validated locally without cache: 16 problems × 5 languages, 80 compilations,
+535 executions, all matching. Validated on the live Judge0 instance on
+2026-09-23, through the app's own `resolveProvider`, `wrapUserSource` and
+`outputsMatch`: the six migrated records × 5 languages × every graded case,
+**195 submissions, 195 accepted** — GCC 9.2.0 (C and C++), OpenJDK 13.0.1,
+Python 3.8.1, Node.js 12.14.0. Python 3.8 cannot evaluate `list[int]` in a
+signature; the wrapper's `from __future__ import annotations` is what makes the
+shape's signatures legal there, and this run is the evidence it does.
