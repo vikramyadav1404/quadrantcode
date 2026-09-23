@@ -37,7 +37,9 @@ import Link from 'next/link';
 import { DifficultyPill } from './DifficultyPill';
 import { StatusMark } from './StatusMark';
 import { TopicChips } from './TopicChips';
-import { EVIDENCE_TYPE_LABELS, type EvidenceType } from '@/lib/native/constants';
+import { type EvidenceType } from '@/lib/native/constants';
+import { solveCompanyLabel } from '@/lib/native/company-claim';
+import { CompanyDisclaimer } from '@/components/companies/CompanyDisclaimer';
 
 type NativeProblemPanelView = {
   story: string;
@@ -182,16 +184,34 @@ export function ProblemPanel({
                 </span>
               </div>
               {problem.native?.companies.length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {problem.native.companies.map((company) => (
-                    <Link
-                      className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)]"
-                      href={`/companies/${company.slug}`}
-                      key={`${company.slug}-${company.evidenceType}`}
-                    >
-                      {company.name} · {EVIDENCE_TYPE_LABELS[company.evidenceType]}
-                    </Link>
-                  ))}
+                /*
+                  C3. Two things here are deliberate and both were wrong before.
+                  The name carries the "-style" suffix, built by
+                  `solveCompanyLabel` rather than interpolated here. And these
+                  are NOT links: a hyperlink to /companies/amazon beside a
+                  problem statement reads as "there is something authoritative
+                  about Amazon behind this", which is the implication C3 exists
+                  to avoid. The /companies routes still link freely — they open
+                  with a disclaimer and are self-evidently an index.
+                */
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {problem.native.companies.map((company) => (
+                      <span
+                        className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)]"
+                        key={`${company.slug}-${company.evidenceType}`}
+                      >
+                        {solveCompanyLabel(company.name, company.evidenceType)}
+                      </span>
+                    ))}
+                  </div>
+                  {/*
+                    Rendered here and not once at the top of the route: it is
+                    conditional on there being a company claim at all, so a
+                    problem with no associations does not carry a disclaimer
+                    about companies it never mentioned.
+                  */}
+                  <CompanyDisclaimer />
                 </div>
               ) : null}
             </div>
