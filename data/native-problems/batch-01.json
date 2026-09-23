@@ -331,8 +331,8 @@
       "primaryTopic": "two-pointers-sliding-window",
       "topics": ["two-pointers-sliding-window", "monotonic-deque"],
       "problemType": "function",
-      "shape": "int-array-to-int",
-      "version": 1,
+      "shape": "int-array-int-to-int",
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 30,
       "difficultyCalibration": 0,
@@ -341,19 +341,24 @@
       "inputFormat": "The first number is the soak length in minutes. Every number after it is one temperature reading, in the order the probe recorded them. The log always holds at least as many readings as the soak is long.",
       "outputFormat": "Return one integer: the smallest spread found among all stretches of readings exactly as long as the soak.",
       "functionContract": {
-        "functionName": "solve",
+        "functionName": "smallestSpread",
         "parameters": [
           {
-            "name": "values",
+            "name": "readings",
             "type": "integer[]",
-            "description": "The soak length in minutes, followed by the temperature log in recording order."
+            "description": "Chamber temperatures, one per minute, in the order the probe recorded them."
+          },
+          {
+            "name": "soakLength",
+            "type": "integer",
+            "description": "How many consecutive minutes the soak must cover."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
-        "2 <= values.length <= 200001",
-        "The log holds n = values.length - 1 readings, and 1 <= soak length <= n",
+        "1 <= readings.length <= 200000",
+        "1 <= soakLength <= readings.length",
         "-1000000000 <= every reading <= 1000000000",
         "The answer can exceed the range of a 32-bit signed integer: a log holding both extremes has a spread of 2000000000"
       ],
@@ -450,19 +455,19 @@
       },
       "languages": {
         "c11": {
-          "referenceSolution": "long long solve(const long long *values, int n) {\n  if (n < 2) return 0;\n  long long w = values[0];\n  int m = n - 1;\n  const long long *a = values + 1;\n  int *maxq = (int *)malloc(sizeof(int) * (size_t)m);\n  int *minq = (int *)malloc(sizeof(int) * (size_t)m);\n  int maxHead = 0, maxTail = 0, minHead = 0, minTail = 0;\n  long long best = 0;\n  int seen = 0;\n  for (int i = 0; i < m; i++) {\n    while (maxTail > maxHead && a[maxq[maxTail - 1]] <= a[i]) maxTail--;\n    maxq[maxTail++] = i;\n    while (minTail > minHead && a[minq[minTail - 1]] >= a[i]) minTail--;\n    minq[minTail++] = i;\n    if ((long long)maxq[maxHead] <= (long long)i - w) maxHead++;\n    if ((long long)minq[minHead] <= (long long)i - w) minHead++;\n    if ((long long)i >= w - 1) {\n      long long spread = a[maxq[maxHead]] - a[minq[minHead]];\n      if (!seen || spread < best) { best = spread; seen = 1; }\n    }\n  }\n  free(maxq);\n  free(minq);\n  return best;\n}"
+          "referenceSolution": "long long smallestSpread(const long long *readings, int n, long long soakLength) {\n  int w = (int)soakLength;\n  int *maxq = (int *)malloc(sizeof(int) * (size_t)n);\n  int *minq = (int *)malloc(sizeof(int) * (size_t)n);\n  int maxHead = 0, maxTail = 0, minHead = 0, minTail = 0;\n  long long best = 0;\n  int seen = 0;\n  for (int i = 0; i < n; i++) {\n    while (maxTail > maxHead && readings[maxq[maxTail - 1]] <= readings[i]) maxTail--;\n    maxq[maxTail++] = i;\n    while (minTail > minHead && readings[minq[minTail - 1]] >= readings[i]) minTail--;\n    minq[minTail++] = i;\n    if (maxq[maxHead] <= i - w) maxHead++;\n    if (minq[minHead] <= i - w) minHead++;\n    if (i >= w - 1) {\n      long long spread = readings[maxq[maxHead]] - readings[minq[minHead]];\n      if (!seen || spread < best) { best = spread; seen = 1; }\n    }\n  }\n  free(maxq);\n  free(minq);\n  return best;\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long solve(const vector<long long>& values) {\n  if (values.size() < 2) return 0;\n  long long w = values[0];\n  int m = (int)values.size() - 1;\n  const long long *a = values.data() + 1;\n  deque<int> maxq, minq;\n  long long best = 0;\n  bool seen = false;\n  for (int i = 0; i < m; i++) {\n    while (!maxq.empty() && a[maxq.back()] <= a[i]) maxq.pop_back();\n    maxq.push_back(i);\n    while (!minq.empty() && a[minq.back()] >= a[i]) minq.pop_back();\n    minq.push_back(i);\n    if ((long long)maxq.front() <= (long long)i - w) maxq.pop_front();\n    if ((long long)minq.front() <= (long long)i - w) minq.pop_front();\n    if ((long long)i >= w - 1) {\n      long long spread = a[maxq.front()] - a[minq.front()];\n      if (!seen || spread < best) { best = spread; seen = true; }\n    }\n  }\n  return best;\n}"
+          "referenceSolution": "long long smallestSpread(const vector<long long>& readings, long long soakLength) {\n  int n = (int)readings.size();\n  int w = (int)soakLength;\n  deque<int> maxq, minq;\n  long long best = 0;\n  bool seen = false;\n  for (int i = 0; i < n; i++) {\n    while (!maxq.empty() && readings[maxq.back()] <= readings[i]) maxq.pop_back();\n    maxq.push_back(i);\n    while (!minq.empty() && readings[minq.back()] >= readings[i]) minq.pop_back();\n    minq.push_back(i);\n    if (maxq.front() <= i - w) maxq.pop_front();\n    if (minq.front() <= i - w) minq.pop_front();\n    if (i >= w - 1) {\n      long long spread = readings[maxq.front()] - readings[minq.front()];\n      if (!seen || spread < best) { best = spread; seen = true; }\n    }\n  }\n  return best;\n}"
         },
         "java": {
-          "referenceSolution": "static long solve(long[] values) {\n  if (values.length < 2) return 0L;\n  long w = values[0];\n  int m = values.length - 1;\n  ArrayDeque<Integer> maxq = new ArrayDeque<>();\n  ArrayDeque<Integer> minq = new ArrayDeque<>();\n  long best = 0L;\n  boolean seen = false;\n  for (int i = 0; i < m; i++) {\n    long v = values[i + 1];\n    while (!maxq.isEmpty() && values[maxq.peekLast() + 1] <= v) maxq.pollLast();\n    maxq.addLast(i);\n    while (!minq.isEmpty() && values[minq.peekLast() + 1] >= v) minq.pollLast();\n    minq.addLast(i);\n    if ((long) maxq.peekFirst() <= (long) i - w) maxq.pollFirst();\n    if ((long) minq.peekFirst() <= (long) i - w) minq.pollFirst();\n    if ((long) i >= w - 1) {\n      long spread = values[maxq.peekFirst() + 1] - values[minq.peekFirst() + 1];\n      if (!seen || spread < best) { best = spread; seen = true; }\n    }\n  }\n  return best;\n}"
+          "referenceSolution": "static long smallestSpread(long[] readings, long soakLength) {\n  int w = (int) soakLength;\n  ArrayDeque<Integer> maxq = new ArrayDeque<>();\n  ArrayDeque<Integer> minq = new ArrayDeque<>();\n  long best = 0L;\n  boolean seen = false;\n  for (int i = 0; i < readings.length; i++) {\n    long v = readings[i];\n    while (!maxq.isEmpty() && readings[maxq.peekLast()] <= v) maxq.pollLast();\n    maxq.addLast(i);\n    while (!minq.isEmpty() && readings[minq.peekLast()] >= v) minq.pollLast();\n    minq.addLast(i);\n    if (maxq.peekFirst() <= i - w) maxq.pollFirst();\n    if (minq.peekFirst() <= i - w) minq.pollFirst();\n    if (i >= w - 1) {\n      long spread = readings[maxq.peekFirst()] - readings[minq.peekFirst()];\n      if (!seen || spread < best) { best = spread; seen = true; }\n    }\n  }\n  return best;\n}"
         },
         "python3": {
-          "referenceSolution": "def solve(values: list[int]) -> int:\n    from collections import deque\n\n    if len(values) < 2:\n        return 0\n    w = values[0]\n    a = values[1:]\n    m = len(a)\n    maxq: deque[int] = deque()\n    minq: deque[int] = deque()\n    best = None\n    for i in range(m):\n        v = a[i]\n        while maxq and a[maxq[-1]] <= v:\n            maxq.pop()\n        maxq.append(i)\n        while minq and a[minq[-1]] >= v:\n            minq.pop()\n        minq.append(i)\n        if maxq[0] <= i - w:\n            maxq.popleft()\n        if minq[0] <= i - w:\n            minq.popleft()\n        if i >= w - 1:\n            spread = a[maxq[0]] - a[minq[0]]\n            if best is None or spread < best:\n                best = spread\n    return 0 if best is None else best"
+          "referenceSolution": "def smallestSpread(readings: list[int], soakLength: int) -> int:\n    from collections import deque\n\n    maxq: deque[int] = deque()\n    minq: deque[int] = deque()\n    best = None\n    for i, v in enumerate(readings):\n        while maxq and readings[maxq[-1]] <= v:\n            maxq.pop()\n        maxq.append(i)\n        while minq and readings[minq[-1]] >= v:\n            minq.pop()\n        minq.append(i)\n        if maxq[0] <= i - soakLength:\n            maxq.popleft()\n        if minq[0] <= i - soakLength:\n            minq.popleft()\n        if i >= soakLength - 1:\n            spread = readings[maxq[0]] - readings[minq[0]]\n            if best is None or spread < best:\n                best = spread\n    return best"
         },
         "javascript": {
-          "referenceSolution": "function solve(values) {\n  if (values.length < 2) return 0;\n  const w = values[0];\n  const m = values.length - 1;\n  const maxq = [];\n  const minq = [];\n  let maxHead = 0;\n  let minHead = 0;\n  let best = 0;\n  let seen = false;\n  for (let i = 0; i < m; i++) {\n    const v = values[i + 1];\n    while (maxq.length > maxHead && values[maxq[maxq.length - 1] + 1] <= v) maxq.pop();\n    maxq.push(i);\n    while (minq.length > minHead && values[minq[minq.length - 1] + 1] >= v) minq.pop();\n    minq.push(i);\n    if (maxq[maxHead] <= i - w) maxHead++;\n    if (minq[minHead] <= i - w) minHead++;\n    if (i >= w - 1) {\n      const spread = values[maxq[maxHead] + 1] - values[minq[minHead] + 1];\n      if (!seen || spread < best) { best = spread; seen = true; }\n    }\n  }\n  return best;\n}"
+          "referenceSolution": "function smallestSpread(readings, soakLength) {\n  const maxq = [];\n  const minq = [];\n  let maxHead = 0;\n  let minHead = 0;\n  let best = 0;\n  let seen = false;\n  for (let i = 0; i < readings.length; i++) {\n    const v = readings[i];\n    while (maxq.length > maxHead && readings[maxq[maxq.length - 1]] <= v) maxq.pop();\n    maxq.push(i);\n    while (minq.length > minHead && readings[minq[minq.length - 1]] >= v) minq.pop();\n    minq.push(i);\n    if (maxq[maxHead] <= i - soakLength) maxHead++;\n    if (minq[minHead] <= i - soakLength) minHead++;\n    if (i >= soakLength - 1) {\n      const spread = readings[maxq[maxHead]] - readings[minq[minHead]];\n      if (!seen || spread < best) { best = spread; seen = true; }\n    }\n  }\n  return best;\n}"
         }
       },
       "provenance": {
@@ -482,30 +487,36 @@
       "primaryTopic": "two-pointers-sliding-window",
       "topics": ["two-pointers-sliding-window", "pair-target-count"],
       "problemType": "function",
-      "shape": "int-array-to-int",
-      "version": 1,
+      "shape": "int-array-int-to-int",
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 20,
       "difficultyCalibration": 0,
-      "story": "Museum Ticket Pair Count is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise distinct target pairs result before the next decision can be made.",
-      "statement": "Implement the required function for Museum Ticket Pair Count. Interpret the supplied sequence exactly as described in the input contract, compute the distinct target pairs, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "values[0] is the target. The remaining elements form the collection to pair.",
-      "outputFormat": "Return the number of distinct unordered value pairs whose sum equals the target.",
+      "story": "A museum sells single tickets at a range of prices and runs a promotion on pairs: any two tickets whose prices add up to exactly the promotion total can be bought together. The till needs to know how many genuinely different pairings the promotion allows, because two pairings that use the same two prices are the same offer to a visitor even when the tickets came from different parts of the list.",
+      "statement": "Count the distinct unordered pairs of ticket prices that sum to the promotion total. Two pairs are the same when they use the same two prices, so a price that appears many times still contributes at most one pairing with any given partner. A pair must use two different tickets, which means an equal-priced pair needs two tickets at that price.",
+      "inputFormat": "The first number is the promotion total. Every number after it is one ticket price, in the order they were listed. The museum may have listed no tickets at all.",
+      "outputFormat": "Return one integer: how many distinct price pairs reach the promotion total.",
       "functionContract": {
-        "functionName": "solve",
+        "functionName": "countPairs",
         "parameters": [
           {
-            "name": "values",
+            "name": "prices",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "One ticket price per entry, in the order they were listed."
+          },
+          {
+            "name": "target",
+            "type": "integer",
+            "description": "The combined price a pair of tickets has to reach."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
-        "1 <= values.length <= 200001",
-        "-1000000000 <= every integer <= 1000000000",
-        "A pair uses two different positions; equal-value pairs need two copies."
+        "0 <= prices.length <= 200000",
+        "-1000000000 <= target <= 1000000000",
+        "-1000000000 <= every price <= 1000000000",
+        "A pair uses two different tickets; an equal-priced pair needs two tickets at that price."
       ],
       "examples": [
         {
@@ -581,19 +592,19 @@
       },
       "languages": {
         "c11": {
-          "referenceSolution": "int cmp_ll(const void*a,const void*b){long long x=*(const long long*)a,y=*(const long long*)b;return x>y?1:x<y?-1:0;}\nlong long solve(const long long*v,int n){if(n<3)return 0;long long*a=malloc(sizeof(long long)*(n-1));memcpy(a,v+1,sizeof(long long)*(n-1));qsort(a,n-1,sizeof(long long),cmp_ll);int l=0,r=n-2;long long c=0;while(l<r){long long s=a[l]+a[r];if(s==v[0]){c++;long long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}free(a);return c;}"
+          "referenceSolution": "static int compareLongLong(const void *a, const void *b) {\n  long long x = *(const long long *)a;\n  long long y = *(const long long *)b;\n  return (x > y) - (x < y);\n}\n\nlong long countPairs(const long long *prices, int n, long long target) {\n  /* Needed in C only: copying zero bytes from a zero-size allocation is undefined. */\n  if (n < 2) return 0;\n  long long *sorted = (long long *)malloc(sizeof(long long) * (size_t)n);\n  memcpy(sorted, prices, sizeof(long long) * (size_t)n);\n  qsort(sorted, (size_t)n, sizeof(long long), compareLongLong);\n  int left = 0, right = n - 1;\n  long long found = 0;\n  while (left < right) {\n    long long total = sorted[left] + sorted[right];\n    if (total == target) {\n      found++;\n      long long low = sorted[left], high = sorted[right];\n      while (left < right && sorted[left] == low) left++;\n      while (left < right && sorted[right] == high) right--;\n    } else if (total < target) {\n      left++;\n    } else {\n      right--;\n    }\n  }\n  free(sorted);\n  return found;\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;auto a=vector<long long>(v.begin()+1,v.end());sort(a.begin(),a.end());int l=0,r=(int)a.size()-1;long long c=0;while(l<r){auto s=a[l]+a[r];if(s==v[0]){c++;auto x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+          "referenceSolution": "long long countPairs(const vector<long long>& prices, long long target) {\n  vector<long long> sorted = prices;\n  sort(sorted.begin(), sorted.end());\n  int left = 0, right = (int)sorted.size() - 1;\n  long long found = 0;\n  while (left < right) {\n    long long total = sorted[left] + sorted[right];\n    if (total == target) {\n      found++;\n      long long low = sorted[left], high = sorted[right];\n      while (left < right && sorted[left] == low) left++;\n      while (left < right && sorted[right] == high) right--;\n    } else if (total < target) {\n      left++;\n    } else {\n      right--;\n    }\n  }\n  return found;\n}"
         },
         "java": {
-          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;long[]a=Arrays.copyOfRange(v,1,v.length);Arrays.sort(a);int l=0,r=a.length-1;long c=0;while(l<r){long s=a[l]+a[r];if(s==v[0]){c++;long x=a[l],y=a[r];while(l<r&&a[l]==x)l++;while(l<r&&a[r]==y)r--;}else if(s<v[0])l++;else r--;}return c;}"
+          "referenceSolution": "static long countPairs(long[] prices, long target) {\n  long[] sorted = prices.clone();\n  Arrays.sort(sorted);\n  int left = 0, right = sorted.length - 1;\n  long found = 0L;\n  while (left < right) {\n    long total = sorted[left] + sorted[right];\n    if (total == target) {\n      found++;\n      long low = sorted[left], high = sorted[right];\n      while (left < right && sorted[left] == low) left++;\n      while (left < right && sorted[right] == high) right--;\n    } else if (total < target) {\n      left++;\n    } else {\n      right--;\n    }\n  }\n  return found;\n}"
         },
         "python3": {
-          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v: return 0\n    t,a=v[0],sorted(v[1:]);l,r,c=0,len(a)-1,0\n    while l<r:\n        s=a[l]+a[r]\n        if s==t:\n            c+=1;x,y=a[l],a[r]\n            while l<r and a[l]==x:l+=1\n            while l<r and a[r]==y:r-=1\n        elif s<t:l+=1\n        else:r-=1\n    return c"
+          "referenceSolution": "def countPairs(prices: list[int], target: int) -> int:\n    ordered = sorted(prices)\n    left, right = 0, len(ordered) - 1\n    found = 0\n    while left < right:\n        total = ordered[left] + ordered[right]\n        if total == target:\n            found += 1\n            low, high = ordered[left], ordered[right]\n            while left < right and ordered[left] == low:\n                left += 1\n            while left < right and ordered[right] == high:\n                right -= 1\n        elif total < target:\n            left += 1\n        else:\n            right -= 1\n    return found"
         },
         "javascript": {
-          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],a=v.slice(1).sort((x,y)=>x-y);let l=0,r=a.length-1,c=0;while(l<r){const s=a[l]+a[r];if(s===t){c++;const x=a[l],y=a[r];while(l<r&&a[l]===x)l++;while(l<r&&a[r]===y)r--;}else if(s<t)l++;else r--;}return c;}"
+          "referenceSolution": "function countPairs(prices, target) {\n  const sorted = prices.slice().sort((a, b) => a - b);\n  let left = 0;\n  let right = sorted.length - 1;\n  let found = 0;\n  while (left < right) {\n    const total = sorted[left] + sorted[right];\n    if (total === target) {\n      found++;\n      const low = sorted[left];\n      const high = sorted[right];\n      while (left < right && sorted[left] === low) left++;\n      while (left < right && sorted[right] === high) right--;\n    } else if (total < target) {\n      left++;\n    } else {\n      right--;\n    }\n  }\n  return found;\n}"
         }
       },
       "provenance": {
@@ -644,30 +655,36 @@
       "primaryTopic": "binary-search",
       "topics": ["binary-search", "lower-bound"],
       "problemType": "function",
-      "shape": "int-array-to-int",
-      "version": 1,
+      "shape": "int-array-int-to-int",
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 20,
       "difficultyCalibration": 0,
-      "story": "Sorted Dock Insertion is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise first valid sorted position result before the next decision can be made.",
-      "statement": "Implement the required function for Sorted Dock Insertion. Interpret the supplied sequence exactly as described in the input contract, compute the first valid sorted position, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "values[0] is the query target. values[1..] is a nondecreasing sorted sequence.",
-      "outputFormat": "Return the zero-based position inside the sorted sequence where target first could appear.",
+      "story": "A dock lists its berths by length, shortest first, and keeps the list in that order as berths are added. When a vessel arrives the harbour office needs the position its length would take in that list, so a new berth can be slotted in without re-sorting the whole dock. A vessel exactly as long as an existing berth is placed before it, so the earliest valid position is the one reported.",
+      "statement": "Return the zero-based position at which the vessel length would first appear in the berth list while keeping it in nondecreasing order. When the vessel is longer than every berth the answer is the length of the list, because it belongs at the end.",
+      "inputFormat": "The first number is the vessel length. Every number after it is one berth length, in nondecreasing order. The dock may have no berths at all.",
+      "outputFormat": "Return one integer: the zero-based position where the vessel length first belongs.",
       "functionContract": {
-        "functionName": "solve",
+        "functionName": "insertionIndex",
         "parameters": [
           {
-            "name": "values",
+            "name": "berths",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "Berth lengths along the dock, in nondecreasing order."
+          },
+          {
+            "name": "target",
+            "type": "integer",
+            "description": "The length of the vessel looking for a berth."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
-        "1 <= values.length <= 200001",
-        "values[1..] is sorted in nondecreasing order",
-        "The answer may equal the sequence length."
+        "0 <= berths.length <= 200000",
+        "berths is sorted in nondecreasing order",
+        "-1000000000 <= target <= 1000000000",
+        "The answer may equal berths.length."
       ],
       "examples": [
         {
@@ -743,19 +760,19 @@
       },
       "languages": {
         "c11": {
-          "referenceSolution": "long long solve(const long long*v,int n){if(!n)return 0;int l=1,r=n;while(l<r){int m=l+(r-l)/2;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+          "referenceSolution": "long long insertionIndex(const long long *berths, int n, long long target) {\n  int low = 0, high = n;\n  while (low < high) {\n    int mid = low + (high - low) / 2;\n    if (berths[mid] < target) low = mid + 1;\n    else high = mid;\n  }\n  return low;\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;return lower_bound(v.begin()+1,v.end(),v[0])-(v.begin()+1);}"
+          "referenceSolution": "long long insertionIndex(const vector<long long>& berths, long long target) {\n  return lower_bound(berths.begin(), berths.end(), target) - berths.begin();\n}"
         },
         "java": {
-          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;int l=1,r=v.length;while(l<r){int m=(l+r)>>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+          "referenceSolution": "static long insertionIndex(long[] berths, long target) {\n  int low = 0, high = berths.length;\n  while (low < high) {\n    int mid = low + (high - low) / 2;\n    if (berths[mid] < target) low = mid + 1;\n    else high = mid;\n  }\n  return low;\n}"
         },
         "python3": {
-          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    import bisect\n    return bisect.bisect_left(v[1:],v[0])"
+          "referenceSolution": "def insertionIndex(berths: list[int], target: int) -> int:\n    import bisect\n\n    return bisect.bisect_left(berths, target)"
         },
         "javascript": {
-          "referenceSolution": "function solve(v){if(!v.length)return 0;let l=1,r=v.length;while(l<r){const m=(l+r)>>1;if(v[m]>=v[0])r=m;else l=m+1;}return l-1;}"
+          "referenceSolution": "function insertionIndex(berths, target) {\n  let low = 0;\n  let high = berths.length;\n  while (low < high) {\n    const mid = low + Math.floor((high - low) / 2);\n    if (berths[mid] < target) low = mid + 1;\n    else high = mid;\n  }\n  return low;\n}"
         }
       },
       "provenance": {
@@ -806,8 +823,8 @@
       "primaryTopic": "binary-search",
       "topics": ["binary-search", "binary-search-on-answer"],
       "problemType": "function",
-      "shape": "int-array-to-int",
-      "version": 1,
+      "shape": "int-array-int-to-int",
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 50,
       "difficultyCalibration": 0,
@@ -816,19 +833,24 @@
       "inputFormat": "The first number is how many crossings the ferry can make today. Every number after it is the weight of one vehicle in kilograms, in the order the vehicles stand in the queue.",
       "outputFormat": "Return one integer: the smallest weight rating that clears the whole queue within the available crossings.",
       "functionContract": {
-        "functionName": "solve",
+        "functionName": "smallestRating",
         "parameters": [
           {
-            "name": "values",
+            "name": "weights",
             "type": "integer[]",
-            "description": "The number of crossings available, followed by the weight of each vehicle in queue order."
+            "description": "Vehicle weights in kilograms, in the order the queue boards."
+          },
+          {
+            "name": "crossings",
+            "type": "integer",
+            "description": "How many crossings the ferry can make today."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
-        "2 <= values.length <= 200001",
-        "The queue holds n = values.length - 1 vehicles, and 1 <= crossings <= n",
+        "1 <= weights.length <= 200000",
+        "1 <= crossings <= weights.length",
         "1 <= every vehicle weight <= 1000000000",
         "The answer can exceed the range of a 32-bit signed integer: one crossing carrying a full queue may total 200000000000000"
       ],
@@ -934,19 +956,19 @@
       },
       "languages": {
         "c11": {
-          "referenceSolution": "long long solve(const long long *values, int n) {\n  if (n < 2) return 0;\n  long long crossings = values[0];\n  long long low = 0, high = 0;\n  for (int i = 1; i < n; i++) {\n    if (values[i] > low) low = values[i];\n    high += values[i];\n  }\n  while (low < high) {\n    long long mid = low + (high - low) / 2;\n    long long used = 1, load = 0;\n    for (int i = 1; i < n; i++) {\n      if (load + values[i] > mid) { used++; load = values[i]; }\n      else load += values[i];\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
+          "referenceSolution": "long long smallestRating(const long long *weights, int n, long long crossings) {\n  long long low = 0, high = 0;\n  for (int i = 0; i < n; i++) {\n    if (weights[i] > low) low = weights[i];\n    high += weights[i];\n  }\n  while (low < high) {\n    long long mid = low + (high - low) / 2;\n    long long used = 1, load = 0;\n    for (int i = 0; i < n; i++) {\n      if (load + weights[i] > mid) { used++; load = weights[i]; }\n      else load += weights[i];\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long solve(const vector<long long>& values) {\n  if (values.size() < 2) return 0;\n  long long crossings = values[0];\n  long long low = 0, high = 0;\n  for (size_t i = 1; i < values.size(); i++) {\n    low = max(low, values[i]);\n    high += values[i];\n  }\n  while (low < high) {\n    long long mid = low + (high - low) / 2;\n    long long used = 1, load = 0;\n    for (size_t i = 1; i < values.size(); i++) {\n      if (load + values[i] > mid) { used++; load = values[i]; }\n      else load += values[i];\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
+          "referenceSolution": "long long smallestRating(const vector<long long>& weights, long long crossings) {\n  long long low = 0, high = 0;\n  for (long long weight : weights) {\n    low = max(low, weight);\n    high += weight;\n  }\n  while (low < high) {\n    long long mid = low + (high - low) / 2;\n    long long used = 1, load = 0;\n    for (long long weight : weights) {\n      if (load + weight > mid) { used++; load = weight; }\n      else load += weight;\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
         },
         "java": {
-          "referenceSolution": "static long solve(long[] values) {\n  if (values.length < 2) return 0L;\n  long crossings = values[0];\n  long low = 0L, high = 0L;\n  for (int i = 1; i < values.length; i++) {\n    if (values[i] > low) low = values[i];\n    high += values[i];\n  }\n  while (low < high) {\n    long mid = low + (high - low) / 2;\n    long used = 1L, load = 0L;\n    for (int i = 1; i < values.length; i++) {\n      if (load + values[i] > mid) { used++; load = values[i]; }\n      else load += values[i];\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
+          "referenceSolution": "static long smallestRating(long[] weights, long crossings) {\n  long low = 0L, high = 0L;\n  for (long weight : weights) {\n    if (weight > low) low = weight;\n    high += weight;\n  }\n  while (low < high) {\n    long mid = low + (high - low) / 2;\n    long used = 1L, load = 0L;\n    for (long weight : weights) {\n      if (load + weight > mid) { used++; load = weight; }\n      else load += weight;\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
         },
         "python3": {
-          "referenceSolution": "def solve(values: list[int]) -> int:\n    if len(values) < 2:\n        return 0\n    crossings = values[0]\n    weights = values[1:]\n    low = max(weights)\n    high = sum(weights)\n    while low < high:\n        mid = (low + high) // 2\n        used = 1\n        load = 0\n        for weight in weights:\n            if load + weight > mid:\n                used += 1\n                load = weight\n            else:\n                load += weight\n        if used <= crossings:\n            high = mid\n        else:\n            low = mid + 1\n    return low"
+          "referenceSolution": "def smallestRating(weights: list[int], crossings: int) -> int:\n    low = max(weights)\n    high = sum(weights)\n    while low < high:\n        mid = (low + high) // 2\n        used = 1\n        load = 0\n        for weight in weights:\n            if load + weight > mid:\n                used += 1\n                load = weight\n            else:\n                load += weight\n        if used <= crossings:\n            high = mid\n        else:\n            low = mid + 1\n    return low"
         },
         "javascript": {
-          "referenceSolution": "function solve(values) {\n  if (values.length < 2) return 0;\n  const crossings = values[0];\n  let low = 0;\n  let high = 0;\n  for (let i = 1; i < values.length; i++) {\n    if (values[i] > low) low = values[i];\n    high += values[i];\n  }\n  while (low < high) {\n    const mid = Math.floor((low + high) / 2);\n    let used = 1;\n    let load = 0;\n    for (let i = 1; i < values.length; i++) {\n      if (load + values[i] > mid) {\n        used++;\n        load = values[i];\n      } else {\n        load += values[i];\n      }\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
+          "referenceSolution": "function smallestRating(weights, crossings) {\n  let low = 0;\n  let high = 0;\n  for (const weight of weights) {\n    if (weight > low) low = weight;\n    high += weight;\n  }\n  while (low < high) {\n    const mid = Math.floor((low + high) / 2);\n    let used = 1;\n    let load = 0;\n    for (const weight of weights) {\n      if (load + weight > mid) {\n        used++;\n        load = weight;\n      } else {\n        load += weight;\n      }\n    }\n    if (used <= crossings) high = mid;\n    else low = mid + 1;\n  }\n  return low;\n}"
         }
       },
       "provenance": {
@@ -1288,30 +1310,35 @@
       "primaryTopic": "linked-list",
       "topics": ["linked-list", "kth-from-end"],
       "problemType": "function",
-      "shape": "int-array-to-int",
-      "version": 1,
+      "shape": "int-array-int-to-int",
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 20,
       "difficultyCalibration": 0,
-      "story": "Pipeline Segment From End is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise reverse-rank chain lookup result before the next decision can be made.",
-      "statement": "Implement the required function for Pipeline Segment From End. Interpret the supplied sequence exactly as described in the input contract, compute the reverse-rank chain lookup, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "values[0] is k (one means the tail). values[1..] lists linked-list node values from head to tail.",
-      "outputFormat": "Return the value of the kth node from the end, or -1 when k is outside the chain.",
+      "story": "A pipeline is inspected head to tail and each segment reports one reading. Operators count back from the far end rather than forward from the head, because the tail is the fixed reference: the segment nearest the outflow is the first one counted. A count that runs off the start of the pipeline has no segment to report.",
+      "statement": "Return the reading of the kth segment counting back from the tail, where k of one means the tail segment itself. When k reaches past the head of the pipeline there is no such segment, and the answer is -1.",
+      "inputFormat": "The first number is k. Every number after it is one segment reading, from the head of the pipeline to its tail.",
+      "outputFormat": "Return one integer: the reading of the kth segment from the tail, or -1 when k runs past the head.",
       "functionContract": {
-        "functionName": "solve",
+        "functionName": "valueFromEnd",
         "parameters": [
           {
-            "name": "values",
+            "name": "segments",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "Segment readings from the head of the pipeline to its tail."
+          },
+          {
+            "name": "k",
+            "type": "integer",
+            "description": "How far back from the tail to look; one means the tail itself."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
-        "1 <= values.length <= 200001",
+        "0 <= segments.length <= 200000",
         "1 <= k <= 1000000000",
-        "Node values fit in signed 32-bit integers."
+        "Segment readings fit in signed 32-bit integers."
       ],
       "examples": [
         {
@@ -1387,19 +1414,19 @@
       },
       "languages": {
         "c11": {
-          "referenceSolution": "long long solve(const long long*v,int n){if(n<2||v[0]<1||v[0]>n-1)return -1;return v[n-(int)v[0]];}"
+          "referenceSolution": "long long valueFromEnd(const long long *segments, int n, long long k) {\n  if (k > n) return -1;\n  return segments[n - k];\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long solve(const vector<long long>&v){return v.size()>1&&v[0]>=1&&v[0]<(long long)v.size()?v[v.size()-v[0]]:-1;}"
+          "referenceSolution": "long long valueFromEnd(const vector<long long>& segments, long long k) {\n  long long n = (long long)segments.size();\n  if (k > n) return -1;\n  return segments[n - k];\n}"
         },
         "java": {
-          "referenceSolution": "static long solve(long[]v){return v.length>1&&v[0]>=1&&v[0]<v.length?v[v.length-(int)v[0]]:-1;}"
+          "referenceSolution": "static long valueFromEnd(long[] segments, long k) {\n  if (k > segments.length) return -1L;\n  return segments[(int) (segments.length - k)];\n}"
         },
         "python3": {
-          "referenceSolution": "def solve(v: list[int]) -> int:\n    return v[-v[0]] if len(v)>1 and 1<=v[0]<len(v) else -1"
+          "referenceSolution": "def valueFromEnd(segments: list[int], k: int) -> int:\n    if k > len(segments):\n        return -1\n    return segments[len(segments) - k]"
         },
         "javascript": {
-          "referenceSolution": "function solve(v){return v.length>1&&v[0]>=1&&v[0]<v.length?v[v.length-v[0]]:-1;}"
+          "referenceSolution": "function valueFromEnd(segments, k) {\n  if (k > segments.length) return -1;\n  return segments[segments.length - k];\n}"
         }
       },
       "provenance": {
@@ -2091,34 +2118,40 @@
     {
       "slug": "donation-target-subsets",
       "title": "Donation Target Subsets",
-      "difficulty": "easy",
+      "difficulty": "medium",
       "primaryTopic": "backtracking-trie-bit",
       "topics": ["backtracking-trie-bit", "subset-target-count"],
       "problemType": "function",
-      "shape": "int-array-to-int",
-      "version": 1,
+      "shape": "int-array-int-to-int",
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 20,
       "difficultyCalibration": 0,
-      "story": "Donation Target Subsets is an independent Quadrantcode practice scenario. A planning team has reduced its observations to an integer sequence and needs a precise target-sum subset count result before the next decision can be made.",
-      "statement": "Implement the required function for Donation Target Subsets. Interpret the supplied sequence exactly as described in the input contract, compute the target-sum subset count, and return only the requested integer. The function must handle boundary cases and the largest stated input without modifying any external state.",
-      "inputFormat": "values[0] is a nonnegative target. Remaining nonnegative integers may each be selected at most once.",
-      "outputFormat": "Return the number of index-distinct subsets whose sum is exactly target.",
+      "story": "A charity has a shelf of pledged donations and a single funding target. It wants to know in how many ways it could accept a selection of those pledges and land on the target exactly — not which selection, only how many there are, because the trustees need to know whether the target is reachable in one obvious way or in dozens.",
+      "statement": "Count the selections of pledges whose amounts sum to exactly the target. Each pledge may be accepted at most once, and two selections differ when they accept a different set of pledges — so two pledges of equal amount are still two distinct pledges. The empty selection counts when the target is zero.",
+      "inputFormat": "The first number is the funding target. Every number after it is one pledged amount, in the order they were recorded.",
+      "outputFormat": "Return one integer: how many index-distinct selections of pledges sum to exactly the target.",
       "functionContract": {
-        "functionName": "solve",
+        "functionName": "countSubsets",
         "parameters": [
           {
-            "name": "values",
+            "name": "donations",
             "type": "integer[]",
-            "description": "The complete integer encoding described by this problem."
+            "description": "Pledged amounts, each of which may be accepted at most once."
+          },
+          {
+            "name": "target",
+            "type": "integer",
+            "description": "The total the accepted pledges must reach exactly."
           }
         ],
         "returnType": "64-bit integer"
       },
       "constraints": [
-        "1 <= values.length <= 45",
+        "0 <= donations.length <= 44",
         "0 <= target <= 10000",
-        "0 <= candidate value <= target; the answer fits signed 64-bit range."
+        "0 <= every pledged amount <= target",
+        "The answer fits in signed 64-bit range."
       ],
       "examples": [
         {
@@ -2194,19 +2227,19 @@
       },
       "languages": {
         "c11": {
-          "referenceSolution": "long long solve(const long long*v,int n){if(!n)return 0;int t=v[0];long long*d=calloc(t+1,sizeof(long long));d[0]=1;for(int i=1;i<n;i++)for(int s=t;s>=v[i];s--)d[s]+=d[s-v[i]];long long a=d[t];free(d);return a;}"
+          "referenceSolution": "long long countSubsets(const long long *donations, int n, long long target) {\n  long long *ways = (long long *)calloc((size_t)target + 1, sizeof(long long));\n  ways[0] = 1;\n  for (int i = 0; i < n; i++) {\n    for (long long total = target; total >= donations[i]; total--) {\n      ways[total] += ways[total - donations[i]];\n    }\n  }\n  long long answer = ways[target];\n  free(ways);\n  return answer;\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long solve(const vector<long long>&v){if(v.empty())return 0;int t=v[0];vector<long long>d(t+1);d[0]=1;for(int i=1;i<(int)v.size();i++)for(int s=t;s>=v[i];s--)d[s]+=d[s-v[i]];return d[t];}"
+          "referenceSolution": "long long countSubsets(const vector<long long>& donations, long long target) {\n  vector<long long> ways(target + 1, 0);\n  ways[0] = 1;\n  for (long long amount : donations) {\n    for (long long total = target; total >= amount; total--) {\n      ways[total] += ways[total - amount];\n    }\n  }\n  return ways[target];\n}"
         },
         "java": {
-          "referenceSolution": "static long solve(long[]v){if(v.length==0)return 0;int t=(int)v[0];long[]d=new long[t+1];d[0]=1;for(int i=1;i<v.length;i++)for(int s=t;s>=v[i];s--)d[s]+=d[s-(int)v[i]];return d[t];}"
+          "referenceSolution": "static long countSubsets(long[] donations, long target) {\n  int t = (int) target;\n  long[] ways = new long[t + 1];\n  ways[0] = 1L;\n  for (long amount : donations) {\n    int a = (int) amount;\n    for (int total = t; total >= a; total--) {\n      ways[total] += ways[total - a];\n    }\n  }\n  return ways[t];\n}"
         },
         "python3": {
-          "referenceSolution": "def solve(v: list[int]) -> int:\n    if not v:return 0\n    t=v[0];d=[0]*(t+1);d[0]=1\n    for x in v[1:]:\n        for s in range(t,x-1,-1):d[s]+=d[s-x]\n    return d[t]"
+          "referenceSolution": "def countSubsets(donations: list[int], target: int) -> int:\n    ways = [0] * (target + 1)\n    ways[0] = 1\n    for amount in donations:\n        for total in range(target, amount - 1, -1):\n            ways[total] += ways[total - amount]\n    return ways[target]"
         },
         "javascript": {
-          "referenceSolution": "function solve(v){if(!v.length)return 0;const t=v[0],d=Array(t+1).fill(0);d[0]=1;for(const x of v.slice(1))for(let s=t;s>=x;s--)d[s]+=d[s-x];return d[t];}"
+          "referenceSolution": "function countSubsets(donations, target) {\n  const ways = new Array(target + 1).fill(0);\n  ways[0] = 1;\n  for (const amount of donations) {\n    for (let total = target; total >= amount; total--) {\n      ways[total] += ways[total - amount];\n    }\n  }\n  return ways[target];\n}"
         }
       },
       "provenance": {
