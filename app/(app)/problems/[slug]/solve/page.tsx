@@ -30,7 +30,7 @@ import { EXECUTION_LIMITS } from '@/server/services/execution';
 import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
-import { startSessionAction } from '../../../sessions/actions';
+import { completeSessionAction, startSessionAction } from '../../../sessions/actions';
 import { submitRunAction } from './actions';
 import { getPublicNativeProblem } from '@/server/services/native-content';
 
@@ -173,6 +173,15 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
               */
               exampleInputs={native?.examples.map((example) => example.input) ?? []}
               onSubmit={submitRunAction}
+              /*
+                Only for an ORIGINAL problem in a live sitting. An external
+                problem's accepted run is not a correctness claim (C1), so
+                offering to close the sitting on one would be asserting
+                something the verdict does not support.
+              */
+              {...(problem.sourceType === 'original'
+                ? { onCompleteSession: completeSessionAction }
+                : {})}
               problemId={problem.id}
               sessionId={sessionId}
             />
