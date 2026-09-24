@@ -2304,3 +2304,97 @@ names no winner.
   the ticket's criteria; nothing new was needed.
 - The modes service has its own entry point, `revision/modes`, because it starts
   sessions through the lifecycle, which already imports the revision engine.
+
+---
+
+## D35 · F4.7a: public profiles, where the view type is the privacy contract
+
+**Date:** 2026-09-24 · **Status:** built. Public profiles stay OFF per account
+until the owner turns theirs on; there is no feature flag, because the per-user
+opt-in already is the switch. F4.7b (landing, SEO, screenshots) follows as a
+separate PR.
+
+### Scope, and what the ticket asked for that is not built
+
+The second of the four re-scoped tickets (D34). Built: a user-chosen handle,
+`/u/<handle>`, a per-section toggle for each of the four sections, and a monthly
+report card as an image at the three sizes the ticket names. **Not built, and
+why:** "contest participation" (F2.5 is cut — there is nothing to show) and the
+referral flow (bound to F4.3's anti-abuse conditions, and F4.3 is cut). Neither
+is stubbed: a section with no data behind it would be the unverifiable claim
+the ticket's own honesty rule forbids.
+
+### The handle: chosen, not generated
+
+Generating one from the display name or email was rejected because the email
+route puts part of an address into a public URL. So `user_profiles.handle` is
+nullable, the user chooses it, and **a public profile cannot be switched on
+without one** — checked against the row as saved, inside the transaction, so a
+stored handle counts and clearing it while public is refused.
+
+One rule in two places, as one string: `HANDLE_PATTERN_SOURCE` in
+`lib/profile/handle.ts` is both the Zod regex and the `user_profiles_handle_format`
+CHECK. Lowercase-only is what makes the partial unique index case-insensitive
+without a `lower()` expression. Reserved words (`admin`, `support`, …) are Zod
+only: a list that grows does not belong in a CHECK.
+
+**An absent field means "unchanged", never "default".** Onboarding saves through
+the same schema without the new fields; a default there would have wiped a
+chosen handle or re-shown a hidden section on every save. Tested directly.
+
+### What a public profile may contain
+
+`PublicProfileView` is the contract: a field that is not on it cannot reach the
+page or a card. It has no email, **no bio**, no code, notes, mistakes or
+reflections. The bio is left out because the disclosure the user agreed to —
+rendered verbatim beside the toggle — names display name, avatar, and the
+sections; the page shows what the user was told, not more. The disclosure was
+updated to name the fourth section, longest streak.
+
+Two details that would otherwise leak:
+
+- **Avatar initials fall back to the email** when there is no display name.
+  The public service passes an empty email, and falls back to the handle for
+  the name, so neither can surface an address.
+- **The stored streak is a cache (D18/D19).** A public page trusting it would
+  show a streak that already broke, so the service recomputes on read, as the
+  shell does.
+
+Sections that are off are `null` and **their queries do not run** — the same
+"never loaded" rule as D34's blind retry.
+
+### One gate, one 404
+
+Every entry point goes through one lookup whose WHERE clause is
+`public_profile_enabled AND handle = ? AND not deleted`. A profile that is off,
+unhandled or deleted is the same 404 as a handle that never existed, so the
+page cannot be used to test whether an account exists.
+
+### Not indexed
+
+`/u/<handle>` is `noindex`. The owner chose to be reachable by a link; being
+listed by search engines is a further exposure they were not asked about. The
+share cards are the intended way to be found. Revisit only with an explicit
+per-user "let search engines index me" choice.
+
+### Share cards
+
+`/u/<handle>/card/linkedin|x|whatsapp` — 1200×627, 1600×900, 1080×1080 — via
+`next/og` on the Node runtime (it queries the database). Each number is one of
+the owner's enabled sections; one that is off is absent, not zero. Cached an
+hour, because the numbers move daily. The e2e spec reads each PNG's IHDR, so
+"renders at all three sizes" is a measured fact rather than a declared one.
+
+### Evidence
+
+- 12 integration tests, including the privacy test with a positive control: a
+  deliberate bio leak into the view made it fail. The format CHECK is proved by
+  a direct write the service never makes (`23514`).
+- `e2e/public-profile.spec.ts` captures every payload of the page as a
+  signed-out visitor, with prefetches, and finds none of the code, approach,
+  stuck note, bio or email — while finding the display name and topic, which is
+  the control.
+- `tests/security/routes.test.ts` now lists both routes as PUBLIC, each with
+  its reason, as that file requires.
+- Migration `0027_public_profile` is additive: one nullable column, four
+  booleans with defaults, a partial unique index and a CHECK.

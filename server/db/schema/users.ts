@@ -14,6 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { HANDLE_PATTERN_SOURCE } from '@/lib/profile/handle';
 import { targetRoleEnum, userRoleEnum, verificationMethodEnum } from './enums';
 
 export const users = pgTable(
@@ -92,6 +93,24 @@ export const userProfiles = pgTable(
     publicProfileEnabled: boolean().notNull().default(false),
 
     /**
+     * F4.7 · the `/u/[handle]` address, chosen by the user. Null until they
+     * choose one, and a public profile cannot be switched on without it.
+     * Format and uniqueness are enforced below as well as in Zod.
+     */
+    handle: text(),
+
+    /*
+     * F4.7 · which sections the public page shows. Default ON because they only
+     * matter once `publicProfileEnabled` is on — the master switch is the
+     * opt-in, and it defaults OFF. The disclosure text in `lib/profile/schemas`
+     * names exactly these four.
+     */
+    publicShowStreak: boolean().notNull().default(true),
+    publicShowLongestStreak: boolean().notNull().default(true),
+    publicShowTotalSolved: boolean().notNull().default(true),
+    publicShowTopics: boolean().notNull().default(true),
+
+    /**
      * F3.2 · whether code snapshots are captured during a solve.
      *
      * Default ON, unlike `publicProfileEnabled` above, and the difference is
@@ -123,6 +142,22 @@ export const userProfiles = pgTable(
       'user_profiles_display_name_length',
       sql`${table.displayName} is null
           or char_length(${table.displayName}) between 2 and 40`,
+    ),
+
+    /*
+     * F4.7 · one handle per profile, case-insensitively unique by construction:
+     * the pattern admits lowercase only. Partial, so any number of profiles
+     * may have none.
+     */
+    uniqueIndex('user_profiles_handle_key')
+      .on(table.handle)
+      .where(sql`${table.handle} is not null`),
+
+    // The pattern is a compile-time constant from `lib/profile/handle.ts`, so
+    // the Zod rule and this CHECK are the same string, not two copies.
+    check(
+      'user_profiles_handle_format',
+      sql`${table.handle} is null or ${table.handle} ~ ${sql.raw(`'${HANDLE_PATTERN_SOURCE}'`)}`,
     ),
   ],
 );
