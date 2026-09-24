@@ -29,7 +29,7 @@ import { type ParsedListFilters, listFiltersSchema } from '@/lib/problems/schema
  * original-content catalog is switched on at all, which is what lets a bad
  * import be hidden without archiving a hundred rows one at a time.
  */
-function originalsVisible(): boolean {
+export function originalsVisible(): boolean {
   return isFeatureEnabled('FEATURE_ORIGINAL_PROBLEMS');
 }
 
