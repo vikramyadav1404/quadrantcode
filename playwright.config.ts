@@ -90,6 +90,14 @@ export default defineConfig({
          */
         FEATURE_ORIGINAL_PROBLEMS: 'true',
         /*
+         * F2.2 · `revision-modes.spec.ts` drives the modes and the blind-retry
+         * payload check, all of which this flag gates, so it is on for the same
+         * reason as the flag above. `revision.spec.ts` (F2.1) runs under it too
+         * and still passes: the modes add controls beside the outcome buttons
+         * and remove none. See D34.
+         */
+        FEATURE_REVISION_MODES: 'true',
+        /*
          * `next start` sets NODE_ENV=production, where the rate limiter refuses
          * the in-memory fallback — correctly, since it would not limit anything
          * across serverless instances. This single-process test server is the one

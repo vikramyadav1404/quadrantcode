@@ -27,16 +27,23 @@
  */
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   date,
   index,
+  integer,
   jsonb,
   pgTable,
   timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { confidenceEnum, sessionEventTypeEnum, solveSessionStatusEnum } from './enums';
+import {
+  confidenceEnum,
+  revisionModeEnum,
+  sessionEventTypeEnum,
+  solveSessionStatusEnum,
+} from './enums';
 import { problems } from './problems';
 import { users } from './users';
 
@@ -84,6 +91,27 @@ export const solveSessions = pgTable(
 
     /** Self-reported, captured at completion. F1.5 adds the rest of the reflection. */
     confidence: confidenceEnum(),
+
+    /**
+     * F2.2 · the revision mode this sitting ran in, or null for an ordinary solve.
+     *
+     * Nullable and without a default because every session that existed before
+     * F2.2 was an ordinary solve, and null says exactly that — no backfill.
+     */
+    revisionMode: revisionModeEnum(),
+
+    /**
+     * F2.2 speed mode only: the target, fixed when the sitting starts as
+     * min(previous best, estimate). Stored rather than recomputed because the
+     * previous best moves the moment this sitting beats it.
+     */
+    speedTargetSeconds: integer(),
+
+    /**
+     * F2.2 speed mode only: whether the sitting was solved within the target.
+     * Null until a speed sitting finishes; always null for other modes.
+     */
+    speedTargetMet: boolean(),
 
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -160,6 +188,24 @@ export const solveSessions = pgTable(
       'solve_sessions_heartbeat_after_start',
       sql`
       ${table.lastHeartbeatAt} >= ${table.startedAt}
+    `,
+    ),
+
+    /**
+     * F2.2 · a speed sitting has a positive target and nothing else does; a
+     * hit/miss exists only on a finished speed sitting. One constraint because
+     * the three columns are one fact, as with `solve_sessions_terminal_has_end`.
+     * Every pre-F2.2 row has all three null and satisfies it.
+     */
+    check(
+      'solve_sessions_speed_fields_consistent',
+      sql`
+      (${table.revisionMode} = 'speed'
+        and ${table.speedTargetSeconds} is not null and ${table.speedTargetSeconds} > 0
+        and (${table.speedTargetMet} is null or ${table.status} in ('solved', 'stuck', 'abandoned')))
+      or
+      (${table.revisionMode} is distinct from 'speed'
+        and ${table.speedTargetSeconds} is null and ${table.speedTargetMet} is null)
     `,
     ),
   ],

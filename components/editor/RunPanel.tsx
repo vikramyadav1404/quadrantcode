@@ -52,8 +52,11 @@ export function RunPanel({
   starters,
   exampleInputs,
   onCompleteSession,
+  draftScope,
 }: {
   problemId: string;
+  /** F2.2 · a separate draft namespace for this sitting — see `draftKey`. */
+  draftScope?: string;
   /**
    * The sitting this run belongs to, resolved on the server.
    *
@@ -119,17 +122,17 @@ export function RunPanel({
   useEffect(() => {
     let stored: string | null = null;
     try {
-      stored = window.localStorage.getItem(draftKey(problemId, language));
+      stored = window.localStorage.getItem(draftKey(problemId, language, draftScope));
     } catch {
       // Private mode, or storage disabled. A missing draft is not an error.
     }
     setSource(stored ?? starters?.[language] ?? LANGUAGE_STARTERS[language]);
-  }, [problemId, language, starters]);
+  }, [problemId, language, starters, draftScope]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
       try {
-        window.localStorage.setItem(draftKey(problemId, language), source);
+        window.localStorage.setItem(draftKey(problemId, language, draftScope), source);
       } catch {
         // Out of quota or blocked. Losing a draft is bad; crashing the editor
         // over it is worse.
@@ -137,7 +140,7 @@ export function RunPanel({
     }, 500);
 
     return () => clearTimeout(handle);
-  }, [problemId, language, source]);
+  }, [problemId, language, source, draftScope]);
 
   // A poll in flight must not outlive the page.
   useEffect(
