@@ -25,6 +25,11 @@ export default async function ProfileSettingsPage() {
           targetRole: profile.targetRole,
           timezone: profile.timezone,
           publicProfileEnabled: profile.publicProfileEnabled,
+          handle: profile.handle ?? '',
+          publicShowStreak: profile.publicShowStreak,
+          publicShowLongestStreak: profile.publicShowLongestStreak,
+          publicShowTotalSolved: profile.publicShowTotalSolved,
+          publicShowTopics: profile.publicShowTopics,
           avatarUrl: profile.avatarUrl,
         }}
       />

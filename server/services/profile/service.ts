@@ -22,6 +22,24 @@ export class ProfileNotFoundError extends Error {
   }
 }
 
+/** F4.7 · the handle is someone else's. */
+export class HandleTakenError extends Error {
+  readonly code = 'HANDLE_TAKEN' as const;
+  constructor() {
+    super('That handle is already taken. Try another.');
+    this.name = 'HandleTakenError';
+  }
+}
+
+/** F4.7 · a public profile needs an address before it can be switched on. */
+export class PublicProfileNeedsHandleError extends Error {
+  readonly code = 'PUBLIC_PROFILE_NEEDS_HANDLE' as const;
+  constructor() {
+    super('Choose a handle to turn on your public profile.');
+    this.name = 'PublicProfileNeedsHandleError';
+  }
+}
+
 export type Profile = {
   userId: string;
   email: string;
@@ -30,6 +48,12 @@ export type Profile = {
   targetRole: string | null;
   timezone: string;
   publicProfileEnabled: boolean;
+  /** F4.7 · null until chosen. */
+  handle: string | null;
+  publicShowStreak: boolean;
+  publicShowLongestStreak: boolean;
+  publicShowTotalSolved: boolean;
+  publicShowTopics: boolean;
   /** F3.2 · whether solve sessions capture code snapshots. */
   snapshotCaptureEnabled: boolean;
   avatarUrl: string | null;
@@ -49,6 +73,11 @@ export async function getProfile(db: Database, userId: string): Promise<Profile>
       publicProfileEnabled: userProfiles.publicProfileEnabled,
       snapshotCaptureEnabled: userProfiles.snapshotCaptureEnabled,
       avatarUrl: userProfiles.avatarUrl,
+      handle: userProfiles.handle,
+      publicShowStreak: userProfiles.publicShowStreak,
+      publicShowLongestStreak: userProfiles.publicShowLongestStreak,
+      publicShowTotalSolved: userProfiles.publicShowTotalSolved,
+      publicShowTopics: userProfiles.publicShowTopics,
     })
     .from(users)
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
@@ -65,6 +94,12 @@ export async function getProfile(db: Database, userId: string): Promise<Profile>
     targetRole: row.targetRole,
     timezone: row.timezone,
     publicProfileEnabled: row.publicProfileEnabled ?? false,
+    handle: row.handle ?? null,
+    // `?? true` matches the column defaults, for a user with no profile row yet.
+    publicShowStreak: row.publicShowStreak ?? true,
+    publicShowLongestStreak: row.publicShowLongestStreak ?? true,
+    publicShowTotalSolved: row.publicShowTotalSolved ?? true,
+    publicShowTopics: row.publicShowTopics ?? true,
     /*
      * `?? true` matches the column default, and the null it covers is a user
      * with no `user_profiles` row yet — someone who has never opened settings.
@@ -91,31 +126,88 @@ export async function updateProfile(
 ): Promise<Profile> {
   const input: UpdateProfileInput = updateProfileSchema.parse(rawInput);
 
-  await db.transaction(async (tx) => {
-    await tx.update(users).set({ timezone: input.timezone }).where(eq(users.id, userId));
+  /*
+   * F4.7 · only the fields the caller actually sent. Absent means "unchanged":
+   * onboarding saves without them, and writing a default would wipe a chosen
+   * handle or re-show a section the user hid.
+   */
+  const publicFields = {
+    ...(input.handle !== undefined
+      ? { handle: input.handle === '' ? null : input.handle }
+      : {}),
+    ...(input.publicShowStreak !== undefined
+      ? { publicShowStreak: input.publicShowStreak }
+      : {}),
+    ...(input.publicShowLongestStreak !== undefined
+      ? { publicShowLongestStreak: input.publicShowLongestStreak }
+      : {}),
+    ...(input.publicShowTotalSolved !== undefined
+      ? { publicShowTotalSolved: input.publicShowTotalSolved }
+      : {}),
+    ...(input.publicShowTopics !== undefined
+      ? { publicShowTopics: input.publicShowTopics }
+      : {}),
+  };
 
-    await tx
-      .insert(userProfiles)
-      .values({
-        userId,
-        displayName: input.displayName,
-        bio: input.bio ?? null,
-        targetRole: input.targetRole ?? null,
-        publicProfileEnabled: input.publicProfileEnabled,
-      })
-      .onConflictDoUpdate({
-        target: userProfiles.userId,
-        set: {
+  try {
+    await db.transaction(async (tx) => {
+      await tx.update(users).set({ timezone: input.timezone }).where(eq(users.id, userId));
+
+      const [saved] = await tx
+        .insert(userProfiles)
+        .values({
+          userId,
           displayName: input.displayName,
           bio: input.bio ?? null,
           targetRole: input.targetRole ?? null,
           publicProfileEnabled: input.publicProfileEnabled,
-          // avatarUrl is intentionally NOT in this set.
-        },
-      });
-  });
+          ...publicFields,
+        })
+        .onConflictDoUpdate({
+          target: userProfiles.userId,
+          set: {
+            displayName: input.displayName,
+            bio: input.bio ?? null,
+            targetRole: input.targetRole ?? null,
+            publicProfileEnabled: input.publicProfileEnabled,
+            ...publicFields,
+            // avatarUrl is intentionally NOT in this set.
+          },
+        })
+        .returning({
+          publicProfileEnabled: userProfiles.publicProfileEnabled,
+          handle: userProfiles.handle,
+        });
+
+      // Checked against the row as SAVED, so a handle stored earlier counts
+      // and clearing it while leaving the profile on is refused. Throwing here
+      // rolls the whole save back.
+      if (saved?.publicProfileEnabled && !saved.handle) {
+        throw new PublicProfileNeedsHandleError();
+      }
+    });
+  } catch (error) {
+    if (isHandleConflict(error)) throw new HandleTakenError();
+    throw error;
+  }
 
   return getProfile(db, userId);
+}
+
+/** The unique index, reached through Drizzle's wrapper (see `pgErrorOf` in the tests). */
+function isHandleConflict(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    const candidate = current as Error & { code?: string; constraint_name?: string };
+    if (
+      candidate.code === '23505' &&
+      candidate.constraint_name === 'user_profiles_handle_key'
+    ) {
+      return true;
+    }
+    current = candidate.cause;
+  }
+  return false;
 }
 
 /**
