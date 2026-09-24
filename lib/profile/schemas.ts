@@ -6,6 +6,7 @@
  * database access and no secrets. See docs/decisions.md.
  */
 import { z } from 'zod';
+import { handleSchema } from './handle';
 
 export const TARGET_ROLES = ['sde_intern', 'sde_1', 'quant', 'hft', 'other'] as const;
 export type TargetRole = (typeof TARGET_ROLES)[number];
@@ -64,13 +65,30 @@ export const timezoneSchema = z
  * `avatarUrl` in a profile save has it silently dropped by the parse — which is
  * an acceptance criterion, and is why `.strip()` semantics matter here.
  */
-export const updateProfileSchema = z.object({
-  displayName: displayNameSchema,
-  bio: bioSchema.optional(),
-  targetRole: z.enum(TARGET_ROLES).optional(),
-  timezone: timezoneSchema,
-  publicProfileEnabled: z.boolean().default(false),
-});
+export const updateProfileSchema = z
+  .object({
+    displayName: displayNameSchema,
+    bio: bioSchema.optional(),
+    targetRole: z.enum(TARGET_ROLES).optional(),
+    timezone: timezoneSchema,
+    publicProfileEnabled: z.boolean().default(false),
+    /*
+     * F4.7 · all OPTIONAL, and absent means "leave as it is" — not "reset".
+     * Onboarding saves through this same schema without them, and a default
+     * here would wipe a handle or re-show a hidden section on every save.
+     * An empty string is the form's way of clearing the handle.
+     */
+    handle: z.union([handleSchema, z.literal('')]).optional(),
+    publicShowStreak: z.boolean().optional(),
+    publicShowLongestStreak: z.boolean().optional(),
+    publicShowTotalSolved: z.boolean().optional(),
+    publicShowTopics: z.boolean().optional(),
+  })
+  // The service re-checks against the stored handle when this one is absent.
+  .refine((input) => !(input.publicProfileEnabled && input.handle === ''), {
+    message: 'Choose a handle to turn on your public profile',
+    path: ['handle'],
+  });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
@@ -96,4 +114,14 @@ export const confirmAvatarSchema = z.object({
 
 /** Exactly what turning the toggle on exposes. Rendered verbatim in the UI. */
 export const PUBLIC_PROFILE_DISCLOSURE =
-  'Your display name, avatar, streak, total solved and topic distribution become visible at a public link. Your code, notes, mistakes and reflections never are.';
+  'Your display name, avatar and the sections you tick below — streak, longest streak, total solved, topic distribution — become visible at a public link. Your code, notes, mistakes and reflections never are.';
+
+/** F4.7 · the four sections, their columns, and their labels — one list for form and page. */
+export const PUBLIC_SECTIONS = [
+  { key: 'publicShowStreak', label: 'Current streak' },
+  { key: 'publicShowLongestStreak', label: 'Longest streak' },
+  { key: 'publicShowTotalSolved', label: 'Total solved' },
+  { key: 'publicShowTopics', label: 'Topic distribution' },
+] as const;
+
+export type PublicSectionKey = (typeof PUBLIC_SECTIONS)[number]['key'];

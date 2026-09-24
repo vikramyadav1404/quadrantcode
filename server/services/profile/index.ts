@@ -3,3 +3,4 @@ export * from './image';
 export * from './initials';
 export * from './avatar';
 export * from './service';
+export * from './public';

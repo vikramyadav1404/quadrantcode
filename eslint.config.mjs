@@ -93,6 +93,11 @@ export default tseslint.config(
       'app/**/page.tsx',
       'app/**/layout.tsx',
       'app/**/route.ts',
+      // A route handler is server code whatever its extension — Next never
+      // bundles one for the client. `.tsx` is needed only when it renders JSX
+      // for `next/og` (F4.7's share cards), which is the same case as
+      // `opengraph-image.tsx` below.
+      'app/**/route.tsx',
       'app/**/actions.ts',
       'app/**/opengraph-image.tsx',
       'middleware.ts',
