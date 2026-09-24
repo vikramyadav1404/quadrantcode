@@ -116,10 +116,13 @@ export function ProblemPanel({
   submissions,
   liveSessionId,
   startControl,
+  revisionPanel,
 }: {
   problem: ProblemPanelView;
   /** F1.5's attempt history, rendered by its own component. */
   submissions: React.ReactNode;
+  /** F2.2 · what the live revision mode shows, above the statement. Absent otherwise. */
+  revisionPanel?: React.ReactNode;
   /**
    * The live session **for this problem**, or null. Resolved on the server, so
    * a session running on a different problem does not count as one here.
@@ -157,6 +160,7 @@ export function ProblemPanel({
       <div className="min-h-0 flex-1 overflow-auto px-3.5 py-3.5">
         {tab === 'description' ? (
           <div className="flex flex-col gap-4">
+            {revisionPanel ?? null}
             <div>
               {/*
                 One step above body copy, not three. The title was `text-xl`

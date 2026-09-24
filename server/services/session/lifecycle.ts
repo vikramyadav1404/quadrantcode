@@ -15,6 +15,10 @@ import type { Database, Transaction } from '@/server/db';
 import { problems, solveSessions, userProblems } from '@/server/db/schema';
 import { creditSolvedDay, localDateFor, recomputeStreak } from '@/server/services/streak';
 import { scheduleAfterSolveTx } from '@/server/services/revision';
+// The pure module only: the modes SERVICE starts sessions through this file, so
+// importing it here would be a cycle.
+import { speedTargetMet } from '@/server/services/revision/modes/target';
+import type { RevisionMode } from '@/lib/revision/modes';
 import { countStuckAttempts } from './signals';
 import { activeDurationSeconds, isPausedAt } from './duration';
 import { ActiveSessionExistsError, SessionNotFoundError } from './errors';
@@ -44,6 +48,10 @@ export type SessionView = {
   activeDurationSeconds: number;
   isPaused: boolean;
   confidence: Confidence | null;
+  /** F2.2 · null for an ordinary solve. */
+  revisionMode: RevisionMode | null;
+  /** F2.2 · set for speed sittings only. */
+  speedTargetSeconds: number | null;
 };
 
 type SessionRow = typeof solveSessions.$inferSelect;
@@ -91,6 +99,8 @@ async function toView(db: Database, row: SessionRow, now: Date): Promise<Session
     activeDurationSeconds: activeDurationSeconds(input, now),
     isPaused: row.endedAt === null && isPausedAt(input, now),
     confidence: row.confidence,
+    revisionMode: row.revisionMode,
+    speedTargetSeconds: row.speedTargetSeconds,
   };
 }
 
@@ -140,9 +150,16 @@ async function resolveLive(db: Database, actor: Actor): Promise<SessionRow | und
  */
 export async function startSession(
   db: Database,
-  input: Actor & { problemId: string },
+  input: Actor & {
+    problemId: string;
+    /**
+     * F2.2 · set only by the revision-modes service, which decides the mode's
+     * eligibility and computes the speed target. Never from a client directly.
+     */
+    revision?: { mode: RevisionMode; speedTargetSeconds: number | null };
+  },
 ): Promise<SessionView> {
-  const { userId, problemId, timeZone, now } = input;
+  const { userId, problemId, timeZone, now, revision } = input;
 
   const live = await resolveLive(db, input);
   if (live) {
@@ -162,6 +179,8 @@ export async function startSession(
         startedAt: now,
         lastHeartbeatAt: now,
         startedLocalDate: localDateFor(now, timeZone),
+        revisionMode: revision?.mode ?? null,
+        speedTargetSeconds: revision?.mode === 'speed' ? revision.speedTargetSeconds : null,
       })
       .returning();
 
@@ -286,6 +305,16 @@ export async function completeSession(
         endedAt: now,
         endedLocalDate,
         confidence: confidence ?? null,
+        // F2.2 · hit or miss is decided here, from the same event-derived
+        // duration the attempt records, so the two cannot disagree.
+        speedTargetMet:
+          row.revisionMode === 'speed' && row.speedTargetSeconds !== null
+            ? speedTargetMet({
+                outcome,
+                activeSeconds: seconds,
+                targetSeconds: row.speedTargetSeconds,
+              })
+            : null,
         updatedAt: now,
       })
       .where(

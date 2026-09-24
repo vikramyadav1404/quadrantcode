@@ -44,9 +44,20 @@ export type ExecutionResultView = {
   error: string | null;
 };
 
-/** Where localStorage keeps a draft. Per problem AND per language, as the ticket asks. */
-export function draftKey(problemId: string, language: ExecutionLanguage): string {
-  return `quadrantcode:draft:${problemId}:${language}`;
+/**
+ * Where localStorage keeps a draft. Per problem AND per language, as the ticket asks.
+ *
+ * `scope` gives a sitting its own drafts. F2.2's blind retry uses it so the
+ * editor neither restores the previous attempt's code nor overwrites it: the
+ * unscoped draft is exactly the "previous code" blind retry must not show, and
+ * it is back, untouched, once the sitting ends.
+ */
+export function draftKey(
+  problemId: string,
+  language: ExecutionLanguage,
+  scope?: string,
+): string {
+  return `quadrantcode:draft:${problemId}:${language}${scope ? `:${scope}` : ''}`;
 }
 
 /** `120 ms` / `1.4 s`. Em dash when the provider reported nothing. */

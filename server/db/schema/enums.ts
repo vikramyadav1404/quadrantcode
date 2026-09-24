@@ -11,6 +11,7 @@ import { MISTAKE_CATEGORIES, STUCK_CATEGORIES, STUCK_SOURCES } from '@/lib/refle
 import { SESSION_EVENT_TYPES, SNAPSHOT_TRIGGERS } from '@/lib/timeline/events';
 import { STUCK_CONFIDENCE, STUCK_STATUS } from '@/lib/inference/confidence';
 import { CONFIDENCE_LEVELS } from '@/lib/session/confidence';
+import { REVISION_MODES } from '@/lib/revision/modes';
 import { MISTAKE_TRENDS } from '@/server/services/mistakes/trend';
 import {
   ASSESSMENT_ATTEMPT_STATUSES,
@@ -92,6 +93,9 @@ export const targetRoleEnum = pgEnum('target_role', [
 
 /** Self-reported confidence, reused by reflections (F1.5) and revision (F2.1). */
 export const confidenceEnum = pgEnum('confidence', CONFIDENCE_LEVELS);
+
+/** F2.2 · which revision mode a sitting was run in. Null on a sitting that is not a revision. */
+export const revisionModeEnum = pgEnum('revision_mode', REVISION_MODES);
 
 /**
  * F1.2 import job lifecycle.

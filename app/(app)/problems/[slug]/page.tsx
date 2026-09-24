@@ -14,6 +14,7 @@ import { getCurrentUser } from '@/server/services/auth/session';
 import { StartSolvingButton } from '@/components/session/StartSolvingButton';
 import { AttemptHistory, LastAttemptPanel } from '@/components/session/AttemptHistory';
 import { getAttemptHistory } from '@/server/services/reflection';
+import { getActiveSession } from '@/server/services/session';
 import { startSessionAction } from '../../sessions/actions';
 
 function formatDuration(seconds: number | null): string {
@@ -43,16 +44,33 @@ export default async function ProblemDetailPage({
   const attempt = problem.history[0];
 
   /*
+   * F2.2 · a blind retry running on THIS problem hides its history here too.
+   *
+   * The timer bar links to this page from every screen, including the solve
+   * screen of the blind sitting itself, and a `Link` prefetches. Hiding the
+   * history only on the solve page would leave the notes one prefetch away.
+   */
+  const live = user
+    ? await getActiveSession(getDb(), {
+        userId: user.id,
+        timeZone: user.timezone,
+        now: new Date(),
+      })
+    : null;
+  const blindHere = live?.problemId === problem.id && live.revisionMode === 'blind';
+
+  /*
    * Every finished session on this problem (F1.5). Empty for a signed-out
    * visitor, who has no history to show and no session to have started.
    */
-  const history = user
-    ? await getAttemptHistory(getDb(), {
-        userId: user.id,
-        problemId: problem.id,
-        now: new Date(),
-      })
-    : [];
+  const history =
+    user && !blindHere
+      ? await getAttemptHistory(getDb(), {
+          userId: user.id,
+          problemId: problem.id,
+          now: new Date(),
+        })
+      : [];
 
   return (
     <>
@@ -132,7 +150,13 @@ export default async function ProblemDetailPage({
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Your attempts</h2>
-        <AttemptHistory attempts={history} />
+        {blindHere ? (
+          <p className="text-sm text-[var(--text-muted)]">
+            Hidden during your blind retry. Your earlier attempts come back once you finish.
+          </p>
+        ) : (
+          <AttemptHistory attempts={history} />
+        )}
       </section>
 
       {/* F1.4 · the timer itself lives in the layout, on every screen. */}
