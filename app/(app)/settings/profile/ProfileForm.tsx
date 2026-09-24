@@ -15,6 +15,7 @@ import { Avatar, type AvatarAppearanceProps } from '@/components/avatar/Avatar';
 import { useToast } from '@/components/ui/Toast';
 import {
   PUBLIC_PROFILE_DISCLOSURE,
+  PUBLIC_SECTIONS,
   TARGET_ROLES,
   TARGET_ROLE_LABELS,
   updateProfileSchema,
@@ -27,6 +28,12 @@ export type ProfileFormValues = {
   targetRole: string | null;
   timezone: string;
   publicProfileEnabled: boolean;
+  /** F4.7 · empty string when none is chosen. */
+  handle: string;
+  publicShowStreak: boolean;
+  publicShowLongestStreak: boolean;
+  publicShowTotalSolved: boolean;
+  publicShowTopics: boolean;
   avatarUrl: string | null;
 };
 
@@ -63,6 +70,11 @@ export function ProfileForm({
       targetRole: values.targetRole ?? undefined,
       timezone: values.timezone,
       publicProfileEnabled: values.publicProfileEnabled,
+      handle: values.handle.trim().toLowerCase(),
+      publicShowStreak: values.publicShowStreak,
+      publicShowLongestStreak: values.publicShowLongestStreak,
+      publicShowTotalSolved: values.publicShowTotalSolved,
+      publicShowTopics: values.publicShowTopics,
     };
 
     // Consumer #1 of the shared schema; the action re-parses server-side.
@@ -228,6 +240,50 @@ export function ProfileForm({
               </span>
             </span>
           </label>
+
+          <div className="mt-3">
+            <label className="mb-1 block text-sm" htmlFor="handle">
+              Handle
+            </label>
+            <input
+              aria-describedby={errors.handle ? 'handle-error' : 'handle-help'}
+              aria-invalid={Boolean(errors.handle)}
+              autoCapitalize="none"
+              autoComplete="off"
+              className={field}
+              id="handle"
+              maxLength={30}
+              onChange={(event) => set('handle', event.target.value)}
+              spellCheck={false}
+              value={values.handle}
+            />
+            <p className="mt-1 text-xs text-[var(--text-muted)]" id="handle-help">
+              {values.handle
+                ? `Your public link: /u/${values.handle.trim().toLowerCase()}`
+                : 'Required to turn on your public profile. 3–30 lowercase letters, digits or hyphens.'}
+            </p>
+            {errors.handle ? (
+              <p className="mt-1 text-sm text-[var(--danger)]" id="handle-error">
+                {errors.handle}
+              </p>
+            ) : null}
+          </div>
+
+          <fieldset className="mt-3">
+            <legend className="text-sm">Show on my public profile</legend>
+            <div className="mt-1 grid gap-1 sm:grid-cols-2">
+              {PUBLIC_SECTIONS.map((section) => (
+                <label className="flex items-center gap-2 text-sm" key={section.key}>
+                  <input
+                    checked={values[section.key]}
+                    onChange={(event) => set(section.key, event.target.checked)}
+                    type="checkbox"
+                  />
+                  {section.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         <button
