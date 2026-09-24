@@ -2216,3 +2216,91 @@ Validated locally without cache: 16 problems × 5 languages, 80 compilations,
 Python 3.8.1, Node.js 12.14.0. Python 3.8 cannot evaluate `list[int]` in a
 signature; the wrapper's `from __future__ import annotations` is what makes the
 shape's signatures legal there, and this run is the evidence it does.
+
+---
+
+## D34 · F2.2 comes back: revision modes, and blind retry enforced by omission
+
+**Date:** 2026-09-24 · **Status:** built behind `FEATURE_REVISION_MODES`, off by
+default.
+
+### Reversing a recorded cut, deliberately
+
+F2.2 was one of the eleven cut tickets, and `docs/project-summary-notes.md` said
+"do not re-implement". On 2026-09-24 the owner re-scoped four of the eleven back
+in — F2.2, F4.7, F4.2 and F4.5's upsolve queue, the ones that need no paid or
+external service — one ticket at a time, each behind a flag and each reported
+before the next. This is the first. The other seven cuts stand.
+
+The flag was deleted on 2026-09-16 with the note "re-add one with its ticket,
+not before". It is re-added here, with the ticket, and it is enforced: the mode
+controls, the start action, the per-item context and the comparison are all
+gated. With it off, `/revision` is F2.1's page exactly.
+
+### The data: three nullable columns, no backfill
+
+`solve_sessions` gains `revision_mode`, `speed_target_seconds` and
+`speed_target_met`. Every existing session was an ordinary solve, and null says
+exactly that, so migration `0026_revision_modes` is additive only — no default,
+no backfill, no row touched. One CHECK,
+`solve_sessions_speed_fields_consistent`, makes the three columns one fact: a
+speed sitting has a positive target and nothing else has one; hit/miss exists
+only on a finished speed sitting. Proved with a direct write the service never
+makes.
+
+**The speed target is stored, not recomputed**, because `min(previous best,
+estimate)` moves the moment the sitting beats the previous best. **Hit/miss is
+decided in `completeSession`** from the same event-derived duration the attempt
+records, so the two cannot disagree, and a sitting that ends stuck is a miss
+however fast it was.
+
+### Blind retry: never loaded, rather than loaded and hidden
+
+The ticket's rule is that previous code must not reach the client — "not in the
+RSC payload, not in a props blob, not in a prefetched route". Four routes reached
+it, and each is closed at the source:
+
+| Route to the previous attempt                                                 | Closed by                                                                                                             |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Attempt history on the solve page                                             | `getAttemptHistory` is not called for a blind sitting                                                                 |
+| The editor's localStorage draft                                               | `draftKey` gains a scope; a blind sitting reads and writes `…:blind-<sessionId>` and never touches the unscoped draft |
+| `/problems/[slug]`, linked from the timer bar on every screen, and prefetched | that page also skips the history while a blind sitting is live on the problem                                         |
+| `sittingView`                                                                 | returns `{ mode: 'blind' }` and nothing else                                                                          |
+
+The previous attempt comes back by itself when the sitting ends: the session is
+no longer live, so the history loads again and the unscoped draft is untouched.
+
+**Not gated on the flag.** A sitting only has a mode if the flag was on when it
+started, and switching the flag off mid-sitting must not hand a blind retry its
+previous attempt.
+
+**Accepted:** `/sessions/[id]` (the timeline, which renders code) is reachable
+by deliberately navigating to it. No link on the blind solve page or the problem
+page leads there, so nothing prefetches it; a user who goes looking for their
+old code has chosen to see it.
+
+### What "retention" means in the comparison
+
+A revision sitting is **measured** once the same problem has been attempted
+again, and **retained** if that next attempt was solved. It is the only
+retention signal the data holds without inventing one — revision outcomes are
+counters on `revision_schedule`, not history. A revision with no later attempt
+is unmeasured and left out, not counted either way.
+
+Under ten measured revisions the page says "not enough data" and the count,
+never a rate. Above it, every rate sits beside its own sample size, and a tie
+names no winner.
+
+### Smaller decisions
+
+- **A mode requires a schedule row.** Revising means it was solved first; the
+  refusal is the same for "never solved" and "not yours" (the F1.4 rule).
+- **The pattern mini-set lists only what the user can open:** published, not
+  premium (F4.4 is cut, so there is no entitlement to check), and originals only
+  while `FEATURE_ORIGINAL_PROBLEMS` is on — the same helper the catalog uses.
+- **`none` is not briefed as a mistake.** It is the taxonomy's "nothing went
+  wrong".
+- **Risk reasons already render as sentences** (F2.1's `label`), which was one of
+  the ticket's criteria; nothing new was needed.
+- The modes service has its own entry point, `revision/modes`, because it starts
+  sessions through the lifecycle, which already imports the revision engine.

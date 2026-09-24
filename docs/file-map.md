@@ -63,7 +63,7 @@ contents.
 | `sessions/[id]/actions.ts`         | F1.5 · save a reflection (skipping needs no action)                  |
 | `sessions/[id]/reflect/page.tsx`   | F1.5 · the reflection, where completion lands                        |
 | `analytics/page.tsx`               | F1.6 · the dashboard; 163 B of route JS                              |
-| `revision/page.tsx`                | F2.1 · the due queue; exists because F2.2 is cut (D23)               |
+| `revision/page.tsx`                | F2.1 · the due queue (D23); F2.2's modes behind a flag (D34)         |
 | `revision/actions.ts`              | F2.1 · record an outcome; deliberately does not revalidate           |
 | `problems/[slug]/solve/page.tsx`   | F3.1 · the editor; prints the limits that are sent                   |
 | `problems/[slug]/solve/actions.ts` | F3.1 · submit a run; picks the provider here                         |
@@ -501,7 +501,7 @@ and `meta/_journal.json`.
 | `theme.spec.ts`           | F0.4 — `data-theme` switch with no flash of the wrong theme          |
 | `viewports.spec.ts`       | F0.4 — layout intact at 375 / 768 / 1440px                           |
 | `keyboard.spec.ts`        | F0.4 keyboard traversal (**Chromium only**)                          |
-| `payload-capture.spec.ts` | Proves the capture helper works — was for F2.2, now **cut**          |
+| `payload-capture.spec.ts` | Proves the capture helper works — used by F2.2's blind-retry check   |
 | `helpers/auth.ts`         | Auth helpers for browser tests                                       |
 | `helpers/payload.ts`      | Client-payload capture                                               |
 

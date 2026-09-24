@@ -19,6 +19,7 @@
  */
 import { notFound } from 'next/navigation';
 import { AttemptHistory } from '@/components/session/AttemptHistory';
+import { RevisionSittingPanel } from '@/components/revision/RevisionSittingPanel';
 import { StartSolvingButton } from '@/components/session/StartSolvingButton';
 import { ProblemPanel } from '@/components/solve/ProblemPanel';
 import { SplitPane } from '@/components/solve/SplitPane';
@@ -33,6 +34,7 @@ import { formatElapsed } from '@/lib/session/timer-bar-state';
 import { completeSessionAction, startSessionAction } from '../../../sessions/actions';
 import { submitRunAction } from './actions';
 import { getPublicNativeProblem } from '@/server/services/native-content';
+import { sittingView } from '@/server/services/revision/modes';
 
 export default async function SolvePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -61,7 +63,22 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
       })
     : null;
 
-  const sessionId = session?.problemId === problem.id ? session.id : null;
+  const liveHere = session?.problemId === problem.id ? session : null;
+  const sessionId = liveHere?.id ?? null;
+
+  /*
+   * F2.2 · the live revision sitting, if this is one.
+   *
+   * Deliberately NOT gated on `FEATURE_REVISION_MODES`: a sitting only has a
+   * mode if the flag was on when it started, and switching the flag off
+   * mid-sitting must not suddenly hand a blind retry its previous attempt.
+   */
+  const sitting =
+    user && liveHere?.revisionMode
+      ? await sittingView(getDb(), { userId: user.id, now: new Date(), session: liveHere })
+      : null;
+  const blind = sitting?.mode === 'blind';
+
   const native =
     problem.sourceType === 'original'
       ? await getPublicNativeProblem(getDb(), {
@@ -70,13 +87,19 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
         })
       : null;
 
-  const history = user
-    ? await getAttemptHistory(getDb(), {
-        userId: user.id,
-        problemId: problem.id,
-        now: new Date(),
-      })
-    : [];
+  /*
+   * Blind retry never LOADS the history, rather than loading and not rendering
+   * it: the ticket's rule is that the previous attempt must not reach the
+   * client at all, and a query that never runs cannot end up in a payload.
+   */
+  const history =
+    user && !blind
+      ? await getAttemptHistory(getDb(), {
+          userId: user.id,
+          problemId: problem.id,
+          now: new Date(),
+        })
+      : [];
 
   /*
    * The aggregate record, formatted HERE rather than inside the panel.
@@ -134,7 +157,27 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
             record,
             native,
           }}
-          submissions={<AttemptHistory attempts={history} />}
+          submissions={
+            blind ? (
+              <p className="text-sm text-[var(--text-muted)]">
+                Hidden during a blind retry. Your earlier attempts come back once you finish.
+              </p>
+            ) : (
+              <AttemptHistory attempts={history} />
+            )
+          }
+          {...(sitting && liveHere
+            ? {
+                revisionPanel: (
+                  <RevisionSittingPanel
+                    elapsedSeconds={liveHere.activeDurationSeconds}
+                    lastAttemptedLabel={record?.lastAttempted ?? null}
+                    paused={liveHere.isPaused}
+                    sitting={sitting}
+                  />
+                ),
+              }
+            : {})}
           liveSessionId={sessionId}
           /*
             The same control the problem page carries, on the page that told
@@ -184,6 +227,11 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
                 : {})}
               problemId={problem.id}
               sessionId={sessionId}
+              /*
+                F2.2 · a blind sitting gets its own drafts, so the editor opens on
+                the starter rather than restoring the previous attempt's code.
+              */
+              {...(blind && sessionId ? { draftScope: `blind-${sessionId}` } : {})}
             />
           </div>
 
