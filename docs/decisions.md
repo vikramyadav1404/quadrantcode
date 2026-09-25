@@ -2464,11 +2464,20 @@ contains the SDK is referenced by the landing page's HTML.
 
 ### Lighthouse, stated as measured
 
-On this machine: **desktop 98–100** on performance and **100** on
-accessibility, best practices and SEO. **Mobile: accessibility, best
-practices and SEO 100; performance 70–92 across runs of the same build.** A
-twenty-point spread on identical code is the machine, not the page — the
-project lives in a synced folder and the third run spent 2.4 s on the main
-thread. So the ticket's "95+" is **not claimed for mobile** here; it is to be
-measured on production with PageSpeed Insights, which runs on Google's servers,
-and recorded against this entry.
+**Production, mobile, PageSpeed Insights** (run by the owner on 2026-09-26,
+against `quadrantcode.vercel.app` after this change deployed):
+
+| Performance | Accessibility | Best practices | SEO | CLS | TBT   |
+| ----------- | ------------- | -------------- | --- | --- | ----- |
+| **95**      | **91**        | 100            | 92  | 0   | 40 ms |
+
+So the ticket's "Lighthouse ≥ 95" is **met for performance and not met for
+accessibility (91)**. SEO is 92. Both are lower than the local runs, which
+scored 100 on each — the production page is served with its real headers,
+deployment and third-party requests, so the two are not the same measurement.
+The accessibility and SEO gaps are recorded here as open and have **not been
+investigated**; no claim is made about their cause.
+
+For comparison, local runs of the same build scored desktop performance 98–100
+and mobile performance 70–92, a spread too wide on identical code to settle
+anything, which is why the production number is the one recorded.
