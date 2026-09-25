@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
+import { captureException } from '@/lib/monitoring/sentry-client';
 
 export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
-    Sentry.captureException(error, { tags: { boundary: 'root' } });
+    captureException(error, { tags: { boundary: 'root' } });
   }, [error]);
 
   return (
