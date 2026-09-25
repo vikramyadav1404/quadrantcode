@@ -2398,3 +2398,77 @@ hour, because the numbers move daily. The e2e spec reads each PNG's IHDR, so
   its reason, as that file requires.
 - Migration `0027_public_profile` is additive: one nullable column, four
   booleans with defaults, a partial unique index and a CHECK.
+
+---
+
+## D36 · F4.7b: a landing page that only says true things, and a deferred Sentry
+
+**Date:** 2026-09-26 · **Status:** built. No migration.
+
+### The rule, and the test that keeps it
+
+The owner's constraint for this page: every claim true today — no invented
+numbers, no features that do not exist (contests, referrals, coins), no
+testimonials or user counts, real screenshots only. The ticket's own copy
+could not meet it: its hero promised an "AI-assisted dashboard" and
+"contests", and its sections included a pricing table. All three are cut.
+
+`tests/public/landing-honesty.test.ts` reads the page's copy — string literals
+and JSX text, comments stripped, because the header comment names the
+forbidden topics in order to forbid them — and fails on any of them. Its
+positive control earned its place on the first run: "Refer a friend" slipped
+past the first referral pattern, and the pattern was widened.
+
+### What changed on the page
+
+- **The mock hero card is gone.** It showed a "24:18" timer and a "Live" pill:
+  invented figures in the most prominent spot on the site. It is now a real
+  screenshot of the dashboard.
+- **Screenshots are the real app, of a SEEDED DEMO account**, captured from a
+  local build (`scripts/demo-seed.ts`, local test database only). Every number
+  in them is example data and each one says so beside it.
+- **Only features with no flag are shown.** Revision modes, code execution and
+  original problems are behind flags whose production values are stored as
+  sensitive in Vercel and cannot be read from here, so the page cannot know
+  they are on. The revision screenshot was recaptured with modes off, and the
+  timeline was dropped — locally its runs come from the fake provider and read
+  "(not executed)", which is not what the product shows.
+- **FAQ**, each answer pointing at behaviour in the code: who can see your
+  data, deleting history, where problems come from (worded to be true whether
+  or not original problems are switched on), no paid plan, company tags.
+- **Footer disclaimer** — the wording the product already shows beside
+  company tags, extended to the platforms it links to.
+- **JSON-LD** — `WebSite` and `WebApplication`, facts only. No
+  `aggregateRating`, no `offers`: there are no reviews and nothing for sale.
+
+### Sentry is now loaded by dynamic import, and deferred on public pages
+
+Measured: the one blocking cost on the mobile landing page was
+`@sentry/nextjs` in the browser — a 410 KiB chunk parsed before first paint on
+every page, statically imported by `instrumentation-client.ts` **and** by both
+error boundaries. Tree-shaking options were tried first and changed nothing
+(the chunk's hash and size were identical), so they were reverted rather than
+left in with a comment claiming a saving.
+
+Now `lib/monitoring/sentry-client.ts` is the browser's only door to the SDK:
+
+- **Inside the app** it starts loading at once, as before.
+- **On `/` and `/u/*`** it waits for the browser to go idle. Owner's choice.
+- **The error boundaries load it on demand**, so an error they catch before the
+  SDK arrived is delayed, not dropped.
+
+The trade, accepted by the owner: on a public page, an error in its first
+moments is reported once the SDK arrives, and a router transition before then
+is not traced. Verified structurally: after the change, neither chunk that
+contains the SDK is referenced by the landing page's HTML.
+
+### Lighthouse, stated as measured
+
+On this machine: **desktop 98–100** on performance and **100** on
+accessibility, best practices and SEO. **Mobile: accessibility, best
+practices and SEO 100; performance 70–92 across runs of the same build.** A
+twenty-point spread on identical code is the machine, not the page — the
+project lives in a synced folder and the third run spent 2.4 s on the main
+thread. So the ticket's "95+" is **not claimed for mobile** here; it is to be
+measured on production with PageSpeed Insights, which runs on Google's servers,
+and recorded against this entry.
