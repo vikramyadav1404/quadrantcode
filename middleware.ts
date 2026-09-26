@@ -47,6 +47,7 @@ const PROTECTED_PREFIXES = [
   '/sessions',
   '/revision',
   '/settings',
+  '/tracks',
 ];
 
 export function middleware(request: NextRequest): NextResponse {
