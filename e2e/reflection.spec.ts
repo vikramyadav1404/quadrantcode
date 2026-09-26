@@ -11,6 +11,14 @@
  * therefore leaves its last test's rows behind. An unscoped
  * `SELECT ... FROM stuck_points` read one of those and reported a category this
  * spec never chose — a failure that looked like a bug in the dialog.
+ *
+ * **Assert the FULL reflection path, never `/\/reflect/`.** This spec's fixture
+ * problem is `reflect-alpha`, so `/problems/reflect-alpha` contains `/reflect`
+ * and the loose pattern matches the page a test is already on. That breaks both
+ * ways: a negative assertion fails against a correct app, and — worse — a
+ * positive one resolves instantly without waiting for navigation, so a database
+ * read placed after it races the server action it was supposed to wait for.
+ * Matching on `/sessions/<id>/reflect` is what makes the wait real.
  */
 import { type Page, expect, test } from '@playwright/test';
 import type postgres from 'postgres';
@@ -119,7 +127,7 @@ test('FINISHING TAKES THE USER TO THE REFLECTION', async ({ page }) => {
 test('SKIPPING LEAVES NO ROW AND THE SESSION STILL COUNTS', async ({ page }) => {
   await startSolving(page);
   await finishAsSolved(page);
-  await expect(page).toHaveURL(/\/reflect/);
+  await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
 
   await page.getByRole('button', { name: /skip for now/i }).click();
 
@@ -158,15 +166,6 @@ test('Solved asks for confidence, and Skip still finishes the sitting', async ({
   const picker = page.getByTestId('confidence-picker');
   await expect(picker).toBeVisible();
 
-  /*
-   * The full reflection path, not `/\/reflect/`.
-   *
-   * This fixture's slug is `reflect-alpha`, so `/problems/reflect-alpha`
-   * CONTAINS `/reflect` — the loose pattern matches the page we are still on,
-   * and the negative assertion fails against a correct app. (The positive
-   * `toHaveURL(/\/reflect/)` assertions elsewhere in this file have the mirror
-   * problem: they would pass without navigating anywhere.)
-   */
   await expect(page).not.toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
 
   await picker.getByRole('button', { name: /^skip$/i }).click();
@@ -199,7 +198,7 @@ test('a confidence answer is recorded on the session', async ({ page }) => {
 test('a saved reflection appears on the problem page', async ({ page }) => {
   await startSolving(page);
   await finishAsSolved(page);
-  await expect(page).toHaveURL(/\/reflect/);
+  await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+\/reflect/);
 
   await page.getByLabel(/how did you approach it/i).fill('Two pointers after sorting.');
   await page.getByRole('checkbox', { name: /off by one/i }).check();
