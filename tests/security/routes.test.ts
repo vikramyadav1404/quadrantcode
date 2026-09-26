@@ -145,6 +145,7 @@ const PROTECTED_PREFIXES = [
   '/revision',
   '/sessions',
   '/settings',
+  '/tracks',
 ];
 
 /**

@@ -17,6 +17,7 @@ import { Heatmap } from '@/components/heatmap/Heatmap';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatCard } from '@/components/ui/StatCard';
 import { formatAsOf, formatDuration } from '@/lib/analytics/view';
+import { isFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { ensureFreshRollup, readDashboard } from '@/server/services/analytics';
 import { requireCurrentUser } from '@/server/services/auth/session';
@@ -81,6 +82,15 @@ export default async function DashboardPage() {
         <Link className="underline" href="/analytics">
           See the full breakdown
         </Link>
+        {/* F4.2 · the only way in to /tracks, and only while it is switched on. */}
+        {isFeatureEnabled('FEATURE_TRACKS') ? (
+          <>
+            {' · '}
+            <Link className="underline" href="/tracks">
+              Preparation tracks
+            </Link>
+          </>
+        ) : null}
       </p>
 
       {/*

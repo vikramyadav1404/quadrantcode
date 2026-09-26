@@ -2537,3 +2537,69 @@ was later switched off would be the wrong default.
 The test fixture for an assessment paper moved from `service.test.ts` to
 `tests/helpers/assessment-fixture.ts`, shared by both files, rather than being
 copied.
+
+---
+
+## D38 · F4.2: one honest track, declared in code, behind `FEATURE_TRACKS`
+
+**Date:** 2026-09-26 · **Status:** built, flag off by default. No migration.
+
+### What shipped, and what did not
+
+The last of the four re-scoped tickets (D34). The ticket asks for four tracks.
+**One ships — Fundamentals — and three do not**, for reasons that are not
+effort:
+
+- **FAANG-, Quant- and HFT-style were premium tracks.** Premium gating rests
+  on F4.4's `hasEntitlement`, and F4.4 (billing) is cut. There is nothing to
+  gate with and nothing to sell, and pretending otherwise would be the
+  unverifiable claim the landing page just stopped making (D36).
+- **HFT-style is built on five ORIGINAL problems** (Rolling Trade Volume, Order
+  Book Matcher, …) authored through F4.1 and validated on Judge0. They do not
+  exist, and a track of problems that do not exist is a promise, not a feature.
+- **Fundamentals has 30 problems, not 40**: the external-link problems
+  production actually publishes, read on 2026-09-26. The seven `demo-*` rows
+  the walkthrough seed left in production's catalog are excluded; a test
+  forbids any `demo-` slug in a track.
+
+So the ticket's "all four tracks populated" criterion is **not met**, and is
+recorded here rather than papered over.
+
+### Declared in code, resolved against the catalog
+
+`server/services/tracks/catalog.ts` names each section's problems by slug.
+They are resolved at read time against published, non-premium, external-link
+problems. That is why there is no track table:
+
+- the catalog stays the one source of truth for what a problem is,
+- track content is reviewed in pull requests like the rest of the code, and
+- a slug that is not in the catalog is **dropped and counted** ("N problems are
+  not in the catalog yet"), never rendered as a dead link.
+
+### The criteria that are met, each tested
+
+- **Time remaining changes when the user's own speed changes.** For each
+  solved problem in the track, best ACTIVE time (F1.4) over the estimate gives a
+  ratio; the mean per difficulty scales each unsolved problem's estimate, a
+  difficulty with no solves borrows the overall ratio, and a user with no
+  solves sees plain estimates labelled as such. The test changes one best time
+  and watches the remaining minutes move from 20 to 80.
+- **Prerequisites block out-of-order section entry.** A prerequisite is always
+  an earlier section (tested), so one pass decides every lock; a locked section
+  lists its problems without links. Positive control: ignoring prerequisites
+  made that test fail.
+- **The disclaimer renders on every track page** — `CompanyDisclaimer`, the
+  product's existing wording.
+- **Premium content in free users' payloads**: vacuous today, because nothing
+  is premium. Stated rather than claimed.
+
+### Behind a flag, and one thing the flag cannot promise
+
+`FEATURE_TRACKS` is re-added and enforced: off, `/tracks` is a 404 and the
+dashboard link is absent. **But a `FEATURE_TRACKS` variable already exists in
+Vercel Production from before the 2026-09-16 flag cleanup**, stored as
+sensitive, so its value cannot be read from here. If it is `true`, tracks are
+visible the moment this deploys. That exposes nothing private — a track only
+reads the catalog and the viewer's own progress — but it is a visibility
+change the owner should confirm on `/admin/health`. The same caveat applies to
+`FEATURE_REVISION_MODES` (D34).
