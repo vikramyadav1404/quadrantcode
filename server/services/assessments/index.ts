@@ -1,6 +1,7 @@
 export * from './input';
 export * from './scoring';
 export * from './service';
+export * from './upsolve';
 export * from './content-schema';
 export * from './content-load';
 export * from './content-integrity';

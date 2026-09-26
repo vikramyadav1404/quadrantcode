@@ -2481,3 +2481,59 @@ investigated**; no claim is made about their cause.
 For comparison, local runs of the same build scored desktop performance 98–100
 and mobile performance 70–92, a spread too wide on identical code to settle
 anything, which is why the production number is the one recorded.
+
+---
+
+## D37 · F4.5's upsolve queue is derived, not stored
+
+**Date:** 2026-09-26 · **Status:** built. No migration, no flag of its own.
+
+### What was missing
+
+F4.5's timed engine already existed (`server/services/assessments/`, see the
+note in `CLAUDE.md` that two cut tickets "exist under another name"). Its one
+genuinely missing criterion was the upsolve queue: "Unsolved problems land in
+the upsolve queue automatically." It was the third of the four re-scoped
+tickets (D34), built under the owner's instruction to finish what remains
+without data or feature loss.
+
+### Derived from rows that already exist
+
+`getUpsolveQueue` reads finished attempts (`submitted` or `auto_submitted`),
+their paper's questions, the marks each answer earned, and the solves that came
+afterwards. There is no queue table:
+
+- **Nothing has to "land".** A problem is in the queue the moment its attempt
+  is finalised without marks for it — including when the expiry sweep
+  auto-submits it, which is exactly the path a stored queue would most easily
+  forget to write.
+- **Nothing can drift.** There is no second copy to keep in step, so no
+  migration and no backfill, and every attempt already in the database is
+  covered on day one.
+
+### The rules, each tested
+
+- **Unsolved** = the answer earned no marks, **including a question never
+  opened** (no answer row at all — the left join is the point). Each item says
+  which: "attempted" or "not opened".
+- **Cleared** only by solving it **after** the attempt — a solved sitting, or
+  marks for it in a later assessment. A solve from before the mock does not
+  count: the mock is the newer evidence. Positive control: making the rule
+  ignore the solve's timing made that test fail.
+- **One row per problem**, the most recent miss, so a problem missed in two
+  mocks is one thing to do.
+- A live attempt contributes nothing until time is up.
+
+### Where it shows
+
+On an attempt's own page once it has ended ("from this attempt"), and on
+`/revision` ("Upsolve after assessments"). Both render nothing when empty, so
+neither page changes for anyone who has not finished an assessment.
+
+`FEATURE_MOCKS` is not consulted: an attempt can only exist if mocks were on
+when it was taken, and hiding a user's own unfinished work because the flag
+was later switched off would be the wrong default.
+
+The test fixture for an assessment paper moved from `service.test.ts` to
+`tests/helpers/assessment-fixture.ts`, shared by both files, rather than being
+copied.

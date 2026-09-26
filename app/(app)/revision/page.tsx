@@ -21,6 +21,7 @@
  */
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { UpsolveList } from '@/components/assessments/UpsolveList';
 import { DueList } from '@/components/revision/DueList';
 import { ModeComparison } from '@/components/revision/ModeComparison';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -29,6 +30,7 @@ import type { DueItemContextView } from '@/lib/revision/view';
 import { getDb } from '@/server/db';
 import { requireCurrentUser } from '@/server/services/auth/session';
 import { dueToday } from '@/server/services/revision';
+import { getUpsolveQueue } from '@/server/services/assessments';
 import { modeComparison, revisionContext } from '@/server/services/revision/modes';
 import { localDateFor } from '@/server/services/streak';
 import { recordRevisionAction, startRevisionSittingAction } from './actions';
@@ -40,6 +42,10 @@ export default async function RevisionPage() {
 
   const today = localDateFor(new Date(), user.timezone);
   const queue = await dueToday(getDb(), { userId: user.id, today });
+
+  // F4.5 · empty for anyone who has never finished an assessment, and the list
+  // renders nothing when empty, so this page is unchanged for them.
+  const upsolve = await getUpsolveQueue(getDb(), { userId: user.id });
 
   const modesOn = isFeatureEnabled('FEATURE_REVISION_MODES');
   const [contextByProblem, comparison] = modesOn
@@ -77,6 +83,8 @@ export default async function RevisionPage() {
       <PageHeader title="Revision" description="What is due today, hardest first." />
 
       {comparison ? <ModeComparison comparison={comparison} /> : null}
+
+      <UpsolveList heading="Upsolve after assessments" items={upsolve} />
 
       {queue.totalDue === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">
