@@ -33,6 +33,15 @@ export type DueItemView = {
   risk: RiskScoreView;
 };
 
+/** F2.2 · what the revision page shows beside each due item when modes are on. */
+export type DueItemContextView = {
+  /** Already formatted in the user's timezone, or null if never finished. */
+  lastAttempted: string | null;
+  lastOutcome: 'solved' | 'stuck' | null;
+  /** Mistake categories as labels, not keys. */
+  mistakes: string[];
+};
+
 export type DueQueueView = {
   items: DueItemView[];
   /** Everything due, including what the cap held back. */

@@ -106,6 +106,16 @@ const PUBLIC_ROUTES: Record<string, string> = {
   '/api/auth/phone/request':
     'you cannot require a session to create a session; enumeration-safe and rate-limited',
   '/api/auth/phone/verify': 'the code IS the credential; issues the session itself',
+  /*
+   * F4.7. Public by the owner's explicit choice. What stands in for auth: one
+   * query gates both on `public_profile_enabled` + a handle + not deleted, a
+   * disabled profile is the same 404 as a missing one, and the view type
+   * carries no email, bio, code, notes, mistakes or reflections — only the
+   * sections the owner ticked. See D35 in docs/decisions.md.
+   */
+  '/u/[handle]': 'an opted-in public profile; the owner chose to be reachable by link',
+  '/u/[handle]/card/[format]':
+    'the same profile as a share image; link-preview crawlers fetch it without a session',
 };
 
 /**
@@ -135,6 +145,7 @@ const PROTECTED_PREFIXES = [
   '/revision',
   '/sessions',
   '/settings',
+  '/tracks',
 ];
 
 /**

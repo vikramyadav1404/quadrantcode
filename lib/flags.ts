@@ -36,6 +36,13 @@ export const FEATURE_FLAGS = [
   // a gate on one is a gate the other two route around. `/admin/problems`
   // opts back in explicitly, since review is how an original gets published.
   'FEATURE_ORIGINAL_PROBLEMS', // F4.1 authoring-cms — enforced
+  // Re-added with its ticket on 2026-09-26 (D38). Gates /tracks and the
+  // dashboard link to it; with it off, nothing about the app changes.
+  'FEATURE_TRACKS', // F4.2 prep-tracks — enforced
+  // Re-added with its ticket on 2026-09-24 (D34), as the note above asks.
+  // Gates the mode controls, the start action, the sitting panels and the
+  // comparison; with it off, /revision is exactly F2.1's page.
+  'FEATURE_REVISION_MODES', // F2.2 revision-modes — enforced
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];

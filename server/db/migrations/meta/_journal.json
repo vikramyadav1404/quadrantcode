@@ -183,6 +183,20 @@
       "when": 1790134491062,
       "tag": "0025_nervous_mantis",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790206481361,
+      "tag": "0026_revision_modes",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790254654800,
+      "tag": "0027_public_profile",
+      "breakpoints": true
     }
   ]
 }

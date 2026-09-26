@@ -8,7 +8,9 @@
  * can quote it in a bug report instead of "it broke".
  */
 import { useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
+// Through the lazy door, not `@sentry/nextjs` directly: this boundary is in
+// every page's bundle, and a static import put the whole SDK there (D36).
+import { captureException } from '@/lib/monitoring/sentry-client';
 
 export default function GlobalError({
   error,
@@ -18,7 +20,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error, { tags: { boundary: 'app' } });
+    captureException(error, { tags: { boundary: 'app' } });
   }, [error]);
 
   return (
