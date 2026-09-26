@@ -12,7 +12,14 @@
  */
 import { useState } from 'react';
 import Link from 'next/link';
-import { type DueItemView, formatDueness, formatInterval } from '@/lib/revision/view';
+import { useRouter } from 'next/navigation';
+import {
+  type DueItemContextView,
+  type DueItemView,
+  formatDueness,
+  formatInterval,
+} from '@/lib/revision/view';
+import { REVISION_MODES, REVISION_MODE_LABELS, type RevisionMode } from '@/lib/revision/modes';
 
 type Outcome = 'clean' | 'struggled' | 'failed';
 
@@ -25,6 +32,8 @@ const OUTCOMES: { value: Outcome; label: string; hint: string }[] = [
 export function DueList({
   items,
   onRecord,
+  context,
+  onStartMode,
 }: {
   items: DueItemView[];
   onRecord: (input: { problemId: string; outcome: Outcome }) => Promise<{
@@ -32,7 +41,15 @@ export function DueList({
     message?: string;
     nextInDays?: number;
   }>;
+  /** F2.2 · present only when revision modes are enabled. */
+  context?: Record<string, DueItemContextView>;
+  /** F2.2 · present only when revision modes are enabled. */
+  onStartMode?: (input: {
+    problemId: string;
+    mode: RevisionMode;
+  }) => Promise<{ ok: boolean; message?: string }>;
 }) {
+  const router = useRouter();
   const [done, setDone] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +82,44 @@ export function DueList({
               .map((factor) => factor.label)
               .join(' · ')}
           </p>
+
+          {context?.[item.problemId] ? (
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              {describeContext(context[item.problemId]!)}
+            </p>
+          ) : null}
+
+          {onStartMode && !done[item.problemId] ? (
+            <div
+              aria-label={`Revise ${item.title} in a mode`}
+              className="mt-3 flex flex-wrap gap-2"
+              role="group"
+            >
+              {REVISION_MODES.map((mode) => (
+                <button
+                  aria-disabled={busy === item.problemId}
+                  className="rounded-[var(--radius)] border border-[var(--accent)] px-3 py-1 text-sm text-[var(--accent)] aria-disabled:opacity-60"
+                  key={mode}
+                  onClick={async () => {
+                    if (busy) return;
+                    setBusy(item.problemId);
+                    setError(null);
+                    const result = await onStartMode({ problemId: item.problemId, mode });
+                    setBusy(null);
+                    if (!result.ok) {
+                      setError(result.message ?? 'That revision did not start.');
+                      return;
+                    }
+                    router.push(`/problems/${item.slug}/solve`);
+                  }}
+                  title={REVISION_MODE_LABELS[mode].description}
+                  type="button"
+                >
+                  {REVISION_MODE_LABELS[mode].label}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           {done[item.problemId] ? (
             <p className="mt-3 text-sm" role="status">
@@ -125,4 +180,21 @@ export function DueList({
       ) : null}
     </ol>
   );
+}
+
+/** "Last attempted 3 Sep 2026 · stuck · mistakes: off-by-one, wrong data structure" */
+function describeContext(context: DueItemContextView): string {
+  const parts = [
+    context.lastAttempted
+      ? `Last attempted ${context.lastAttempted}`
+      : 'No finished attempt yet',
+  ];
+  if (context.lastOutcome)
+    parts.push(context.lastOutcome === 'solved' ? 'solved' : 'got stuck');
+  parts.push(
+    context.mistakes.length > 0
+      ? `mistakes: ${context.mistakes.join(', ')}`
+      : 'no mistakes recorded',
+  );
+  return parts.join(' · ');
 }

@@ -11,7 +11,11 @@
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@/server/db';
 import { requireCurrentUser } from '@/server/services/auth/session';
-import { updateProfile } from '@/server/services/profile';
+import {
+  HandleTakenError,
+  PublicProfileNeedsHandleError,
+  updateProfile,
+} from '@/server/services/profile';
 
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
@@ -23,6 +27,9 @@ export async function saveProfileAction(payload: unknown): Promise<SaveResult> {
     revalidatePath('/settings/profile');
     return { ok: true };
   } catch (error) {
+    if (error instanceof HandleTakenError || error instanceof PublicProfileNeedsHandleError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof Error && error.name === 'ZodError') {
       return { ok: false, message: 'Check the highlighted fields and try again.' };
     }

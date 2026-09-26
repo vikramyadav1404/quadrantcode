@@ -1972,3 +1972,634 @@ than deleted: it is an always-zero _input_, not a guard giving false assurance,
 so it misleads nobody, and deleting it would mean re-deriving the rule from the
 spec when F3.4 returns. The price of keeping it is a test proving it still
 compresses when a hint is used, so the branch is not merely trusted.
+
+---
+
+## D33 · Wrapper shapes: the order, what each one costs, and what shape 1 unblocks
+
+**Date:** 2026-09-23 · **Status:** plan, agreed before building. Shape 1 only;
+shapes 2 and 3 wait until shape 1 has landed and been used.
+
+Recorded here rather than in a PR body because the ordering and the migration
+list outlive any one PR, and because the previous version of this plan existed
+only in a conversation — which is exactly the failure `CLAUDE.md`'s "a missing
+artifact is missing, not absent" rule is about. Everything below is derived from
+the library and the registry, not from recollection.
+
+### Why a shape at all
+
+`server/services/native-content/wrapper-shapes.ts` holds the per-language
+execution contract once, instead of each record carrying its own byte-identical
+copy. A record names a `shape` and supplies only `referenceSolution` per
+language. Measured across the old hundred-record library that removed 117,900
+bytes of duplication.
+
+**One shape exists: `int-array-to-int`.** All 16 active problems use it, and all
+16 therefore declare the identical contract:
+
+```
+solve(values: integer[]) -> 64-bit integer
+```
+
+### What a shape supplies: seven fields, five languages
+
+From `ShapeTemplate` in `wrapper-shapes.ts` — these are the seven, exactly:
+
+| #   | Field               | What it is                                               |
+| --- | ------------------- | -------------------------------------------------------- |
+| 1   | `displayName`       | The language's name in the picker                        |
+| 2   | `runtimeVersion`    | Pinned runtime label, or null                            |
+| 3   | `judge0LanguageId`  | Pinned Judge0 id, or null                                |
+| 4   | `functionSignature` | The signature shown above the editor                     |
+| 5   | `starterCode`       | What the editor opens with                               |
+| 6   | `wrapperTemplate`   | Reads stdin, calls the solver, prints the result         |
+| 7   | `serialization`     | `{ input, output, equality }` — how a verdict is decided |
+
+Five languages — `c11`, `cpp17`, `java`, `python3`, `javascript` — so **35
+pieces per shape**, each of which has to be proven against a real problem in
+that language. `docs/authoring-problems.md` §2 budgets **about a day per shape**,
+and that is the estimate this plan adopts rather than a more optimistic one.
+
+### The ordering, and the evidence for it
+
+**`int[] + int` → `string` → `graph n + edges`.**
+
+Chosen by how much each unblocks per day spent, measured against what the
+library already contains.
+
+**Shape 1, `int[] + int`, fixes six records that are lying about their input
+today.** Six of the sixteen smuggle a scalar into `values[0]`, and their own
+`inputFormat` text says so:
+
+| Problem                     | What is smuggled into `values[0]`     | Difficulty |
+| --------------------------- | ------------------------------------- | ---------- |
+| `kiln-soak-window`          | the soak length (window size)         | medium     |
+| `museum-ticket-pair-count`  | _"values[0] is the target"_           | easy       |
+| `sorted-dock-insertion`     | _"values[0] is the query target"_     | easy       |
+| `ferry-weight-rating`       | how many crossings (days)             | hard       |
+| `donation-target-subsets`   | _"values[0] is a nonnegative target"_ | easy       |
+| `pipeline-segment-from-end` | _"values[0] is k"_                    | easy       |
+
+Two of those statements name the array index in prose. That is the wrapper's
+limitation leaking into the problem text, where a reader meets it as though it
+were part of the puzzle. It is the clearest signal in the library that this
+shape is the one to build first.
+
+`functionContract.parameters[0].description` currently reads _"The complete
+integer encoding described by this problem"_ — a description that exists because
+there is nowhere else to put the second argument.
+
+**Shape 2, `string`, migrates nothing — it unblocks new authoring.** Every one
+of the 16 records is `integer[]`; there is not a single string problem, because
+there has been no way to write one. So its value is entirely in what comes next,
+which is why it is second rather than first: shape 1 repairs existing records,
+shape 2 widens the catalogue.
+
+**Shape 3, `graph n + edges`, is last because it is the most work for two
+records.** Candidates:
+
+- `constellation-connection-groups` — _"values[0] is node count n. Remaining
+  values are endpoint pairs for undirected edges"_
+- `decision-tree-levels` — a level-order binary tree flattened into an int array
+  with `-1` for a missing node
+
+A tree may want its own shape rather than sharing the graph one; that is decided
+when shape 3 is built, not now.
+
+### Migration is a new version, not an edit
+
+Each migrated problem becomes **version 2**. All six are still at v1 — the
+2026-09-22 rewrites took five OTHER records to v2, and none of those five is a
+shape-1 candidate. (An earlier draft of this plan said v3, from assuming the
+whole batch had moved.) `problem_versions` rows are not edited in place,
+and the live path reads `current_version`, so the old version stays as the record
+of what was served.
+
+Each migrated record gets:
+
+1. **A rewritten statement** — except `kiln-soak-window`, which already
+   describes stdin the way the house style should and needs only its contract
+   changed. The `values[0] is the target` sentences elsewhere exist only to
+   describe the workaround and must not survive the shape that removes the need
+   for them.
+2. **Descriptive function and parameter names.** Every one of the 16 currently
+   declares `solve(values)`. A contract that can express two arguments should
+   name them — `countPairs(prices, target)` rather than `solve(values)` — and the
+   generic name was itself a symptom of the single-argument shape.
+3. **Re-validated reference solutions** in all five languages, since the
+   signature changes.
+
+### Amendment · a shape holds STRUCTURE; a record holds NAMES
+
+The first version of this plan asked for descriptive names without checking
+where a signature comes from, and it comes from two places that must agree:
+
+| What                               | Lives on                                            | Rendered by                                    |
+| ---------------------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| `functionSignature`, `starterCode` | the **shape** — identical for every record using it | the editor                                     |
+| `functionContract`                 | the **record**                                      | `ProblemPanel`, as `name(params) → returnType` |
+
+`expandShape` copies the shape's templates verbatim and swaps in only
+`referenceSolution`. Today both sides say `solve(values)` and agree by accident
+of being equally generic. Giving a record `countPairs(prices, target)` while the
+shape still supplied the signature would have made the statement panel and the
+editor **contradict each other** — and a contract mismatch is worse than a
+generic name, because the reader cannot tell which one the grader believes.
+
+Rejected: one fixed signature per shape (`solve(values, k)` for all six). It is
+cheaper and stays consistent, but it keeps `solve` forever and makes the name a
+property of the wrapper rather than of the problem.
+
+Rejected: placeholders for the new shape only. Two shapes with different rules
+about where names come from costs more later than it saves now.
+
+**So the registry's contract changes.** `functionSignature`, `starterCode` and
+`wrapperTemplate` carry placeholders — the wrapper included, because it has to
+call the function by name — expanded from the record's `functionContract` during
+`expandShape`. Applied to `int-array-to-int` in the same change, so there is one
+rule.
+
+The duplication argument that created this file is about the 35 template pieces
+per shape, not about three identifiers. Names were never the thing being
+deduplicated.
+
+**The guard that matters is that the two cannot diverge.** A test asserting the
+panel and the editor show the same name passes today for the wrong reason —
+both strings happen to be `solve`. It is only a guard if it fails when they
+differ, so it is written with a positive control: a record whose
+`functionContract` disagrees with its expanded signature must be rejected, and
+the test proves the rejection fires rather than assuming it.
+
+### Difficulty floors shift, and it is not incidental
+
+`server/services/native-content/schema.ts` records that `medium` sits at 4
+rather than 6 because _"four difficulty corrections are still deferred behind the
+shape work (connected components and subset-sum both move up)"_.
+
+So migration changes the distribution. `donation-target-subsets` (subset-sum) is
+a shape-1 problem and moves up; `constellation-connection-groups` (connected
+components) is a shape-3 problem and moves later. **The floors must be re-based
+in the same change that moves a problem**, and the two distribution tables must
+still sum to the same number — there is a test asserting that, because the
+schema fixture zips them positionally.
+
+### Structured testcase inputs land after shape 2, not now
+
+Today a test case is a flat whitespace-separated line, which is why a scalar can
+be smuggled into it at all. Structured inputs — a JSON object per case, with
+named fields — are the general fix.
+
+They wait until after shape 2 deliberately. Shapes 1 and 3 can express what they
+need positionally (`values`, then the scalar; `n`, then edge pairs), but a string
+argument alongside an integer array cannot be split on whitespace without a
+quoting rule. Shape 2 is where the flat format actually breaks, so that is where
+the replacement earns its cost rather than being built speculatively.
+
+### Not in scope for shape 1
+
+- Shapes 2 and 3. Agreed explicitly: shape 1 lands and gets used first.
+- Structured testcase inputs, per above.
+- `className` / method-on-class contracts. The schema has the field; no wrapper
+  implements it; nothing in the library needs it.
+- Migrating `one-counter-open`, `signal-frequency-ledger`,
+  `cold-store-aisle-sweep`, `histogram-signal-block`, `strait-ice-floes`,
+  `audio-track-merge-cost`, `rising-corridor`, `archive-shelf-reward` — these are
+  genuinely `int[] -> int` and the existing shape describes them correctly.
+
+### Built · the guard, and the floor choice
+
+**The panel and the editor cannot disagree, and a test proves the refusal
+fires.** Two checks in `nativeProblemSchema`, both needed:
+
+- _Before_ expansion, `functionContract.parameters.length` must equal the shape's
+  arity, read by `shapeArity` from the placeholders the signatures actually
+  carry. Without it, a contract naming **more** parameters than the shape takes
+  passed silently — the panel showed three, the editor two — and one naming
+  **fewer** surfaced as a raw throw from `applyShapeNames` mid-transform rather
+  than as an issue on the record.
+- _After_ expansion, `findContractDivergence` requires every language's
+  `functionSignature` to name the contract's function and each parameter as a
+  whole word, and every name to be an identifier, because names are now spliced
+  into code in five languages.
+
+`tests/native-content/contract-divergence.test.ts` runs the agreement check on
+the six records whose names are **not** `solve` — agreement between two sides
+that both say `solve` proves nothing — and asserts each refusal. Positive
+control: with both checks disabled, the four schema-level refusals fail, each
+for its own reason (the "fewer" case turning back into the raw `__P2__` throw);
+restored, all nine pass.
+
+**Floors: easy 5 → 4, medium 4 → 5.** `donation-target-subsets` moved easy →
+medium, and one unit of floor moved with it; both tables still sum to 12.
+Lowering easy was not forced — 7 easy problems still clear 5. The alternative
+that lowered nothing was medium 5 and one _topic_ floor raised to 2, but six
+topics sit at 2 and choosing one would have been arbitrary. **A floor describes
+the library; it does not protect a figure.** Connected components moves with
+shape 3 and the floors move again then.
+
+**Two escaping bugs in the new shape, caught before first use.** In a
+single-quoted TS string `'\s'` is just `s`: the JavaScript wrapper split stdin
+on `/s+/` — every submission would have parsed `NaN` — and the Java wrapper on
+`"\s+"`, spaces only. Found by evaluating the emitted strings, not by reading
+the source, which looked right.
+
+**References are editorial, not minified.** Users read them. Guards the
+constraints rule out were removed; two stay because a graded case reaches them —
+`k > n → -1` in `pipeline-segment-from-end` (case `9 1 2`), and `n < 2` in the
+C `countPairs` only, because `memcpy` from a zero-size allocation is undefined.
+
+Validated locally without cache: 16 problems × 5 languages, 80 compilations,
+535 executions, all matching. Validated on the live Judge0 instance on
+2026-09-23, through the app's own `resolveProvider`, `wrapUserSource` and
+`outputsMatch`: the six migrated records × 5 languages × every graded case,
+**195 submissions, 195 accepted** — GCC 9.2.0 (C and C++), OpenJDK 13.0.1,
+Python 3.8.1, Node.js 12.14.0. Python 3.8 cannot evaluate `list[int]` in a
+signature; the wrapper's `from __future__ import annotations` is what makes the
+shape's signatures legal there, and this run is the evidence it does.
+
+---
+
+## D34 · F2.2 comes back: revision modes, and blind retry enforced by omission
+
+**Date:** 2026-09-24 · **Status:** built behind `FEATURE_REVISION_MODES`, off by
+default.
+
+### Reversing a recorded cut, deliberately
+
+F2.2 was one of the eleven cut tickets, and `docs/project-summary-notes.md` said
+"do not re-implement". On 2026-09-24 the owner re-scoped four of the eleven back
+in — F2.2, F4.7, F4.2 and F4.5's upsolve queue, the ones that need no paid or
+external service — one ticket at a time, each behind a flag and each reported
+before the next. This is the first. The other seven cuts stand.
+
+The flag was deleted on 2026-09-16 with the note "re-add one with its ticket,
+not before". It is re-added here, with the ticket, and it is enforced: the mode
+controls, the start action, the per-item context and the comparison are all
+gated. With it off, `/revision` is F2.1's page exactly.
+
+### The data: three nullable columns, no backfill
+
+`solve_sessions` gains `revision_mode`, `speed_target_seconds` and
+`speed_target_met`. Every existing session was an ordinary solve, and null says
+exactly that, so migration `0026_revision_modes` is additive only — no default,
+no backfill, no row touched. One CHECK,
+`solve_sessions_speed_fields_consistent`, makes the three columns one fact: a
+speed sitting has a positive target and nothing else has one; hit/miss exists
+only on a finished speed sitting. Proved with a direct write the service never
+makes.
+
+**The speed target is stored, not recomputed**, because `min(previous best,
+estimate)` moves the moment the sitting beats the previous best. **Hit/miss is
+decided in `completeSession`** from the same event-derived duration the attempt
+records, so the two cannot disagree, and a sitting that ends stuck is a miss
+however fast it was.
+
+### Blind retry: never loaded, rather than loaded and hidden
+
+The ticket's rule is that previous code must not reach the client — "not in the
+RSC payload, not in a props blob, not in a prefetched route". Four routes reached
+it, and each is closed at the source:
+
+| Route to the previous attempt                                                 | Closed by                                                                                                             |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Attempt history on the solve page                                             | `getAttemptHistory` is not called for a blind sitting                                                                 |
+| The editor's localStorage draft                                               | `draftKey` gains a scope; a blind sitting reads and writes `…:blind-<sessionId>` and never touches the unscoped draft |
+| `/problems/[slug]`, linked from the timer bar on every screen, and prefetched | that page also skips the history while a blind sitting is live on the problem                                         |
+| `sittingView`                                                                 | returns `{ mode: 'blind' }` and nothing else                                                                          |
+
+The previous attempt comes back by itself when the sitting ends: the session is
+no longer live, so the history loads again and the unscoped draft is untouched.
+
+**Not gated on the flag.** A sitting only has a mode if the flag was on when it
+started, and switching the flag off mid-sitting must not hand a blind retry its
+previous attempt.
+
+**Accepted:** `/sessions/[id]` (the timeline, which renders code) is reachable
+by deliberately navigating to it. No link on the blind solve page or the problem
+page leads there, so nothing prefetches it; a user who goes looking for their
+old code has chosen to see it.
+
+### What "retention" means in the comparison
+
+A revision sitting is **measured** once the same problem has been attempted
+again, and **retained** if that next attempt was solved. It is the only
+retention signal the data holds without inventing one — revision outcomes are
+counters on `revision_schedule`, not history. A revision with no later attempt
+is unmeasured and left out, not counted either way.
+
+Under ten measured revisions the page says "not enough data" and the count,
+never a rate. Above it, every rate sits beside its own sample size, and a tie
+names no winner.
+
+### Smaller decisions
+
+- **A mode requires a schedule row.** Revising means it was solved first; the
+  refusal is the same for "never solved" and "not yours" (the F1.4 rule).
+- **The pattern mini-set lists only what the user can open:** published, not
+  premium (F4.4 is cut, so there is no entitlement to check), and originals only
+  while `FEATURE_ORIGINAL_PROBLEMS` is on — the same helper the catalog uses.
+- **`none` is not briefed as a mistake.** It is the taxonomy's "nothing went
+  wrong".
+- **Risk reasons already render as sentences** (F2.1's `label`), which was one of
+  the ticket's criteria; nothing new was needed.
+- The modes service has its own entry point, `revision/modes`, because it starts
+  sessions through the lifecycle, which already imports the revision engine.
+
+---
+
+## D35 · F4.7a: public profiles, where the view type is the privacy contract
+
+**Date:** 2026-09-24 · **Status:** built. Public profiles stay OFF per account
+until the owner turns theirs on; there is no feature flag, because the per-user
+opt-in already is the switch. F4.7b (landing, SEO, screenshots) follows as a
+separate PR.
+
+### Scope, and what the ticket asked for that is not built
+
+The second of the four re-scoped tickets (D34). Built: a user-chosen handle,
+`/u/<handle>`, a per-section toggle for each of the four sections, and a monthly
+report card as an image at the three sizes the ticket names. **Not built, and
+why:** "contest participation" (F2.5 is cut — there is nothing to show) and the
+referral flow (bound to F4.3's anti-abuse conditions, and F4.3 is cut). Neither
+is stubbed: a section with no data behind it would be the unverifiable claim
+the ticket's own honesty rule forbids.
+
+### The handle: chosen, not generated
+
+Generating one from the display name or email was rejected because the email
+route puts part of an address into a public URL. So `user_profiles.handle` is
+nullable, the user chooses it, and **a public profile cannot be switched on
+without one** — checked against the row as saved, inside the transaction, so a
+stored handle counts and clearing it while public is refused.
+
+One rule in two places, as one string: `HANDLE_PATTERN_SOURCE` in
+`lib/profile/handle.ts` is both the Zod regex and the `user_profiles_handle_format`
+CHECK. Lowercase-only is what makes the partial unique index case-insensitive
+without a `lower()` expression. Reserved words (`admin`, `support`, …) are Zod
+only: a list that grows does not belong in a CHECK.
+
+**An absent field means "unchanged", never "default".** Onboarding saves through
+the same schema without the new fields; a default there would have wiped a
+chosen handle or re-shown a hidden section on every save. Tested directly.
+
+### What a public profile may contain
+
+`PublicProfileView` is the contract: a field that is not on it cannot reach the
+page or a card. It has no email, **no bio**, no code, notes, mistakes or
+reflections. The bio is left out because the disclosure the user agreed to —
+rendered verbatim beside the toggle — names display name, avatar, and the
+sections; the page shows what the user was told, not more. The disclosure was
+updated to name the fourth section, longest streak.
+
+Two details that would otherwise leak:
+
+- **Avatar initials fall back to the email** when there is no display name.
+  The public service passes an empty email, and falls back to the handle for
+  the name, so neither can surface an address.
+- **The stored streak is a cache (D18/D19).** A public page trusting it would
+  show a streak that already broke, so the service recomputes on read, as the
+  shell does.
+
+Sections that are off are `null` and **their queries do not run** — the same
+"never loaded" rule as D34's blind retry.
+
+### One gate, one 404
+
+Every entry point goes through one lookup whose WHERE clause is
+`public_profile_enabled AND handle = ? AND not deleted`. A profile that is off,
+unhandled or deleted is the same 404 as a handle that never existed, so the
+page cannot be used to test whether an account exists.
+
+### Not indexed
+
+`/u/<handle>` is `noindex`. The owner chose to be reachable by a link; being
+listed by search engines is a further exposure they were not asked about. The
+share cards are the intended way to be found. Revisit only with an explicit
+per-user "let search engines index me" choice.
+
+### Share cards
+
+`/u/<handle>/card/linkedin|x|whatsapp` — 1200×627, 1600×900, 1080×1080 — via
+`next/og` on the Node runtime (it queries the database). Each number is one of
+the owner's enabled sections; one that is off is absent, not zero. Cached an
+hour, because the numbers move daily. The e2e spec reads each PNG's IHDR, so
+"renders at all three sizes" is a measured fact rather than a declared one.
+
+### Evidence
+
+- 12 integration tests, including the privacy test with a positive control: a
+  deliberate bio leak into the view made it fail. The format CHECK is proved by
+  a direct write the service never makes (`23514`).
+- `e2e/public-profile.spec.ts` captures every payload of the page as a
+  signed-out visitor, with prefetches, and finds none of the code, approach,
+  stuck note, bio or email — while finding the display name and topic, which is
+  the control.
+- `tests/security/routes.test.ts` now lists both routes as PUBLIC, each with
+  its reason, as that file requires.
+- Migration `0027_public_profile` is additive: one nullable column, four
+  booleans with defaults, a partial unique index and a CHECK.
+
+---
+
+## D36 · F4.7b: a landing page that only says true things, and a deferred Sentry
+
+**Date:** 2026-09-26 · **Status:** built. No migration.
+
+### The rule, and the test that keeps it
+
+The owner's constraint for this page: every claim true today — no invented
+numbers, no features that do not exist (contests, referrals, coins), no
+testimonials or user counts, real screenshots only. The ticket's own copy
+could not meet it: its hero promised an "AI-assisted dashboard" and
+"contests", and its sections included a pricing table. All three are cut.
+
+`tests/public/landing-honesty.test.ts` reads the page's copy — string literals
+and JSX text, comments stripped, because the header comment names the
+forbidden topics in order to forbid them — and fails on any of them. Its
+positive control earned its place on the first run: "Refer a friend" slipped
+past the first referral pattern, and the pattern was widened.
+
+### What changed on the page
+
+- **The mock hero card is gone.** It showed a "24:18" timer and a "Live" pill:
+  invented figures in the most prominent spot on the site. It is now a real
+  screenshot of the dashboard.
+- **Screenshots are the real app, of a SEEDED DEMO account**, captured from a
+  local build (`scripts/demo-seed.ts`, local test database only). Every number
+  in them is example data and each one says so beside it.
+- **Only features with no flag are shown.** Revision modes, code execution and
+  original problems are behind flags whose production values are stored as
+  sensitive in Vercel and cannot be read from here, so the page cannot know
+  they are on. The revision screenshot was recaptured with modes off, and the
+  timeline was dropped — locally its runs come from the fake provider and read
+  "(not executed)", which is not what the product shows.
+- **FAQ**, each answer pointing at behaviour in the code: who can see your
+  data, deleting history, where problems come from (worded to be true whether
+  or not original problems are switched on), no paid plan, company tags.
+- **Footer disclaimer** — the wording the product already shows beside
+  company tags, extended to the platforms it links to.
+- **JSON-LD** — `WebSite` and `WebApplication`, facts only. No
+  `aggregateRating`, no `offers`: there are no reviews and nothing for sale.
+
+### Sentry is now loaded by dynamic import, and deferred on public pages
+
+Measured: the one blocking cost on the mobile landing page was
+`@sentry/nextjs` in the browser — a 410 KiB chunk parsed before first paint on
+every page, statically imported by `instrumentation-client.ts` **and** by both
+error boundaries. Tree-shaking options were tried first and changed nothing
+(the chunk's hash and size were identical), so they were reverted rather than
+left in with a comment claiming a saving.
+
+Now `lib/monitoring/sentry-client.ts` is the browser's only door to the SDK:
+
+- **Inside the app** it starts loading at once, as before.
+- **On `/` and `/u/*`** it waits for the browser to go idle. Owner's choice.
+- **The error boundaries load it on demand**, so an error they catch before the
+  SDK arrived is delayed, not dropped.
+
+The trade, accepted by the owner: on a public page, an error in its first
+moments is reported once the SDK arrives, and a router transition before then
+is not traced. Verified structurally: after the change, neither chunk that
+contains the SDK is referenced by the landing page's HTML.
+
+### Lighthouse, stated as measured
+
+**Production, mobile, PageSpeed Insights** (run by the owner on 2026-09-26,
+against `quadrantcode.vercel.app` after this change deployed):
+
+| Performance | Accessibility | Best practices | SEO | CLS | TBT   |
+| ----------- | ------------- | -------------- | --- | --- | ----- |
+| **95**      | **91**        | 100            | 92  | 0   | 40 ms |
+
+So the ticket's "Lighthouse ≥ 95" is **met for performance and not met for
+accessibility (91)**. SEO is 92. Both are lower than the local runs, which
+scored 100 on each — the production page is served with its real headers,
+deployment and third-party requests, so the two are not the same measurement.
+The accessibility and SEO gaps are recorded here as open and have **not been
+investigated**; no claim is made about their cause.
+
+For comparison, local runs of the same build scored desktop performance 98–100
+and mobile performance 70–92, a spread too wide on identical code to settle
+anything, which is why the production number is the one recorded.
+
+---
+
+## D37 · F4.5's upsolve queue is derived, not stored
+
+**Date:** 2026-09-26 · **Status:** built. No migration, no flag of its own.
+
+### What was missing
+
+F4.5's timed engine already existed (`server/services/assessments/`, see the
+note in `CLAUDE.md` that two cut tickets "exist under another name"). Its one
+genuinely missing criterion was the upsolve queue: "Unsolved problems land in
+the upsolve queue automatically." It was the third of the four re-scoped
+tickets (D34), built under the owner's instruction to finish what remains
+without data or feature loss.
+
+### Derived from rows that already exist
+
+`getUpsolveQueue` reads finished attempts (`submitted` or `auto_submitted`),
+their paper's questions, the marks each answer earned, and the solves that came
+afterwards. There is no queue table:
+
+- **Nothing has to "land".** A problem is in the queue the moment its attempt
+  is finalised without marks for it — including when the expiry sweep
+  auto-submits it, which is exactly the path a stored queue would most easily
+  forget to write.
+- **Nothing can drift.** There is no second copy to keep in step, so no
+  migration and no backfill, and every attempt already in the database is
+  covered on day one.
+
+### The rules, each tested
+
+- **Unsolved** = the answer earned no marks, **including a question never
+  opened** (no answer row at all — the left join is the point). Each item says
+  which: "attempted" or "not opened".
+- **Cleared** only by solving it **after** the attempt — a solved sitting, or
+  marks for it in a later assessment. A solve from before the mock does not
+  count: the mock is the newer evidence. Positive control: making the rule
+  ignore the solve's timing made that test fail.
+- **One row per problem**, the most recent miss, so a problem missed in two
+  mocks is one thing to do.
+- A live attempt contributes nothing until time is up.
+
+### Where it shows
+
+On an attempt's own page once it has ended ("from this attempt"), and on
+`/revision` ("Upsolve after assessments"). Both render nothing when empty, so
+neither page changes for anyone who has not finished an assessment.
+
+`FEATURE_MOCKS` is not consulted: an attempt can only exist if mocks were on
+when it was taken, and hiding a user's own unfinished work because the flag
+was later switched off would be the wrong default.
+
+The test fixture for an assessment paper moved from `service.test.ts` to
+`tests/helpers/assessment-fixture.ts`, shared by both files, rather than being
+copied.
+
+---
+
+## D38 · F4.2: one honest track, declared in code, behind `FEATURE_TRACKS`
+
+**Date:** 2026-09-26 · **Status:** built, flag off by default. No migration.
+
+### What shipped, and what did not
+
+The last of the four re-scoped tickets (D34). The ticket asks for four tracks.
+**One ships — Fundamentals — and three do not**, for reasons that are not
+effort:
+
+- **FAANG-, Quant- and HFT-style were premium tracks.** Premium gating rests
+  on F4.4's `hasEntitlement`, and F4.4 (billing) is cut. There is nothing to
+  gate with and nothing to sell, and pretending otherwise would be the
+  unverifiable claim the landing page just stopped making (D36).
+- **HFT-style is built on five ORIGINAL problems** (Rolling Trade Volume, Order
+  Book Matcher, …) authored through F4.1 and validated on Judge0. They do not
+  exist, and a track of problems that do not exist is a promise, not a feature.
+- **Fundamentals has 30 problems, not 40**: the external-link problems
+  production actually publishes, read on 2026-09-26. The seven `demo-*` rows
+  the walkthrough seed left in production's catalog are excluded; a test
+  forbids any `demo-` slug in a track.
+
+So the ticket's "all four tracks populated" criterion is **not met**, and is
+recorded here rather than papered over.
+
+### Declared in code, resolved against the catalog
+
+`server/services/tracks/catalog.ts` names each section's problems by slug.
+They are resolved at read time against published, non-premium, external-link
+problems. That is why there is no track table:
+
+- the catalog stays the one source of truth for what a problem is,
+- track content is reviewed in pull requests like the rest of the code, and
+- a slug that is not in the catalog is **dropped and counted** ("N problems are
+  not in the catalog yet"), never rendered as a dead link.
+
+### The criteria that are met, each tested
+
+- **Time remaining changes when the user's own speed changes.** For each
+  solved problem in the track, best ACTIVE time (F1.4) over the estimate gives a
+  ratio; the mean per difficulty scales each unsolved problem's estimate, a
+  difficulty with no solves borrows the overall ratio, and a user with no
+  solves sees plain estimates labelled as such. The test changes one best time
+  and watches the remaining minutes move from 20 to 80.
+- **Prerequisites block out-of-order section entry.** A prerequisite is always
+  an earlier section (tested), so one pass decides every lock; a locked section
+  lists its problems without links. Positive control: ignoring prerequisites
+  made that test fail.
+- **The disclaimer renders on every track page** — `CompanyDisclaimer`, the
+  product's existing wording.
+- **Premium content in free users' payloads**: vacuous today, because nothing
+  is premium. Stated rather than claimed.
+
+### Behind a flag, and one thing the flag cannot promise
+
+`FEATURE_TRACKS` is re-added and enforced: off, `/tracks` is a 404 and the
+dashboard link is absent. **But a `FEATURE_TRACKS` variable already exists in
+Vercel Production from before the 2026-09-16 flag cleanup**, stored as
+sensitive, so its value cannot be read from here. If it is `true`, tracks are
+visible the moment this deploys. That exposes nothing private — a track only
+reads the catalog and the viewer's own progress — but it is a visibility
+change the owner should confirm on `/admin/health`. The same caveat applies to
+`FEATURE_REVISION_MODES` (D34).
