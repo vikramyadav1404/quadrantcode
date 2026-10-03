@@ -12,6 +12,8 @@ concurrency:
 jobs:
   verify:
     name: typecheck · lint · test · build
+    # DIAGNOSTIC BRANCH ONLY (issue #26): skipped to spend CI minutes on the experiment.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -110,7 +112,7 @@ jobs:
   e2e:
     name: browser (playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     services:
       postgres:
@@ -150,17 +152,44 @@ jobs:
       - name: Migrate
         run: npm run db:migrate
 
-      - name: Build
+      # DIAGNOSTIC BRANCH ONLY (issue #26): two builds, one spec, 20 repeats each.
+      - name: Build (default prefetch)
         run: npm run build
 
-      # playwright.config.ts starts `next start` itself via webServer.
-      - name: Run browser tests
-        run: npm run test:e2e
+      - name: Experiment E1 + E2 (default prefetch)
+        run: |
+          DIAG_MODE=default npx playwright test e2e/diag-start-race.spec.ts \
+            --repeat-each=20 --reporter=list 2>&1 | tee diag-default.log || true
 
-      - name: Upload report on failure
-        if: failure()
+      - name: Build (prefetch disabled)
+        run: NEXT_PUBLIC_DIAG_NO_PREFETCH=1 npm run build
+
+      - name: Experiment E3 + E2 (prefetch disabled)
+        run: |
+          DIAG_MODE=no-prefetch npx playwright test e2e/diag-start-race.spec.ts \
+            --repeat-each=20 --reporter=list 2>&1 | tee diag-no-prefetch.log || true
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '## DIAG rows'
+            echo '```'
+            grep -h '^DIAG ' diag-default.log diag-no-prefetch.log || true
+            echo '```'
+            echo '## DIAG-LOG (console / pageerror / requestfailed)'
+            echo '```'
+            grep -h '^DIAG-LOG ' diag-default.log diag-no-prefetch.log | sort | uniq -c | sort -rn | head -50 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload diagnostic logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: .playwright/report
+          name: diag-logs
+          path: |
+            diag-default.log
+            diag-no-prefetch.log
+            .playwright/results
           retention-days: 7

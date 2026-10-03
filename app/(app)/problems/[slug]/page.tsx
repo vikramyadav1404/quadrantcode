@@ -16,6 +16,7 @@ import { AttemptHistory, LastAttemptPanel } from '@/components/session/AttemptHi
 import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { startSessionAction } from '../../sessions/actions';
+import { DIAG_PREFETCH } from '@/lib/diag-prefetch';
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '—';
@@ -169,13 +170,17 @@ export default async function ProblemDetailPage({
           the editor reachable only through the timer would turn the timer into
           a toll booth.
         */}
-        <Link className="text-sm underline" href={`/problems/${problem.slug}/solve`}>
+        <Link
+          className="text-sm underline"
+          href={`/problems/${problem.slug}/solve`}
+          prefetch={DIAG_PREFETCH}
+        >
           Open the editor
         </Link>
       </div>
 
       <p className="mt-8 text-xs text-[var(--text-muted)]">
-        <Link className="underline" href="/problems">
+        <Link className="underline" href="/problems" prefetch={DIAG_PREFETCH}>
           ← Back to the catalog
         </Link>
       </p>

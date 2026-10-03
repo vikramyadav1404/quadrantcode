@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BOTTOM_NAV_ITEMS } from './nav-items';
+import { DIAG_PREFETCH } from '@/lib/diag-prefetch';
 
 /** Shown under 768px only; the sidebar covers wider viewports. */
 export function BottomNav() {
@@ -21,6 +22,7 @@ export function BottomNav() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
+                prefetch={DIAG_PREFETCH}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${
                   active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'

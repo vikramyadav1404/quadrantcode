@@ -3,6 +3,7 @@ import { Avatar, type AvatarAppearanceProps } from '@/components/avatar/Avatar';
 import { GoalProgressRing } from './GoalProgressRing';
 import { StreakBadge } from './StreakBadge';
 import { ThemeToggle } from './ThemeToggle';
+import { DIAG_PREFETCH } from '@/lib/diag-prefetch';
 
 /**
  * Top bar. Every dynamic value arrives as a prop — F1.3 supplies the real
@@ -47,7 +48,12 @@ export function TopBar({
         <StreakBadge days={streakDays} atRisk={streakAtRisk} />
         <GoalProgressRing completed={goalCompleted} met={goalMet} target={goalTarget} />
         <ThemeToggle />
-        <Link aria-label="Profile settings" className="rounded-full" href="/settings/profile">
+        <Link
+          aria-label="Profile settings"
+          className="rounded-full"
+          href="/settings/profile"
+          prefetch={DIAG_PREFETCH}
+        >
           <Avatar appearance={avatarAppearance} size={28} src={avatarUrl} />
         </Link>
       </div>

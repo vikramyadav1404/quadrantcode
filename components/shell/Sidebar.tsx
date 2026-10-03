@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS } from './nav-items';
+import { DIAG_PREFETCH } from '@/lib/diag-prefetch';
 
 /** Primary navigation, hidden below 768px where BottomNav takes over. */
 export function Sidebar() {
@@ -21,6 +22,7 @@ export function Sidebar() {
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch={DIAG_PREFETCH}
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3 rounded-[var(--radius)] px-3 py-2 text-sm ${
                   active
