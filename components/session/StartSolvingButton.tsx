@@ -22,9 +22,13 @@
  * longer the live one is not shown. A message that makes no such claim — "that
  * problem is not valid" — is unaffected, because it is about the request.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useActiveSessionId } from '@/components/session/ActiveSessionContext';
+
+// DIAGNOSTIC BRANCH ONLY (issue #26, experiment E5). Inlined at build time.
+const DIAG_REFRESH_WORKAROUND = process.env.NEXT_PUBLIC_DIAG_REFRESH_WORKAROUND === '1';
 
 type StartResult = {
   ok: boolean;
@@ -55,6 +59,23 @@ export function StartSolvingButton({
 
   const current =
     claimedSessionId !== null && claimedSessionId !== activeSessionId ? null : result;
+
+  // E5: the action succeeded but the layout still shows no new session → refresh once.
+  const router = useRouter();
+  const latestActive = useRef(activeSessionId);
+  latestActive.current = activeSessionId;
+  const refreshed = useRef<string | null>(null);
+  const startedId = result?.ok ? (result.session?.id ?? null) : null;
+  useEffect(() => {
+    if (!DIAG_REFRESH_WORKAROUND || !startedId || refreshed.current === startedId) return;
+    const handle = setTimeout(() => {
+      if (latestActive.current === startedId) return;
+      refreshed.current = startedId;
+      console.warn('DIAG refresh-workaround fired');
+      router.refresh();
+    }, 750);
+    return () => clearTimeout(handle);
+  }, [startedId, router]);
 
   return (
     <div className="flex flex-col gap-2">

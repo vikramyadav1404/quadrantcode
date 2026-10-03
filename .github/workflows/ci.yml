@@ -153,20 +153,26 @@ jobs:
         run: npm run db:migrate
 
       # DIAGNOSTIC BRANCH ONLY (issue #26): two builds, one spec, 20 repeats each.
-      - name: Build (default prefetch)
-        run: npm run build
-
-      - name: Experiment E1 + E2 (default prefetch)
+      # Round 2. E4: no Suspense boundary (loading.tsx) around the problem page.
+      - name: Build (problems/loading.tsx removed)
         run: |
-          DIAG_MODE=default npx playwright test e2e/diag-start-race.spec.ts \
+          mv "app/(app)/problems/loading.tsx" /tmp/problems-loading.tsx
+          npm run build
+
+      - name: Experiment E4 + E2 (no loading.tsx)
+        run: |
+          DIAG_MODE=no-loading npx playwright test e2e/diag-start-race.spec.ts \
             --repeat-each=20 --reporter=list 2>&1 | tee diag-default.log || true
 
-      - name: Build (prefetch disabled)
-        run: NEXT_PUBLIC_DIAG_NO_PREFETCH=1 npm run build
-
-      - name: Experiment E3 + E2 (prefetch disabled)
+      # E5: loading.tsx restored, refresh-once workaround in StartSolvingButton.
+      - name: Build (refresh workaround)
         run: |
-          DIAG_MODE=no-prefetch npx playwright test e2e/diag-start-race.spec.ts \
+          mv /tmp/problems-loading.tsx "app/(app)/problems/loading.tsx"
+          NEXT_PUBLIC_DIAG_REFRESH_WORKAROUND=1 npm run build
+
+      - name: Experiment E5 + E2 (refresh workaround)
+        run: |
+          DIAG_MODE=refresh-workaround npx playwright test e2e/diag-start-race.spec.ts \
             --repeat-each=20 --reporter=list 2>&1 | tee diag-no-prefetch.log || true
 
       - name: Summary

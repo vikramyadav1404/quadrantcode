@@ -93,10 +93,13 @@ async function attempt(page: Page, waitIdle: boolean) {
   const body = await response.text().catch(() => '');
 
   const timer = page.getByRole('region', { name: /solve session timer/i });
+  const beforeWait = Date.now();
   const shown = await timer
     .waitFor({ state: 'visible', timeout: 10_000 })
     .then(() => true)
     .catch(() => false);
+  const shownAfterMs = shown ? Date.now() - beforeWait : null;
+  const refreshFired = probe.log.some((line) => line.includes('DIAG refresh-workaround fired'));
 
   // E2: does the server already hold the session the client failed to show?
   let afterReload = 'n/a';
@@ -112,6 +115,8 @@ async function attempt(page: Page, waitIdle: boolean) {
     mode: MODE,
     waitIdle,
     shown,
+    shownAfterMs,
+    refreshFired,
     afterReload,
     loadedAt,
     clickedAt,
