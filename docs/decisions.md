@@ -2739,6 +2739,11 @@ to show a pending state on the clicked link. Not built here.
   0 flaky**, 5 skipped (the storage suite), in all three runs. Session,
   reflection and timeline had no failures or retries. Unit: 1,557 passed,
   5 skipped.
+- A fourth run (37156941037) failed in the dashboard case, in its **setup**,
+  not in the Pause/Resume loop. The helper navigated away while the start
+  action's POST was still in flight, which cancels it, so no session was ever
+  created. The spec now waits for the action's response before navigating.
+  The final verification runs are listed on PR #28.
 - **Revisit after upgrading to Next ≥ 16.2:** put a `loading.tsx` back above
   `[slug]` on a branch and run `e2e/session-commit.spec.ts` with
   `--repeat-each=5`. If it stays at zero, the boundary can return. If it

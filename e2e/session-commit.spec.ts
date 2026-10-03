@@ -84,7 +84,18 @@ async function abandonFromSessionsPage(page: Page) {
 /** A live session, established through the UI and confirmed by a full load. */
 async function liveSession(page: Page) {
   await page.goto(`/problems/${SLUG}`);
+  /*
+   * Wait for the action's response before navigating. Leaving the page while
+   * the POST is in flight cancels it, so no session is created at all — the
+   * first version of this helper did exactly that and failed on CI for a
+   * reason that had nothing to do with the bug under test.
+   */
+  const started = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && !!response.request().headers()['next-action'],
+  );
   await page.getByRole('button', { name: /start solving/i }).click();
+  expect((await started).ok()).toBe(true);
   // Whatever the client does, a full load renders the server's truth.
   await page.goto('/sessions');
   await expect(timerOf(page)).toBeVisible();
@@ -96,7 +107,13 @@ test('STARTING A SESSION SHOWS THE TIMER, EVERY TIME (problem page)', async ({ p
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
     await page.goto(`/problems/${SLUG}`);
+    const started = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && !!response.request().headers()['next-action'],
+    );
     await page.getByRole('button', { name: /start solving/i }).click();
+    // The server must have accepted the start; only then is a missing timer the bug.
+    expect((await started).ok(), `start action on attempt ${attempt}`).toBe(true);
 
     if (!(await appears(timerOf(page)))) failures.push(attempt);
     await abandonFromSessionsPage(page);
