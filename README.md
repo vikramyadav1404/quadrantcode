@@ -5,7 +5,7 @@
 [![CI](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/ci.yml/badge.svg)](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/ci.yml)
 ![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)
 
-**[quadrantcode.vercel.app](https://quadrantcode.vercel.app)**
+**[quadrantcode.vikramyadav.me](https://quadrantcode.vikramyadav.me)**
 
 ---
 
@@ -45,26 +45,31 @@ history that makes practice compound.
 
 ## ⚠️ Honest status
 
-This is a portfolio build. It is complete as software and **not operating as a
-service**. Specifically:
+This is a portfolio build. It is **live and usable; sign-in is GitHub-only**.
+Specifically:
 
-- **Every `FEATURE_*` flag ships `false`** — all five, in `.env.example`.
-- **Code execution has never run in production.** The queue, leases, fencing and
-  recovery are built and covered by tests. `resolveProvider` returns a fake that
-  executes nothing; the Judge0 provider is written and **unverified** against a
-  real instance. Nothing here is a sandbox, and the limits are what gets _sent_,
-  not what gets _enforced_.
-- **Problem statements live on LeetCode by design.** This stores metadata and a
-  link — never statements, examples, editorials or tests. That is enforced by a
-  database `CHECK`, not by convention, so a service bug cannot leak around it.
-- **The bundled problem library is not what its count suggests.** 100 records
-  resolve to **16 unique test-case sets**: six hand-authored problems and ten
-  generated patterns wearing ninety-four names. None of it is published — every
-  record imports at `needs_review`. It is being replaced by hand.
-- Email delivery, phone OTP and code execution are unprovisioned — the
-  integrations exist behind a seam, the credentials do not. **There is no
-  billing at all**: subscriptions were cut from scope rather than stubbed, so
-  there is no payment code to be unprovisioned.
+- **Every `FEATURE_*` flag defaults to off in `.env.example`** — all seven.
+  Code execution is enabled in production.
+- **Code execution runs in production on a self-hosted Judge0 instance**,
+  selected by `EXECUTION_BACKEND=judge0` and `JUDGE0_URL` (development falls back
+  to a fake that executes nothing). Every published original problem's reference
+  solutions passed on it in five languages before publishing. Judge0 is not a
+  sandbox this project built: the time and memory limits are what gets _sent_,
+  and how strictly they are enforced depends on how the instance is configured.
+- **Problems from other platforms link out.** For those, the database stores
+  metadata and a link, never the statement — enforced by a `CHECK`, not by
+  convention. Separately, 16 original problems written for this project carry
+  their own statements, test cases and editorials.
+- **The original library is small and published:** 16 problems, 107 test cases
+  (75 hidden) and 16 editorials, each published only after its reference
+  solutions passed on Judge0. An earlier 100-record library turned out to be 16
+  problems under 100 names; the 84 duplicates are archived, not deleted. The
+  catalog also links to 30 problems hosted on LeetCode.
+- **Email delivery is not provisioned**, so magic-link sign-in is unavailable
+  and sign-in is GitHub-only. Phone OTP exists behind `FEATURE_PHONE_OTP` and
+  needs MSG91 credentials; it is not advertised as available.
+- **There is no billing at all**: subscriptions were cut from scope rather than
+  stubbed, so there is no payment code to be unprovisioned.
 
 Nothing above is hidden in a footnote because the alternative is a reader
 discovering it themselves and distrusting everything else.
@@ -83,7 +88,8 @@ drifts the first time a process dies mid-session.
 
 **Execution is a table, a lease and a provider seam.** Jobs are rows; workers
 claim them with a fenced lease so a deploy mid-run cannot produce two verdicts
-for one attempt. The provider behind the seam is swappable and currently fake.
+for one attempt. The provider behind the seam is swappable; production runs it
+against a self-hosted Judge0 instance.
 
 **The dashboard is precomputed.** Three rollup tables, because there are three
 grains. Charts are inline SVG — the charting library in the original plan was
@@ -96,7 +102,7 @@ never installed, and the reasoning is in the decision log.
 | Framework  | Next.js 15 (App Router), React 19                                               |
 | Language   | TypeScript, `strict` + `noUncheckedIndexedAccess`                               |
 | Styling    | Tailwind CSS 4, custom token layer with a contrast gate in CI                   |
-| Database   | PostgreSQL (Neon), Drizzle ORM, 25 versioned migrations with hand-written downs |
+| Database   | PostgreSQL (Neon), Drizzle ORM, 28 versioned migrations with hand-written downs |
 | Auth       | Auth.js v5 — magic link and GitHub, database sessions                           |
 | Validation | Zod 4 at every API boundary                                                     |
 | Tests      | Vitest, Playwright                                                              |
@@ -159,10 +165,10 @@ npm run contrast        # WCAG token audit, non-zero on failure
 npm run schema:check    # does a database match the migration files?
 ```
 
-| Suite              | Result                                 | Source                                                     |
-| ------------------ | -------------------------------------- | ---------------------------------------------------------- |
-| Unit + integration | **1,290 passing, 5 skipped**, 88 files | `npm test` against a real Postgres, 2026-09-20             |
-| Browser            | 143 tests in 23 files                  | `npx playwright test --list`, 2026-09-20 — listed, not run |
+| Suite              | Result                                  | Source                                                     |
+| ------------------ | --------------------------------------- | ---------------------------------------------------------- |
+| Unit + integration | **1,557 passing, 5 skipped**, 107 files | `npx vitest run` against a real Postgres, 2026-10-03       |
+| Browser            | 166 tests defined in 26 spec files      | `npx playwright test --list`, 2026-10-03 — listed, not run |
 
 The unit suite takes about **20 minutes** against a real database. The five
 skips are a live-bucket storage suite that needs `STORAGE_INTEGRATION=1`.
@@ -206,6 +212,9 @@ it depends entirely on how that provider was deployed. A container contract with
 real isolation was specified and has tests — but the image was never built, and
 an unbuilt image isolates nothing. Since no provider is provisioned either, the
 honest status is _built, tested, never run_.
+
+_Update (Oct 2026): now provisioned on a self-hosted Judge0 instance and running
+in production; see Honest status above._
 
 ### D25 · An append-only log that can still be erased on request
 
