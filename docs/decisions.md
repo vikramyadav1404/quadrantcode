@@ -2733,7 +2733,12 @@ to show a pending state on the clicked link. Not built here.
 - `e2e/session-commit.spec.ts` repeats each case 10 times with retries off and
   counts failures, so a single run misses a 45%-per-attempt bug with
   probability ~0.1%. Before the fix: **6 of 10** starts failed on the problem
-  page (CI run 37155241675).
+  page (CI run 37155241675). After the fix, in three CI runs (37155989997, and
+  37155969561 attempts 1 and 2): **0 of 10** every time. The whole browser
+  suite went from 157 passed, 2 failed and 5 flaky to **164 passed, 0 failed,
+  0 flaky**, 5 skipped (the storage suite), in all three runs. Session,
+  reflection and timeline had no failures or retries. Unit: 1,557 passed,
+  5 skipped.
 - **Revisit after upgrading to Next ≥ 16.2:** put a `loading.tsx` back above
   `[slug]` on a branch and run `e2e/session-commit.spec.ts` with
   `--repeat-each=5`. If it stays at zero, the boundary can return. If it
