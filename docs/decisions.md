@@ -2603,3 +2603,148 @@ visible the moment this deploys. That exposes nothing private — a track only
 reads the catalog and the viewer's own progress — but it is a visibility
 change the owner should confirm on `/admin/health`. The same caveat applies to
 `FEATURE_REVISION_MODES` (D34).
+
+## D39 · No Suspense boundary above `/problems/[slug]`: a framework bug drops server-action renders under it
+
+**Date:** 2026-10-04 · **Status:** built. No migration, no dependency change.
+Closes issue #26.
+
+### The symptom
+
+Clicking "Start solving" on a problem page sometimes did nothing visible. No
+timer bar, no "Session started" notice, no error. A reload showed the timer.
+In CI this surfaced as `session.spec`, `reflection.spec` and `timeline.spec`
+failing or going flaky in a different combination on every run, 102 failures
+across five runs on 2026-10-03, almost all of them a timer region or a notice
+that never appeared.
+
+### What it was not, and how that was shown
+
+The first hypothesis, a click landing before hydration, was **wrong**. The
+Playwright traces from the failed runs showed, for all 14 failures:
+
+- the click produced a server-action POST, and it returned 200;
+- 13 of the 14 response bodies held `ok: true` and the new layout, with the
+  timer bar's props and the new session id (the fourteenth body was empty in
+  the trace and is unverified);
+- the browser console was empty, with no reload or refetch after the POST.
+
+So the server did its part every time, and the browser rendered nothing. A fix
+for hydration would have fixed nothing.
+
+### The experiments
+
+A throwaway branch (`diag/start-race-experiments`, never merged) ran one
+dedicated spec on CI with retries off, 20 repetitions per condition. Each
+attempt clicked "Start solving" and waited 10 s for the timer. E2: on every
+failure the page was reloaded to see whether the server held the session.
+
+| Round · CI run  | Condition                                                  | Timer shown | Timer missing | Shown after reload |
+| --------------- | ---------------------------------------------------------- | ----------- | ------------- | ------------------ |
+| 1 · 37153213896 | E1 default, click right after load                         | 13          | 7             | 7 / 7              |
+| 1 · 37153213896 | E1 default, click after `networkidle`                      | 10          | 10            | 10 / 10            |
+| 1 · 37153213896 | E3 prefetch disabled on shell links, immediate             | 9           | 11            | 11 / 11            |
+| 1 · 37153213896 | E3 prefetch disabled, after `networkidle`                  | 11          | 9             | 9 / 9              |
+| 2 · 37154285169 | **E4 `problems/loading.tsx` removed, immediate**           | **20**      | **0**         | —                  |
+| 2 · 37154285169 | **E4 `problems/loading.tsx` removed, after `networkidle`** | **20**      | **0**         | —                  |
+| 2 · 37154285169 | E5 `router.refresh()` once if the layout lags, immediate   | 12          | 8             | 8 / 8              |
+| 2 · 37154285169 | E5 `router.refresh()` once, after `networkidle`            | 18          | 2             | 2 / 2              |
+
+What this establishes:
+
+1. **Prefetching and timing are not the cause.** E1 and E3 fail at the same
+   rate, early click or late, prefetch on or off.
+2. **The server is always right.** 56 of 56 failures showed the timer after a
+   reload. The session existed, and only the client's render was missing.
+3. **The Suspense boundary from `app/(app)/problems/loading.tsx` is the
+   condition.** Without it: 40 of 40 shown, median 20 ms after the click,
+   worst 31 ms.
+4. **A refresh-once workaround is not reliable.** It fired 18 times and still
+   left 10 of 40 attempts without a timer. The refresh re-renders the same
+   boundary and hits the same bug.
+
+No console error, `pageerror` or unexpected `requestfailed` appeared in any of
+the 160 attempts.
+
+### The upstream bug
+
+Versions here: **Next.js 15.5.24**, app `react`/`react-dom` **19.2.8**. The
+app router uses the React build that Next bundles.
+
+- **https://github.com/vercel/next.js/issues/87529**: "Client UI doesn't
+  update after revalidatePath with Suspense and short promise". It is
+  production-only, the server and client both have the new data, and the DOM
+  stays stale until an unrelated state change forces a commit. The reporter
+  bisected it to `v15.4.2-canary.20`. A Next maintainer confirmed on
+  2026-05-22 that it no longer reproduces on `next@16.2.6`, and closed it.
+- **https://github.com/vercel/next.js/pull/82159**: the React upgrade in that
+  canary, the only runtime change in the range.
+- **https://github.com/facebook/react/pull/34031**: "[Fiber] Treat unwrapping
+  React.lazy more like a use()", identified in the issue thread as the React
+  change in that bump that touches the Fiber runtime. The thread describes it
+  as rendered but not committed.
+
+### The decision
+
+**The problem detail and solve pages sit under no `loading.tsx` boundary.**
+`app/(app)/problems/page.tsx` and its `loading.tsx` moved into a route group,
+`app/(app)/problems/(catalog)/`. The catalog keeps its skeleton, URLs are
+unchanged, and `/problems/[slug]` and `/problems/[slug]/solve` no longer
+inherit the boundary.
+
+This is a fix at our level, not a workaround around the symptom. The race
+needs a boundary above the subtree that a server action re-renders. The pages
+where sessions start and are worked on no longer have one. That removes the
+condition E4 isolated for every action there (start, pause, stuck,
+run-then-refresh, complete), although E4 measured only start. It is a
+real-user fix as much as a test fix: anyone could hit it.
+
+**`app/(app)/dashboard/loading.tsx` stays.** The audit found no server action
+of the dashboard's own. The layout's timer-bar actions do re-render it, so the
+regression spec measures them there: 10 pauses and 10 resumes on `/dashboard`
+and the same on the catalog, **0 failures in 40 actions**, before the fix
+(CI run 37155241675). The condition is not universal. #87529 ties it to a
+short-lived promise under the boundary, and the evidence only implicates the
+problem pages. If the dashboard or catalog cases ever fail, they get the same
+treatment.
+
+Rejected:
+
+- **The refresh-once workaround (E5).** 25% of attempts still failed.
+- **Upgrading to Next 16.2.x here.** It is the real fix for the framework bug,
+  but it is a major upgrade with its own risk, tracked as a separate issue.
+- **Disabling prefetch.** It had no effect (E3).
+
+### What the user sees now while a problem page loads
+
+Nothing in the page changes until the new page is ready, because there is no
+boundary to show. Client navigation is a transition: the previous screen stays
+in place, with no progress indicator, for as long as the server takes to
+render the problem page. In the CI trace that was 37 ms. Production on Neon
+was not measured.
+
+What was lost was the catalog's table skeleton, which never had the shape of
+a problem page anyway. A follow-up can give feedback without a Suspense
+boundary: `useLinkStatus` (available in Next 15.5) on catalog and track links
+to show a pending state on the clicked link. Not built here.
+
+### How this is guarded, and when to revisit
+
+- `e2e/session-commit.spec.ts` repeats each case 10 times with retries off and
+  counts failures, so a single run misses a 45%-per-attempt bug with
+  probability ~0.1%. Before the fix: **6 of 10** starts failed on the problem
+  page (CI run 37155241675). After the fix, in three CI runs (37155989997, and
+  37155969561 attempts 1 and 2): **0 of 10** every time. The whole browser
+  suite went from 157 passed, 2 failed and 5 flaky to **164 passed, 0 failed,
+  0 flaky**, 5 skipped (the storage suite), in all three runs. Session,
+  reflection and timeline had no failures or retries. Unit: 1,557 passed,
+  5 skipped.
+- A fourth run (37156941037) failed in the dashboard case, in its **setup**,
+  not in the Pause/Resume loop. The helper navigated away while the start
+  action's POST was still in flight, which cancels it, so no session was ever
+  created. The spec now waits for the action's response before navigating.
+  The final verification runs are listed on PR #28.
+- **Revisit after upgrading to Next ≥ 16.2:** put a `loading.tsx` back above
+  `[slug]` on a branch and run `e2e/session-commit.spec.ts` with
+  `--repeat-each=5`. If it stays at zero, the boundary can return. If it
+  fails, this decision stands.

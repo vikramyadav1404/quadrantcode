@@ -56,8 +56,8 @@ contents.
 | `layout.tsx`                       | Authenticated application shell (F0.4)                               |
 | `dashboard/page.tsx`               | Placeholder dashboard; F1.6 fills it with real numbers               |
 | `dashboard/loading.tsx`            | Renders `StatGridSkeleton` while the dashboard loads                 |
-| `problems/page.tsx`                | Problem catalog list                                                 |
-| `problems/loading.tsx`             | Skeleton for the catalog list                                        |
+| `problems/(catalog)/page.tsx`      | Problem catalog list                                                 |
+| `problems/(catalog)/loading.tsx`   | Skeleton for the catalog list only — never above `[slug]` (D39)      |
 | `problems/[slug]/page.tsx`         | Problem detail                                                       |
 | `session/actions.ts`               | F1.4 · the timer bar's server actions (no page, so no route)         |
 | `sessions/[id]/actions.ts`         | F1.5 · save a reflection (skipping needs no action)                  |

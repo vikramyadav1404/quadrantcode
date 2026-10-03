@@ -175,9 +175,9 @@ against its background. Screen-reader announcement is not asserted at all.
 
 ### Criteria this ticket also closed, carried over from F0.4
 
-| Criterion                             | Status                  | Evidence                                                                    |
-| ------------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
-| Every list route has a skeleton state | **DONE** (was DEFERRED) | `app/(app)/problems/loading.tsx` — `/problems` is the first real list route |
+| Criterion                             | Status                  | Evidence                                                                                                                 |
+| ------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Every list route has a skeleton state | **DONE** (was DEFERRED) | `app/(app)/problems/(catalog)/loading.tsx` — `/problems` is the first real list route; scoped to the list only since D39 |
 
 Keyboard traversal was still **PARTIAL** at this point — `/problems` had the
 interactive rows but no spec tabbed through them. It is **closed** by the F0.3
