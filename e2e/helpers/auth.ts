@@ -14,6 +14,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import postgres from 'postgres';
 import type { BrowserContext, Page } from '@playwright/test';
+import { assertNotProductionDatabase } from '../../lib/db/production-guard';
 
 const AUTH_SECRET = process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production';
 
@@ -23,6 +24,8 @@ export const SESSION_COOKIE = '__Secure-quadrantcode.session';
 export function db() {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) throw new Error('TEST_DATABASE_URL must be set for e2e tests.');
+  // Fixtures insert and delete rows; never against production (#27).
+  assertNotProductionDatabase(url, 'TEST_DATABASE_URL (e2e/helpers/auth.ts)');
   return postgres(url, { max: 1, onnotice: () => {} });
 }
 

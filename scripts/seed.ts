@@ -13,6 +13,7 @@ import postgres from 'postgres';
 import { problemTags, problems } from '@/server/db/schema';
 import { normaliseProblemUrl } from '@/server/services/ingest/normalise-url';
 import { requireDirectDatabaseUrl } from '@/server/db/direct-url';
+import { assertNotProductionUnlessFlagged } from '@/lib/db/production-guard';
 import { SEED_PROBLEMS } from './seed-problems';
 
 export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<number> {
@@ -78,6 +79,7 @@ export async function seedProblems(db: ReturnType<typeof drizzle>): Promise<numb
 
 async function main(): Promise<void> {
   const url = requireDirectDatabaseUrl(process.env, 'seed');
+  assertNotProductionUnlessFlagged(url, 'the database URL (scripts/seed.ts)');
 
   const client = postgres(url, { max: 1 });
   try {

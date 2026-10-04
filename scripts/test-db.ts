@@ -15,13 +15,14 @@
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import EmbeddedPostgres from 'embedded-postgres';
+import { LOCAL_TEST_DATABASE_URL, LOCAL_TEST_DB } from '@/lib/db/local-test-db';
 
-const PORT = 55432;
-const USER = 'postgres';
-const PASSWORD = 'postgres';
+const PORT = LOCAL_TEST_DB.port;
+const USER = LOCAL_TEST_DB.user;
+const PASSWORD = LOCAL_TEST_DB.password;
 const DATA_DIR = resolve('.tmp/pgdata');
-export const TEST_DB_NAME = 'quadrantcode_test';
-export const TEST_DATABASE_URL = `postgresql://${USER}:${PASSWORD}@localhost:${PORT}/${TEST_DB_NAME}`;
+export const TEST_DB_NAME = LOCAL_TEST_DB.database;
+export const TEST_DATABASE_URL = LOCAL_TEST_DATABASE_URL;
 
 function instance(): EmbeddedPostgres {
   return new EmbeddedPostgres({

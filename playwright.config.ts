@@ -1,4 +1,24 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as loadEnvFile } from 'dotenv';
+import { applyLocalTestDefaults } from './lib/db/local-test-db';
+import { assertEnvNotProduction } from './lib/db/production-guard';
+
+/*
+ * Issue #27. An optional, git-ignored `.env.test` may override settings (it
+ * never overrides a variable already set, so CI's values win); outside CI an
+ * unset TEST_DATABASE_URL defaults to the local embedded Postgres. Then refuse
+ * to start if any database variable this process can see is production —
+ * fixtures insert and delete rows, and `next start` below runs as
+ * NODE_ENV=production, which is exactly the mode `server/env.ts` exempts from
+ * its own remote-database check.
+ */
+loadEnvFile({ path: '.env.test', quiet: true });
+applyLocalTestDefaults();
+assertEnvNotProduction(
+  ['TEST_DATABASE_URL', 'DATABASE_URL', 'DIRECT_DATABASE_URL', 'DATABASE_URL_UNPOOLED'],
+  'playwright.config.ts',
+);
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? '';
 
 /**
  * Browser tests, kept deliberately small.
@@ -63,7 +83,15 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         NODE_ENV: 'production',
-        DATABASE_URL: process.env.TEST_DATABASE_URL ?? '',
+        /*
+         * All three database variables, not just DATABASE_URL. `next start`
+         * fills any variable left unset here from `.env.local`, which on the
+         * owner's machine holds production — so an unset DIRECT_DATABASE_URL
+         * was a way for the test server to reach production (#27).
+         */
+        DATABASE_URL: TEST_DATABASE_URL,
+        DIRECT_DATABASE_URL: TEST_DATABASE_URL,
+        DATABASE_URL_UNPOOLED: TEST_DATABASE_URL,
         AUTH_SECRET: process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production',
         NEXT_PUBLIC_APP_URL: BASE_URL,
         RESEND_API_KEY: 'test-only-api-key',

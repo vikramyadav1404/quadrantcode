@@ -12,6 +12,7 @@ import {
   loadAssessmentPaperLibrary,
 } from '@/server/services/assessments';
 import { requireDirectDatabaseUrl } from '@/server/db/direct-url';
+import { assertNotProductionUnlessFlagged } from '@/lib/db/production-guard';
 
 const companySeedSchema = z.array(
   z.object({
@@ -22,6 +23,7 @@ const companySeedSchema = z.array(
 );
 
 const url = requireDirectDatabaseUrl(process.env, 'import the native library');
+assertNotProductionUnlessFlagged(url, 'the database URL (scripts/import-native-problems.ts)');
 
 const batches = await loadNativeProblemBatches();
 const paperLibrary = await loadAssessmentPaperLibrary();
