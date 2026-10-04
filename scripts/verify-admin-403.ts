@@ -7,9 +7,12 @@
  * criterion is about the status, not about a thrown error type.
  */
 import postgres from 'postgres';
+import { assertNotProductionDatabase } from '@/lib/db/production-guard';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
 const DB = process.env.DATABASE_URL!;
+// Creates users and session rows: never against production (#27).
+assertNotProductionDatabase(DB, 'DATABASE_URL (scripts/verify-admin-403.ts)');
 const sql = postgres(DB, { max: 1, onnotice: () => {} });
 
 async function makeUser(email: string, role: 'user' | 'admin') {
