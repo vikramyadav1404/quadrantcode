@@ -159,11 +159,37 @@ Requires **Node ≥ 22**.
 
 ```bash
 npm run test:db:start   # embedded Postgres on :55432 — this process IS the database
-TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/quadrantcode_test npm test
-npm run test:e2e        # Playwright; needs a build first
+npm test                # TEST_DATABASE_URL defaults to that local instance
+npm run build
+npm run test:e2e        # Playwright, against the same local test database
 npm run contrast        # WCAG token audit, non-zero on failure
 npm run schema:check    # does a database match the migration files?
 ```
+
+Outside CI, `vitest.config.ts` and `playwright.config.ts` default
+`TEST_DATABASE_URL` to the embedded instance (`lib/db/local-test-db.ts`). To use
+a different local database, put `TEST_DATABASE_URL=...` in a `.env.test` file.
+It is git-ignored like every env file, and the configs load it without
+overriding variables already set in your shell. The integration suites migrate
+the test database themselves. Before an e2e run on a fresh database, migrate it
+once:
+`DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/quadrantcode_test npm run db:migrate`.
+
+**Local test runs refuse to touch production** ([#27](https://github.com/vikramyadav1404/quadrantcode/issues/27)):
+
+- **What is checked:** the test configs, the e2e and integration helpers, and the
+  seed scripts check `TEST_DATABASE_URL`, `DATABASE_URL`, `DIRECT_DATABASE_URL`
+  and `DATABASE_URL_UNPOOLED`.
+- **How:** the check lives in `lib/db/production-guard.ts`. It matches a hash of
+  the production host, which is never printed, and it runs before any
+  connection opens.
+- **The e2e server:** it gets the test URL for all three database variables, so
+  `next start` cannot fill one from `.env.local`.
+- **Content loaders:** `seed.ts`, `seed-companies.ts` and `import-native-problems.ts`
+  can still target production, but only with `--production` typed on the
+  command line. `demo-seed.ts` never can.
+- **What is not covered:** `next build` and `next start` still read
+  non-database values from `.env.local`, such as Upstash or Sentry.
 
 | Suite              | Result                                  | Source                                                     |
 | ------------------ | --------------------------------------- | ---------------------------------------------------------- |
@@ -173,9 +199,9 @@ npm run schema:check    # does a database match the migration files?
 The unit suite takes about **20 minutes** against a real database. The five
 skips are a live-bucket storage suite that needs `STORAGE_INTEGRATION=1`.
 
-**Postgres-backed suites skip silently without `TEST_DATABASE_URL`.** A run that
-reports far fewer tests has not passed more easily — it has tested less. Check
-the count, not the colour.
+**Postgres-backed suites skip silently without `TEST_DATABASE_URL`.** A run that reports far fewer
+tests has not passed more easily — it has tested less. Check the count, not the
+colour.
 
 CI runs typecheck, lint, format, a contrast audit, the test suite, a deployment
 contract check, the build, and a **gitleaks scan over full history**.

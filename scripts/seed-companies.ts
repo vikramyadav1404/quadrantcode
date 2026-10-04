@@ -39,6 +39,7 @@ import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { companies } from '@/server/db/schema';
 import { requireDirectDatabaseUrl } from '@/server/db/direct-url';
+import { assertNotProductionUnlessFlagged } from '@/lib/db/production-guard';
 
 /**
  * The same shape `import-native-problems.ts` validates, deliberately duplicated
@@ -58,6 +59,7 @@ const companySeedSchema = z.array(
 );
 
 const url = requireDirectDatabaseUrl(process.env, 'seed companies');
+assertNotProductionUnlessFlagged(url, 'the database URL (scripts/seed-companies.ts)');
 
 const seeds = companySeedSchema.parse(
   JSON.parse(await readFile('data/companies.json', 'utf8')),
