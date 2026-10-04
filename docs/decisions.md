@@ -2699,6 +2699,9 @@ condition E4 isolated for every action there (start, pause, stuck,
 run-then-refresh, complete), although E4 measured only start. It is a
 real-user fix as much as a test fix: anyone could hit it.
 
+_Superseded on 2026-10-05: the dashboard case did fail later, and both
+remaining `loading.tsx` files were removed. See "Update · 2026-10-05" below._
+
 **`app/(app)/dashboard/loading.tsx` stays.** The audit found no server action
 of the dashboard's own. The layout's timer-bar actions do re-render it, so the
 regression spec measures them there: 10 pauses and 10 resumes on `/dashboard`
@@ -2748,3 +2751,50 @@ to show a pending state on the clicked link. Not built here.
   `[slug]` on a branch and run `e2e/session-commit.spec.ts` with
   `--repeat-each=5`. If it stays at zero, the boundary can return. If it
   fails, this decision stands.
+
+### Update · 2026-10-05: the dashboard too, so no boundary anywhere under `(app)`
+
+**What happened.** The paragraph above kept `app/(app)/dashboard/loading.tsx`
+on the evidence of 0 failures in 40 actions. Two days later the regression
+spec caught it. In CI run **37223988230** (the push run of PR #36, which
+touches neither the dashboard nor the timer bar), `PAUSE AND RESUME COMMIT,
+EVERY TIME (dashboard)` failed with `stale timer bar on /dashboard: resume#1`:
+after Resume, the bar did not show Pause within 5 s. That was 1 of the 20
+actions in that run. The dashboard case had passed in about eight runs before
+it (roughly 160 actions), so it is rare, but it is the same bug. A real user
+pausing or resuming on the dashboard could see the bar not update until they
+reload.
+
+**Decision.** No `loading.tsx` may sit above any page that renders the timer
+bar, which is every page under `(app)`, because the bar is in
+`app/(app)/layout.tsx`. Removed:
+
+- `app/(app)/dashboard/loading.tsx` (the stat-grid skeleton);
+- `app/(app)/problems/(catalog)/loading.tsx` (the catalog's table skeleton).
+  Its regression case has not failed, but the mechanism is the same, and the
+  rule has to be about the boundary, not about which page has been unlucky so
+  far.
+
+The `(catalog)` route group stays; it is harmless and keeps the URL layout.
+
+**Guarded twice:**
+
+- `tests/app/no-loading-boundary.test.ts` fails if `app/loading.tsx` exists,
+  if any `loading.tsx` exists under `app/(app)/`, or if a file there contains
+  `<Suspense`. It has positive controls (the walk reaches the `(app)` pages,
+  and the timer bar is really in that layout) and negative controls (each kind
+  of boundary is detected; routes outside `(app)` are left alone).
+- `e2e/session-commit.spec.ts` now runs Pause/Resume ×10 on four pages:
+  dashboard, catalog, problem page and solve page, plus the ×10 start case.
+
+**What the user sees.** Same as for the problem page above: navigating to the
+dashboard or the catalog keeps the previous screen until the new one has
+rendered, with no skeleton. Issue #30 (`useLinkStatus`) is the follow-up for
+feedback on the clicked link without a boundary. `StatGridSkeleton` in
+`components/ui/Skeleton.tsx` is now unused, and is kept for when the boundary
+can return. The criterion "every list route has a skeleton state" in
+`docs/acceptance-status.md` is marked as withdrawn, pointing here.
+
+**Revisit** exactly as above, after Next ≥ 16.2 (#29): restore the boundaries
+on a branch, relax `tests/app/no-loading-boundary.test.ts` in that same
+branch, and run `e2e/session-commit.spec.ts --repeat-each=5`.
