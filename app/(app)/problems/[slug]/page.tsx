@@ -155,7 +155,7 @@ export default async function ProblemDetailPage({
             Hidden during your blind retry. Your earlier attempts come back once you finish.
           </p>
         ) : (
-          <AttemptHistory attempts={history} />
+          <AttemptHistory attempts={history} timeZone={user?.timezone ?? 'UTC'} />
         )}
       </section>
 

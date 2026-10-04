@@ -15,6 +15,7 @@
 import { type AttemptView, OUTCOME_LABELS } from '@/lib/reflection/attempt-view';
 import { MISTAKE_CATEGORY_LABELS, STUCK_CATEGORY_LABELS } from '@/lib/reflection/taxonomy';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
+import { formatDay } from '@/lib/time/format-day';
 
 export function LastAttemptPanel({ attempt }: { attempt: AttemptView }) {
   return (
@@ -69,7 +70,18 @@ export function LastAttemptPanel({ attempt }: { attempt: AttemptView }) {
   );
 }
 
-export function AttemptHistory({ attempts }: { attempts: AttemptView[] }) {
+export function AttemptHistory({
+  attempts,
+  timeZone,
+}: {
+  attempts: AttemptView[];
+  /**
+   * The reader's stored timezone. Each attempt's date is formatted in it, so the
+   * list agrees with the streak calendar and with "Last attempted" — a bare
+   * `toLocaleDateString()` used the server's zone and could be a day off.
+   */
+  timeZone: string;
+}) {
   if (attempts.length === 0) {
     return (
       <p className="text-sm text-[var(--text-muted)]">
@@ -92,7 +104,7 @@ export function AttemptHistory({ attempts }: { attempts: AttemptView[] }) {
                 : `Attempt ${attempt.attemptNumber}`}
             </span>
             <span className="text-[var(--text-muted)]">
-              {attempt.startedAt.toLocaleDateString()}
+              {formatDay(attempt.startedAt, timeZone)}
             </span>
             <span className="font-mono tabular-nums">
               {formatElapsed(attempt.activeDurationSeconds)}
