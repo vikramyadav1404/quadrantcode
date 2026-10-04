@@ -79,7 +79,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
    * confirmed one.
    */
   const now = new Date();
-  // TEMPORARY INSTRUMENTATION — see the note in app/(app)/problems/page.tsx.
+  // TEMPORARY INSTRUMENTATION — see the note in app/(app)/problems/(catalog)/page.tsx.
   // This one runs on EVERY signed-in page, so it is the layout's share of the
   // cost rather than anything /problems does.
   const shellState = await timed('shell.summary', () =>
