@@ -2795,6 +2795,12 @@ feedback on the clicked link without a boundary. `StatGridSkeleton` in
 can return. The criterion "every list route has a skeleton state" in
 `docs/acceptance-status.md` is marked as withdrawn, pointing here.
 
+**Verified** in three CI runs on the change (PR #37: 37241848654, and
+37241845313 attempts 1 and 2). Each had **179 passed, 0 failed, 0 flaky**,
+5 skipped in the browser suite, including all six `session-commit` cases. Unit:
+1,582 passed, 5 skipped. Locally, the guard test was shown to fail, naming the
+file, when a throwaway `app/(app)/dashboard/loading.tsx` was added.
+
 **Revisit** exactly as above, after Next ≥ 16.2 (#29): restore the boundaries
 on a branch, relax `tests/app/no-loading-boundary.test.ts` in that same
 branch, and run `e2e/session-commit.spec.ts --repeat-each=5`.
