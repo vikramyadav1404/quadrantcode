@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CompanyDisclaimer } from '@/components/companies/CompanyDisclaimer';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { LinkPending } from '@/components/ui/LinkPending';
 import { isFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { requireCurrentUser } from '@/server/services/auth/session';
@@ -33,6 +34,7 @@ export default async function TracksPage() {
           >
             <Link className="font-medium underline" href={`/tracks/${track.slug}`}>
               {track.title}
+              <LinkPending />
             </Link>
             <p className="mt-1 text-sm text-[var(--text-muted)]">{track.description}</p>
             <p className="mt-2 text-sm tabular-nums">

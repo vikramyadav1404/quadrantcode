@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BOTTOM_NAV_ITEMS } from './nav-items';
+import { LinkPending } from '@/components/ui/LinkPending';
 
 /** Shown under 768px only; the sidebar covers wider viewports. */
 export function BottomNav() {
@@ -22,7 +23,7 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${
+                className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] ${
                   active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
                 }`}
               >
@@ -30,6 +31,7 @@ export function BottomNav() {
                   {item.icon}
                 </span>
                 {item.short}
+                <LinkPending placement="absolute top-1.5 right-[calc(50%-1.25rem)]" />
               </Link>
             </li>
           );
