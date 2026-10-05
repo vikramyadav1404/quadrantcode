@@ -2739,7 +2739,10 @@ to show a pending state on the clicked link. Not built here.
   page (CI run 37155241675). After the fix, in three CI runs (37155989997, and
   37155969561 attempts 1 and 2): **0 of 10** every time. The whole browser
   suite went from 157 passed, 2 failed and 5 flaky to **164 passed, 0 failed,
-  0 flaky**, 5 skipped (the storage suite), in all three runs. Session,
+  0 flaky**, 5 skipped (the five-language Vercel Queue + Sandbox release gate in
+  `execution-queue.spec.ts`, which runs only with `RUN_VERCEL_SANDBOX_E2E=1`;
+  corrected 2026-10-05, this first said "the storage suite", which is the unit
+  suite's five skips), in all three runs. Session,
   reflection and timeline had no failures or retries. Unit: 1,557 passed,
   5 skipped.
 - A fourth run (37156941037) failed in the dashboard case, in its **setup**,

@@ -48,7 +48,7 @@ history that makes practice compound.
 This is a portfolio build. It is **live and usable; sign-in is GitHub-only**.
 Specifically:
 
-- **Every `FEATURE_*` flag defaults to off in `.env.example`** — all seven.
+- **Every `FEATURE_*` flag defaults to off in `.env.example`** — all eight.
   Code execution is enabled in production.
 - **Code execution runs in production on a self-hosted Judge0 instance**,
   selected by `EXECUTION_BACKEND=judge0` and `JUDGE0_URL` (development falls back
@@ -129,7 +129,7 @@ it needs a database and an environment.
 cp .env.example .env.local
 ```
 
-`.env.example` documents **44 variables**, each with a one-line comment. The
+`.env.example` documents **47 variables**, each with a one-line comment. The
 minimum to get running is far smaller than that:
 
 | Variable              | Requirement                                                                                                   |
