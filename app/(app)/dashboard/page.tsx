@@ -15,6 +15,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Heatmap } from '@/components/heatmap/Heatmap';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { LinkPending } from '@/components/ui/LinkPending';
 import { StatCard } from '@/components/ui/StatCard';
 import { formatAsOf, formatDuration } from '@/lib/analytics/view';
 import { isFeatureEnabled } from '@/lib/flags';
@@ -81,6 +82,7 @@ export default async function DashboardPage() {
         {data.catchingUp ? ' · still catching up on older days' : ''} ·{' '}
         <Link className="underline" href="/analytics">
           See the full breakdown
+          <LinkPending />
         </Link>
         {/* F4.2 · the only way in to /tracks, and only while it is switched on. */}
         {isFeatureEnabled('FEATURE_TRACKS') ? (
@@ -88,6 +90,7 @@ export default async function DashboardPage() {
             {' · '}
             <Link className="underline" href="/tracks">
               Preparation tracks
+              <LinkPending />
             </Link>
           </>
         ) : null}
@@ -110,6 +113,7 @@ export default async function DashboardPage() {
           <h2 className="text-base font-semibold">Last 365 days</h2>
           <Link className="text-xs underline" href="/settings/goals">
             Change your daily goal
+            <LinkPending />
           </Link>
         </div>
         <Heatmap days={days} />
