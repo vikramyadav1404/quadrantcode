@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS } from './nav-items';
+import { LinkPending } from '@/components/ui/LinkPending';
 
 /** Primary navigation, hidden below 768px where BottomNav takes over. */
 export function Sidebar() {
@@ -30,6 +31,7 @@ export function Sidebar() {
               >
                 <span aria-hidden="true">{item.icon}</span>
                 {item.label}
+                <LinkPending placement="ml-auto inline-block" />
               </Link>
             </li>
           );
