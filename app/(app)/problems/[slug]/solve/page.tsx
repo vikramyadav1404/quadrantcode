@@ -24,8 +24,12 @@ import { StartSolvingButton } from '@/components/session/StartSolvingButton';
 import { ProblemPanel } from '@/components/solve/ProblemPanel';
 import { SplitPane } from '@/components/solve/SplitPane';
 import { RunPanel } from '@/components/editor/RunPanel';
-import { SolveShellV2 } from '@/components/solve-v2/SolveShellV2';
+import { SolveShellV2, type SolveShellV2Strip } from '@/components/solve-v2/SolveShellV2';
 import { isFeatureEnabled } from '@/lib/flags';
+import { eq } from 'drizzle-orm';
+import { problems } from '@/server/db/schema';
+import { getSessionStrip } from '@/server/services/timeline/strip';
+import type { SessionView } from '@/server/services/session';
 import { getDb } from '@/server/db';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { ProblemNotFoundError, getProblemBySlug } from '@/server/services/problems';
@@ -34,7 +38,14 @@ import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
 import { formatDay } from '@/lib/time/format-day';
-import { completeSessionAction, startSessionAction } from '../../../sessions/actions';
+import {
+  abandonSessionAction,
+  completeSessionAction,
+  markStuckAction,
+  pauseSessionAction,
+  resumeSessionAction,
+  startSessionAction,
+} from '../../../sessions/actions';
 import { submitRunAction } from './actions';
 import { getPublicNativeProblem } from '@/server/services/native-content';
 import { sittingView } from '@/server/services/revision/modes';
@@ -254,7 +265,13 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
 
   // Read on the server, per request: no client code ever sees the flag.
   if (isFeatureEnabled('FEATURE_SOLVE_V2')) {
-    return <SolveShellV2 editor={editor} problemPanel={problemPanel} />;
+    return (
+      <SolveShellV2
+        editor={editor}
+        problemPanel={problemPanel}
+        strip={user && session ? await stripFor(user.id, session, problem) : null}
+      />
+    );
   }
 
   return (
@@ -265,4 +282,56 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
       right={editor}
     />
   );
+}
+
+/**
+ * C2 · the v2 session strip's data, for the user's live sitting. v2 only:
+ * v1 never calls this, so the flag-off path makes no extra query.
+ *
+ * The SAME session the layout's timer bar shows, which may be on another
+ * problem; then its title and slug are read the way the layout reads them.
+ * Events come from `getSessionStrip`, the approved light read — never
+ * `getTimeline` (snapshot rebuild) in the render path.
+ */
+async function stripFor(
+  userId: string,
+  session: SessionView,
+  current: { id: string; title: string; slug: string },
+): Promise<SolveShellV2Strip | null> {
+  const db = getDb();
+  const now = new Date();
+
+  let title = current.title;
+  let slug = current.slug;
+  if (session.problemId !== current.id) {
+    const [row] = await db
+      .select({ title: problems.title, slug: problems.slug })
+      .from(problems)
+      .where(eq(problems.id, session.problemId))
+      .limit(1);
+    if (!row) return null;
+    title = row.title;
+    slug = row.slug;
+  }
+
+  const events = await getSessionStrip(db, { userId, sessionId: session.id, now });
+  if (!events) return null;
+
+  return {
+    state: {
+      sessionId: session.id,
+      problemId: session.problemId,
+      problemTitle: title,
+      problemSlug: slug,
+      status: session.status === 'paused' ? 'paused' : 'active',
+      activeDurationSeconds: session.activeDurationSeconds,
+      asOf: now.toISOString(),
+    },
+    events,
+    onPause: pauseSessionAction,
+    onResume: resumeSessionAction,
+    onAbandon: abandonSessionAction,
+    onComplete: completeSessionAction,
+    onMarkStuck: markStuckAction,
+  };
 }

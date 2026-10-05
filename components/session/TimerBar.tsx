@@ -23,7 +23,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ConfidencePicker } from '@/components/session/ConfidencePicker';
 import type { Confidence } from '@/lib/session/confidence';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
-import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
+import { type TimerBarState, formatElapsed, seedElapsed } from '@/lib/session/timer-bar-state';
 
 const HEARTBEAT_MS = 30_000;
 
@@ -306,19 +306,3 @@ const outlineButton =
 
 const quietButton =
   'rounded-[var(--radius)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60';
-
-/**
- * The server's count plus however long ago it was true.
- *
- * A paused session takes the number as-is: no time has passed for it, whatever
- * the wall clock did.
- */
-function seedElapsed(state: TimerBarState): number {
-  if (state.status !== 'active') return state.activeDurationSeconds;
-
-  const sinceAsOf = Math.max(
-    0,
-    Math.floor((Date.now() - new Date(state.asOf).getTime()) / 1000),
-  );
-  return state.activeDurationSeconds + sinceAsOf;
-}

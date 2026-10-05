@@ -37,3 +37,20 @@ export function formatElapsed(totalSeconds: number): string {
     ? `${hours}:${pad(minutes)}:${pad(seconds)}`
     : `${pad(minutes)}:${pad(seconds)}`;
 }
+
+/**
+ * The server's count plus however long ago it was true.
+ *
+ * A paused session takes the number as-is: no time has passed for it, whatever
+ * the wall clock did.
+ *
+ * Moved here unchanged from `TimerBar.tsx` (step C2) so the v2 session strip
+ * seeds its display with the same arithmetic instead of a copy. `nowMs` is a
+ * parameter only so a test can pin the clock.
+ */
+export function seedElapsed(state: TimerBarState, nowMs: number = Date.now()): number {
+  if (state.status !== 'active') return state.activeDurationSeconds;
+
+  const sinceAsOf = Math.max(0, Math.floor((nowMs - new Date(state.asOf).getTime()) / 1000));
+  return state.activeDurationSeconds + sinceAsOf;
+}
