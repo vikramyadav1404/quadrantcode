@@ -58,6 +58,13 @@ test('ONE "Solve session timer" on /solve, and it is the strip', async ({ page, 
   await expect(timerOf(page)).toHaveAttribute(`data-${SOLVE_V2_STRIP_MARKER}`, '');
   await expect(timerOf(page)).toContainText(TITLE);
 
+  // Not merely hidden: in the DOM itself, hidden elements included, there is
+  // ONE timer region and ONE stuck dialog. The layout's bar does not render.
+  await expect(page.locator('[role="region"][aria-label="Solve session timer"]')).toHaveCount(
+    1,
+  );
+  await expect(page.locator('dialog[aria-label="Mark where you are stuck"]')).toHaveCount(1);
+
   // POSITIVE CONTROL: on the problem page the same region is the layout's bar.
   await page.goto(`/problems/${SLUG}`);
   await expect(timerOf(page)).toHaveCount(1);
@@ -83,6 +90,30 @@ test('the strip reaches the browser with the flag on (counterpart of the flag-of
   await settle(page);
   await capture.stop();
   expect(capture.find(SOLVE_V2_STRIP_MARKER).length).toBeGreaterThan(0);
+});
+
+test('ONE HEARTBEAT per interval on /solve: the strip sends it, nothing else does', async ({
+  page,
+  baseURL,
+}) => {
+  await page.clock.install();
+  await sittingOnSolve(page, 'c2-heartbeat@e2e.test', baseURL!);
+
+  // Counted from here: /solve has just loaded, so no other page's timer exists.
+  let beats = 0;
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/api/session/heartbeat'
+    ) {
+      beats += 1;
+    }
+  });
+
+  await page.clock.fastForward(30_000);
+  await expect.poll(() => beats).toBe(1);
+  await page.clock.fastForward(30_000);
+  await expect.poll(() => beats).toBe(2);
 });
 
 test('PAUSE AND RESUME, and the clock stops while paused', async ({ page, baseURL }) => {
