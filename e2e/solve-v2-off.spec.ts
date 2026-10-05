@@ -17,7 +17,7 @@
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { SOLVE_V2_MARKER } from '../lib/solve-v2/marker';
+import { SOLVE_V2_MARKER, SOLVE_V2_MARKERS } from '../lib/solve-v2/marker';
 import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 import { capturePayload, settle } from './helpers/payload';
 
@@ -62,10 +62,12 @@ test('FLAG OFF · the v2 shell is absent from every response /solve returns', as
     'JavaScript chunks were captured',
   ).toBe(true);
 
-  // The claim.
-  expect(
-    capture.find(SOLVE_V2_MARKER).map((response) => response.url),
-    'responses containing the v2 marker with the flag off',
-  ).toEqual([]);
+  // The claim, for every v2 marker: the shell (server) and each client component.
+  for (const marker of SOLVE_V2_MARKERS) {
+    expect(
+      capture.find(marker).map((response) => response.url),
+      `responses containing the v2 marker "${marker}" with the flag off`,
+    ).toEqual([]);
+  }
   await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
 });
