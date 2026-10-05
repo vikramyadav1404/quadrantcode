@@ -31,6 +31,7 @@ import { EXECUTION_LIMITS } from '@/server/services/execution';
 import { getAttemptHistory } from '@/server/services/reflection';
 import { getActiveSession } from '@/server/services/session';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
+import { formatDay } from '@/lib/time/format-day';
 import { completeSessionAction, startSessionAction } from '../../../sessions/actions';
 import { submitRunAction } from './actions';
 import { getPublicNativeProblem } from '@/server/services/native-content';
@@ -163,7 +164,7 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
                 Hidden during a blind retry. Your earlier attempts come back once you finish.
               </p>
             ) : (
-              <AttemptHistory attempts={history} />
+              <AttemptHistory attempts={history} timeZone={user?.timezone ?? 'UTC'} />
             )
           }
           {...(sitting && liveHere
@@ -249,23 +250,4 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
       }
     />
   );
-}
-
-/**
- * One date, in the reader's own timezone.
- *
- * The timezone argument is the whole reason this exists rather than a bare
- * `toLocaleDateString()`: a session finished at 11pm in Asia/Kolkata is the
- * previous day in UTC, and a "last attempted" that disagrees with the streak
- * calendar by a day is the kind of thing users notice and never trust again.
- */
-function formatDay(value: Date | null | undefined, timeZone: string): string | null {
-  if (!value) return null;
-
-  return value.toLocaleDateString(undefined, {
-    timeZone,
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 }

@@ -19,6 +19,7 @@ import type postgres from 'postgres';
 import { OUTCOME_LABELS } from '../lib/reflection/attempt-view';
 import { STUCK_CATEGORY_LABELS } from '../lib/reflection/taxonomy';
 import { formatElapsed } from '../lib/session/timer-bar-state';
+import { formatDay } from '../lib/time/format-day';
 import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 
 const EXTERNAL = 'a2-panel-external';
@@ -248,4 +249,48 @@ test('THE SUBMISSIONS TAB on /solve lists a finished attempt with its stuck mark
   await expect(attempt).toBeVisible();
   await expect(attempt).toContainText(OUTCOME_LABELS.stuck);
   await expect(attempt).toContainText(`stuck on ${STUCK_CATEGORY_LABELS.edge_cases}`);
+});
+
+test("THE SUBMISSIONS TAB dates an attempt in the user's own timezone (step T)", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const userId = await signInAs(context, sql, {
+    email: 'a2-submissions-tz@e2e.test',
+    baseUrl: baseURL!,
+  });
+
+  // A finished sitting through the UI: start, then give up.
+  await page.goto(`/problems/${EXTERNAL}`);
+  const started = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && !!response.request().headers()['next-action'],
+  );
+  await page.getByRole('button', { name: /start solving/i }).click();
+  expect((await started).ok()).toBe(true);
+  const timer = page.getByRole('region', { name: /solve session timer/i });
+  await timer.getByRole('button', { name: /^give up$/i }).click();
+  await page.waitForURL('**/reflect');
+
+  /*
+   * Pin the start to an instant whose calendar day differs by zone: 20:00 UTC
+   * on 15 Jan is 01:30 on 16 Jan in Asia/Kolkata. Without this the assertion
+   * would depend on the hour CI happens to run at.
+   */
+  const instant = new Date('2026-01-15T20:00:00Z');
+  await sql`UPDATE users SET timezone = 'Asia/Kolkata' WHERE id = ${userId}`;
+  await sql`
+    UPDATE solve_sessions SET started_at = ${instant}, started_local_date = '2026-01-16'
+    WHERE user_id = ${userId}
+  `;
+
+  await page.goto(`/problems/${EXTERNAL}/solve`);
+  await page.getByRole('button', { name: 'Submissions' }).click();
+
+  const attempt = page.getByRole('listitem').filter({ hasText: 'Attempt 1' });
+  await expect(attempt).toContainText(formatDay(instant, 'Asia/Kolkata')!);
+  // POSITIVE CONTROL: the server's own zone (UTC on CI) would say the 15th.
+  expect(formatDay(instant, 'UTC')).not.toBe(formatDay(instant, 'Asia/Kolkata'));
+  await expect(attempt).not.toContainText(formatDay(instant, 'UTC')!);
 });
