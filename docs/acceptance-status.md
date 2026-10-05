@@ -175,9 +175,9 @@ against its background. Screen-reader announcement is not asserted at all.
 
 ### Criteria this ticket also closed, carried over from F0.4
 
-| Criterion                             | Status                  | Evidence                                                                                                                 |
-| ------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Every list route has a skeleton state | **DONE** (was DEFERRED) | `app/(app)/problems/(catalog)/loading.tsx` — `/problems` is the first real list route; scoped to the list only since D39 |
+| Criterion                             | Status                               | Evidence                                                                                                                                                                                                                                                                       |
+| ------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Every list route has a skeleton state | **WITHDRAWN** (was DONE, 2026-10-05) | The skeleton was a `loading.tsx` Suspense boundary, and under Next 15.5 a boundary above a page with the timer bar drops server-action renders (D39). Removed from every `(app)` route; `tests/app/no-loading-boundary.test.ts` keeps it out. Revisit after Next ≥ 16.2 (#29). |
 
 Keyboard traversal was still **PARTIAL** at this point — `/problems` had the
 interactive rows but no spec tabbed through them. It is **closed** by the F0.3
