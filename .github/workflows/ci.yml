@@ -164,3 +164,66 @@ jobs:
           name: playwright-report
           path: .playwright/report
           retention-days: 7
+
+  # The v2 solve screen (FEATURE_SOLVE_V2), step C1 onwards. Same database
+  # service, build and server as the job above, with the flag ON: playwright.config.ts
+  # selects the `chromium-v2` project, which runs every spec that touches
+  # /solve. A v2 that drops a label, a test id or a behaviour fails here.
+  # Its own job, so the two runs never share a database or fixtures.
+  e2e-v2:
+    name: browser v2 (playwright, FEATURE_SOLVE_V2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: quadrantcode_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/quadrantcode_test
+      AUTH_SECRET: e2e-ci-secret-not-for-production
+      NEXT_PUBLIC_APP_URL: http://localhost:3210
+      E2E_SOLVE_V2: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Migrate
+        run: npm run db:migrate
+
+      - name: Build
+        run: npm run build
+
+      - name: Run browser tests (v2 solve screen)
+        run: npm run test:e2e
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-v2
+          path: .playwright/report
+          retention-days: 7
