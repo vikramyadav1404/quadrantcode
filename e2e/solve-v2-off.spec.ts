@@ -17,7 +17,7 @@
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
-import { SOLVE_V2_MARKER } from '../lib/solve-v2/marker';
+import { SOLVE_V2_MARKER, SOLVE_V2_MARKERS } from '../lib/solve-v2/marker';
 import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 import { capturePayload, settle } from './helpers/payload';
 
@@ -62,10 +62,32 @@ test('FLAG OFF · the v2 shell is absent from every response /solve returns', as
     'JavaScript chunks were captured',
   ).toBe(true);
 
-  // The claim.
-  expect(
-    capture.find(SOLVE_V2_MARKER).map((response) => response.url),
-    'responses containing the v2 marker with the flag off',
-  ).toEqual([]);
+  // The claim, for every v2 marker: the shell (server) and each client component.
+  for (const marker of SOLVE_V2_MARKERS) {
+    expect(
+      capture.find(marker).map((response) => response.url),
+      `responses containing the v2 marker "${marker}" with the flag off`,
+    ).toEqual([]);
+  }
+  await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
+});
+
+test('FLAG OFF · the internal v2 route is a 404, and /solve is not rewritten', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await signInAs(context, sql, { email: 'c1-v2-off-route@e2e.test', baseUrl: baseURL! });
+
+  // Requested directly, v2 does not exist while the flag is off.
+  const direct = await page.goto(`/problems/${SLUG}/solve/v2`);
+  expect(direct?.status()).toBe(404);
+  await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
+
+  // The middleware is a no-op: /solve is served by v1 at its own URL.
+  const solve = await page.goto(`/problems/${SLUG}/solve`);
+  expect(solve?.status()).toBe(200);
+  expect(new URL(page.url()).pathname).toBe(`/problems/${SLUG}/solve`);
+  await expect(page.getByRole('heading', { name: TITLE })).toBeVisible();
   await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
 });

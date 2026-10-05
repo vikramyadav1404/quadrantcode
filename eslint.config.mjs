@@ -100,6 +100,11 @@ export default tseslint.config(
       'app/**/route.tsx',
       'app/**/actions.ts',
       'app/**/opengraph-image.tsx',
+      // Private server-only modules shared by layouts and pages (C2): the
+      // authenticated shell and the solve loader. Both also `import
+      // 'server-only'`, so a client import fails the build even without lint.
+      'app/_shell/**/*.tsx',
+      'app/_solve/**/*.tsx',
       'middleware.ts',
       'drizzle.config.ts',
       'next.config.ts',

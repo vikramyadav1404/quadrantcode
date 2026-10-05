@@ -17,6 +17,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { REQUEST_ID_HEADER, resolveRequestId } from '@/server/lib/observability/request-id';
 import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
+import { isFeatureEnabled } from '@/lib/flags';
+import { solveV2Rewrite } from '@/lib/solve-v2/rewrite';
 
 const SESSION_COOKIES = ['__Secure-quadrantcode.session', 'quadrantcode.session'];
 
@@ -100,6 +102,24 @@ export function middleware(request: NextRequest): NextResponse {
     const headers = new Headers(request.headers);
     headers.set(PATHNAME_HEADER, `${pathname}${request.nextUrl.search}`);
     headers.set(REQUEST_ID_HEADER, requestId);
+
+    /*
+     * C2 · the v2 solve screen. While FEATURE_SOLVE_V2 is on, /problems/[slug]/solve
+     * is served by the internal route /problems/[slug]/solve/v2: a rewrite, so
+     * the URL in the browser does not change. Off, `solveV2Rewrite` returns
+     * null and this request goes exactly where it always did. Read per request,
+     * from the runtime environment (see lib/solve-v2/rewrite.ts for why v2 is
+     * its own route).
+     */
+    const v2 = solveV2Rewrite(pathname, isFeatureEnabled('FEATURE_SOLVE_V2'));
+    if (v2) {
+      return withId(
+        NextResponse.rewrite(new URL(`${v2}${request.nextUrl.search}`, request.url), {
+          request: { headers },
+        }),
+      );
+    }
+
     return withId(NextResponse.next({ request: { headers } }));
   }
 

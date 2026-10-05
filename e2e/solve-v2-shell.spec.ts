@@ -50,6 +50,23 @@ test('FLAG ON · /solve renders the v2 shell, and it reaches the browser', async
   expect(capture.find(SOLVE_V2_MARKER).length).toBeGreaterThan(0);
 });
 
+test('FLAG ON · /problems/[slug]/solve serves v2, and the URL never changes', async ({
+  page,
+}) => {
+  // A full load of the public URL: middleware rewrites, the browser URL stays.
+  const response = await page.goto(`/problems/${SLUG}/solve`);
+  expect(response?.status()).toBe(200);
+  await expect(page.getByTestId(SOLVE_V2_MARKER)).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe(`/problems/${SLUG}/solve`);
+
+  // A client navigation to the same URL is rewritten too.
+  await page.goto(`/problems/${SLUG}`);
+  await page.getByRole('link', { name: /open the editor/i }).click();
+  await page.waitForURL(`**/problems/${SLUG}/solve`);
+  await expect(page.getByTestId(SOLVE_V2_MARKER)).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe(`/problems/${SLUG}/solve`);
+});
+
 test('THE SHELL HOLDS THE EXISTING HALVES, with their names and test ids', async ({ page }) => {
   await page.goto(`/problems/${SLUG}/solve`);
   const shell = page.getByTestId(SOLVE_V2_MARKER);

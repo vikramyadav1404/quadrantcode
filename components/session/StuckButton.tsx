@@ -12,7 +12,7 @@
  * Escape-to-close and inertness of the rest of the page come from the platform
  * rather than from keyboard handling nobody will maintain.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import {
   STUCK_CATEGORIES,
   STUCK_CATEGORY_LABELS,
@@ -31,6 +31,16 @@ export function StuckButton({
   }) => Promise<{ ok: boolean; message?: string }>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  /*
+   * Unique per instance. The ids were the fixed strings `stuck-category` and
+   * `stuck-note`, which is fine for one button on a page and wrong for two:
+   * each label then pointed at the FIRST matching id in the document, so a
+   * second dialog's "Category" label focused the first dialog's select. Labels,
+   * names and behaviour are unchanged; only the id values are now unique.
+   */
+  const fieldId = useId();
+  const categoryId = `${fieldId}-category`;
+  const noteId = `${fieldId}-note`;
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<StuckCategory>('approach');
   const [note, setNote] = useState('');
@@ -112,12 +122,12 @@ export function StuckButton({
           <h2 className="text-sm font-semibold">Where are you stuck?</h2>
 
           <div>
-            <label className="mb-1 block text-xs" htmlFor="stuck-category">
+            <label className="mb-1 block text-xs" htmlFor={categoryId}>
               Category
             </label>
             <select
               className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
-              id="stuck-category"
+              id={categoryId}
               onChange={(event) => setCategory(event.target.value as StuckCategory)}
               value={category}
             >
@@ -130,12 +140,12 @@ export function StuckButton({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs" htmlFor="stuck-note">
+            <label className="mb-1 block text-xs" htmlFor={noteId}>
               Note <span className="text-[var(--text-muted)]">(optional)</span>
             </label>
             <textarea
               className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
-              id="stuck-note"
+              id={noteId}
               maxLength={2000}
               onChange={(event) => setNote(event.target.value)}
               rows={3}
