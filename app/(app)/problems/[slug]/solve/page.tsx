@@ -24,6 +24,8 @@ import { StartSolvingButton } from '@/components/session/StartSolvingButton';
 import { ProblemPanel } from '@/components/solve/ProblemPanel';
 import { SplitPane } from '@/components/solve/SplitPane';
 import { RunPanel } from '@/components/editor/RunPanel';
+import { SolveShellV2 } from '@/components/solve-v2/SolveShellV2';
+import { isFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { ProblemNotFoundError, getProblemBySlug } from '@/server/services/problems';
@@ -126,61 +128,63 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
       }
     : null;
 
-  return (
-    <SplitPane
-      leftLabel="the problem"
-      rightLabel="the editor"
-      left={
-        <ProblemPanel
-          problem={{
-            title: problem.title,
-            difficulty: problem.difficulty,
-            /*
-             * `tags` carries every kind — topic, pattern, company. The chips
-             * show topics only: a company-style tag beside a difficulty pill
-             * reads as a claim about where the question came from, which C3 is
-             * careful about.
-             */
-            topics: problem.tags
-              .filter((tag) => tag.tagType === 'topic')
-              .map((tag) => tag.tagValue),
-            // Fetched by the same query since F1.1 and rendered nowhere until
-            // now. Company tags stay out for the C3 reason given above.
-            patterns: problem.tags
-              .filter((tag) => tag.tagType === 'pattern')
-              .map((tag) => tag.tagValue),
-            // Null for every external problem — see the header.
-            statement: problem.statement ?? null,
-            externalUrl: problem.externalUrl,
-            platform: problem.platform,
-            estimatedMinutes: problem.estimatedMinutes,
-            isPremium: problem.isPremium,
-            record,
-            native,
-          }}
-          submissions={
-            blind ? (
-              <p className="text-sm text-[var(--text-muted)]">
-                Hidden during a blind retry. Your earlier attempts come back once you finish.
-              </p>
-            ) : (
-              <AttemptHistory attempts={history} timeZone={user?.timezone ?? 'UTC'} />
-            )
+  /*
+   * The two halves, built once. v1 places them in a SplitPane exactly as it
+   * always has; v2 (FEATURE_SOLVE_V2) hands the SAME elements to its shell, so
+   * every guard above — blind retry, C1, server-resolved session — applies to
+   * both, and neither can drift from the other in what it is given.
+   */
+  const problemPanel = (
+    <ProblemPanel
+      problem={{
+        title: problem.title,
+        difficulty: problem.difficulty,
+        /*
+         * `tags` carries every kind — topic, pattern, company. The chips
+         * show topics only: a company-style tag beside a difficulty pill
+         * reads as a claim about where the question came from, which C3 is
+         * careful about.
+         */
+        topics: problem.tags
+          .filter((tag) => tag.tagType === 'topic')
+          .map((tag) => tag.tagValue),
+        // Fetched by the same query since F1.1 and rendered nowhere until
+        // now. Company tags stay out for the C3 reason given above.
+        patterns: problem.tags
+          .filter((tag) => tag.tagType === 'pattern')
+          .map((tag) => tag.tagValue),
+        // Null for every external problem — see the header.
+        statement: problem.statement ?? null,
+        externalUrl: problem.externalUrl,
+        platform: problem.platform,
+        estimatedMinutes: problem.estimatedMinutes,
+        isPremium: problem.isPremium,
+        record,
+        native,
+      }}
+      submissions={
+        blind ? (
+          <p className="text-sm text-[var(--text-muted)]">
+            Hidden during a blind retry. Your earlier attempts come back once you finish.
+          </p>
+        ) : (
+          <AttemptHistory attempts={history} timeZone={user?.timezone ?? 'UTC'} />
+        )
+      }
+      {...(sitting && liveHere
+        ? {
+            revisionPanel: (
+              <RevisionSittingPanel
+                elapsedSeconds={liveHere.activeDurationSeconds}
+                lastAttemptedLabel={record?.lastAttempted ?? null}
+                paused={liveHere.isPaused}
+                sitting={sitting}
+              />
+            ),
           }
-          {...(sitting && liveHere
-            ? {
-                revisionPanel: (
-                  <RevisionSittingPanel
-                    elapsedSeconds={liveHere.activeDurationSeconds}
-                    lastAttemptedLabel={record?.lastAttempted ?? null}
-                    paused={liveHere.isPaused}
-                    sitting={sitting}
-                  />
-                ),
-              }
-            : {})}
-          liveSessionId={sessionId}
-          /*
+        : {})}
+      liveSessionId={sessionId}
+      /*
             The same control the problem page carries, on the page that told
             people to use it. `startSessionAction` is shared rather than
             duplicated, so the conflict handling is identical in both places.
@@ -189,65 +193,76 @@ export default async function SolvePage({ params }: { params: Promise<{ slug: st
             reachable and usable without starting anything. It only means the
             page that says "start the timer" now has a way to.
           */
-          startControl={
-            <StartSolvingButton onStart={startSessionAction} problemId={problem.id} />
+      startControl={<StartSolvingButton onStart={startSessionAction} problemId={problem.id} />}
+    />
+  );
+
+  const editor = (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1">
+        <RunPanel
+          defaultLanguage="cpp17"
+          allowSubmit={problem.sourceType === 'original'}
+          starters={
+            native
+              ? Object.fromEntries(
+                  Object.entries(native.templates).map(([language, template]) => [
+                    language,
+                    template?.starterCode,
+                  ]),
+                )
+              : undefined
           }
-        />
-      }
-      right={
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="min-h-0 flex-1">
-            <RunPanel
-              defaultLanguage="cpp17"
-              allowSubmit={problem.sourceType === 'original'}
-              starters={
-                native
-                  ? Object.fromEntries(
-                      Object.entries(native.templates).map(([language, template]) => [
-                        language,
-                        template?.starterCode,
-                      ]),
-                    )
-                  : undefined
-              }
-              /*
+          /*
                 The console's Case 1 / Case 2 / … tabs are the statement's own
                 worked examples, editable. Same data the left panel renders —
                 no extra query, and the two cannot disagree.
               */
-              exampleInputs={native?.examples.map((example) => example.input) ?? []}
-              onSubmit={submitRunAction}
-              /*
+          exampleInputs={native?.examples.map((example) => example.input) ?? []}
+          onSubmit={submitRunAction}
+          /*
                 Only for an ORIGINAL problem in a live sitting. An external
                 problem's accepted run is not a correctness claim (C1), so
                 offering to close the sitting on one would be asserting
                 something the verdict does not support.
               */
-              {...(problem.sourceType === 'original'
-                ? { onCompleteSession: completeSessionAction }
-                : {})}
-              problemId={problem.id}
-              sessionId={sessionId}
-              /*
+          {...(problem.sourceType === 'original'
+            ? { onCompleteSession: completeSessionAction }
+            : {})}
+          problemId={problem.id}
+          sessionId={sessionId}
+          /*
                 F2.2 · a blind sitting gets its own drafts, so the editor opens on
                 the starter rather than restoring the previous attempt's code.
               */
-              {...(blind && sessionId ? { draftScope: `blind-${sessionId}` } : {})}
-            />
-          </div>
+          {...(blind && sessionId ? { draftScope: `blind-${sessionId}` } : {})}
+        />
+      </div>
 
-          {/*
+      {/*
             Named honestly. This is Judge0 with these limits configured, not a
             sandbox this project built — the wording stays factual about what is
             SENT rather than about what is guaranteed.
           */}
-          <p className="border-t border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
-            {EXECUTION_LIMITS.cpuSeconds}s CPU · {EXECUTION_LIMITS.wallSeconds}s wall ·{' '}
-            {EXECUTION_LIMITS.memoryKb / 1024} MB · no network ·{' '}
-            {EXECUTION_LIMITS.maxOutputBytes / 1024} KB output
-          </p>
-        </div>
-      }
+      <p className="border-t border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
+        {EXECUTION_LIMITS.cpuSeconds}s CPU · {EXECUTION_LIMITS.wallSeconds}s wall ·{' '}
+        {EXECUTION_LIMITS.memoryKb / 1024} MB · no network ·{' '}
+        {EXECUTION_LIMITS.maxOutputBytes / 1024} KB output
+      </p>
+    </div>
+  );
+
+  // Read on the server, per request: no client code ever sees the flag.
+  if (isFeatureEnabled('FEATURE_SOLVE_V2')) {
+    return <SolveShellV2 editor={editor} problemPanel={problemPanel} />;
+  }
+
+  return (
+    <SplitPane
+      leftLabel="the problem"
+      rightLabel="the editor"
+      left={problemPanel}
+      right={editor}
     />
   );
 }

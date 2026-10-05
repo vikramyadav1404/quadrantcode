@@ -43,6 +43,10 @@ export const FEATURE_FLAGS = [
   // Gates the mode controls, the start action, the sitting panels and the
   // comparison; with it off, /revision is exactly F2.1's page.
   'FEATURE_REVISION_MODES', // F2.2 revision-modes — enforced
+  // The v2 solve screen, built step by step behind this flag (C1 onwards). Off,
+  // /problems/[slug]/solve renders exactly the v1 screen; on, it renders
+  // `components/solve-v2/SolveShellV2`. Read on the server only.
+  'FEATURE_SOLVE_V2', // v2 solve screen — enforced
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
