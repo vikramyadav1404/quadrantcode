@@ -8,11 +8,15 @@
  *
  * ## How a "slow navigation" is made deterministic
  *
- * Instead of hoping a request is slow enough to observe, the test holds the
- * navigation's RSC request at the network layer until it has seen the mark,
- * then releases it. The target's prefetch is refused so the navigation always
- * has to make that request. No timeouts are involved; the gate opens when the
- * assertion has passed.
+ * Instead of hoping a request is slow enough to observe, the test holds every
+ * RSC request for the target page at the network layer — the prefetch and the
+ * navigation alike — until it has seen the mark, then releases them. No
+ * timeouts are involved; the gate opens when the assertion has passed.
+ *
+ * The prefetch is HELD, not refused. The first version aborted it, and the
+ * navigation, which waits on that in-flight prefetch, failed with it; Next then
+ * fell back to a full page load, which is not a client navigation and has no
+ * pending state. Every test here also asserts the page was never reloaded.
  */
 import { expect, test, type Page } from '@playwright/test';
 import type postgres from 'postgres';
@@ -43,29 +47,36 @@ test.beforeEach(async ({ context, baseURL }) => {
 });
 
 /**
- * Holds the client navigation to `pathname` until `release()` is called, and
- * refuses its prefetch so the navigation cannot be served from cache.
+ * Holds every RSC request for `pathname` (prefetch and navigation) until
+ * `release()` is called, and records any full-document load of the page that
+ * started the navigation — which would mean it was not a client navigation.
  */
 async function gateNavigation(page: Page, pathname: string) {
   let release!: () => void;
   const opened = new Promise<void>((resolve) => {
     release = resolve;
   });
-  let held = false;
+  let held = 0;
+  let documentLoads = 0;
 
   await page.route(
     (url) => url.pathname === pathname,
     async (route) => {
-      const headers = route.request().headers();
-      if (headers['rsc'] !== '1') return route.continue();
-      if (headers['next-router-prefetch']) return route.abort();
-      held = true;
+      const request = route.request();
+      if (request.resourceType() === 'document') documentLoads += 1;
+      if (request.headers()['rsc'] !== '1') return route.continue();
+      held += 1;
       await opened;
       return route.continue();
     },
   );
 
-  return { release: () => release(), wasHeld: () => held };
+  return {
+    release: () => release(),
+    wasHeld: () => held > 0,
+    /** Full page loads of the TARGET: a client navigation makes none. */
+    documentLoads: () => documentLoads,
+  };
 }
 
 test('A CATALOG ROW shows it is opening the problem, then the problem opens', async ({
@@ -84,6 +95,7 @@ test('A CATALOG ROW shows it is opening the problem, then the problem opens', as
   gate.release();
   await page.waitForURL(`**/problems/${SLUG}`);
   await expect(page.getByRole('heading', { name: TITLE })).toBeVisible();
+  expect(gate.documentLoads(), 'a client navigation, not a page reload').toBe(0);
   await expect(page.getByTestId('link-pending')).toHaveCount(0);
 });
 
@@ -98,6 +110,7 @@ test('A DASHBOARD LINK shows it is working while the next page loads', async ({ 
 
   gate.release();
   await page.waitForURL('**/analytics');
+  expect(gate.documentLoads(), 'a client navigation, not a page reload').toBe(0);
   await expect(page.getByTestId('link-pending')).toHaveCount(0);
 });
 
@@ -116,6 +129,7 @@ test('THE NAV LINK TO THE DASHBOARD shows it is working (the page that lost its 
 
   gate.release();
   await page.waitForURL('**/dashboard');
+  expect(gate.documentLoads(), 'a client navigation, not a page reload').toBe(0);
   await expect(page.getByTestId('link-pending')).toHaveCount(0);
 });
 
