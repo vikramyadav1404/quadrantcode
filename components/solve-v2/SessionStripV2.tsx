@@ -13,13 +13,13 @@
  * Abandon behind the same "Abandon it" confirmation. Finishing goes to the
  * reflection page exactly as TimerBar does.
  *
- * ## The layout's timer bar is hidden on this page, not unmounted
+ * ## The only timer on this page, so it sends the heartbeat
  *
- * SolveShellV2 adds a CSS rule that hides the layout's bar while this strip is
- * on the page, so there is exactly one "Solve session timer" for people and
- * for tests. Hidden, not removed: it keeps sending the 30-second heartbeat, so
- * this strip does not duplicate it and the server's idle autopause behaves
- * exactly as on every other page.
+ * The v2 route's layout renders no layout timer bar at all
+ * (`app/(solve-v2)/layout.tsx`), so this strip is the one "Solve session timer"
+ * and the one heartbeat: every 30 s while active, the same request TimerBar
+ * makes, and the server's reply re-seeds the clock. Without it the server would
+ * idle-autopause a sitting someone is actively working on.
  *
  * ## The clock is display only
  *
@@ -27,8 +27,8 @@
  * server's number and the instant it was true. Nothing here is sent back; any
  * server update re-seeds it (D20).
  *
- * Imported only by SolveShellV2 (v2 rule); `data-solve-v2-strip` is the marker
- * the flag-off bundle check looks for.
+ * Imported only by SolveShellV2, which only the v2 route imports (v2 rule);
+ * `data-solve-v2-strip` is the marker the flag-off bundle check looks for.
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -47,6 +47,9 @@ type Action = (input: { sessionId: string }) => Promise<{ ok: boolean; message?:
 
 /** How many of the most recent events the strip lists; the rest are counted. */
 const SHOWN = 6;
+
+/** The same interval TimerBar uses. */
+const HEARTBEAT_MS = 30_000;
 
 export function SessionStripV2({
   state,
@@ -95,6 +98,33 @@ export function SessionStripV2({
     const id = setInterval(() => setElapsed((value) => value + 1), 1000);
     return () => clearInterval(id);
   }, [status]);
+
+  // The heartbeat, as TimerBar sends it: the body is a session id, nothing
+  // about time, and the reply's number replaces the display's.
+  useEffect(() => {
+    if (status !== 'active') return;
+
+    const send = async () => {
+      try {
+        const response = await fetch('/api/session/heartbeat', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!response.ok) return;
+        const body: { activeDurationSeconds?: number } = await response.json();
+        if (typeof body.activeDurationSeconds === 'number') {
+          setElapsed(body.activeDurationSeconds);
+        }
+      } catch {
+        // A missed heartbeat is not an error to show: the server autopauses
+        // from the last one it received, by design.
+      }
+    };
+
+    const id = setInterval(send, HEARTBEAT_MS);
+    return () => clearInterval(id);
+  }, [sessionId, status]);
 
   const run = async (action: () => Promise<{ ok: boolean; message?: string }>) => {
     setBusy(true);

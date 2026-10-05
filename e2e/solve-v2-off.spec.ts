@@ -71,3 +71,23 @@ test('FLAG OFF · the v2 shell is absent from every response /solve returns', as
   }
   await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
 });
+
+test('FLAG OFF · the internal v2 route is a 404, and /solve is not rewritten', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await signInAs(context, sql, { email: 'c1-v2-off-route@e2e.test', baseUrl: baseURL! });
+
+  // Requested directly, v2 does not exist while the flag is off.
+  const direct = await page.goto(`/problems/${SLUG}/solve/v2`);
+  expect(direct?.status()).toBe(404);
+  await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
+
+  // The middleware is a no-op: /solve is served by v1 at its own URL.
+  const solve = await page.goto(`/problems/${SLUG}/solve`);
+  expect(solve?.status()).toBe(200);
+  expect(new URL(page.url()).pathname).toBe(`/problems/${SLUG}/solve`);
+  await expect(page.getByRole('heading', { name: TITLE })).toBeVisible();
+  await expect(page.getByTestId(SOLVE_V2_MARKER)).toHaveCount(0);
+});

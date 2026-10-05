@@ -2807,3 +2807,41 @@ file, when a throwaway `app/(app)/dashboard/loading.tsx` was added.
 **Revisit** exactly as above, after Next ≥ 16.2 (#29): restore the boundaries
 on a branch, relax `tests/app/no-loading-boundary.test.ts` in that same
 branch, and run `e2e/session-commit.spec.ts --repeat-each=5`.
+
+## D40 · The v2 solve screen is its own internal route, reached by a middleware rewrite
+
+**Date:** 2026-10-05 · **Status:** built behind `FEATURE_SOLVE_V2` (off everywhere). No migration.
+
+### What was tried first, and why it failed
+
+C1 rendered v2 from the v1 page: `solve/page.tsx` chose `SolveShellV2` when the flag was on. For a server-only shell that was enough. In C2 the shell gained its first client component, the session strip, and the flag-off bundle check (`e2e/solve-v2-off.spec.ts`) failed. In CI run **37285772277**, with the flag OFF, `/_next/static/chunks/app/(app)/problems/%5Bslug%5D/solve/page-*.js` contained the strip's marker.
+
+A client component imported anywhere in a page's server graph lands in that route's JavaScript. `next/dynamic` in a server component did not change that. So v2's code was shipping to every v1 user.
+
+The first C2 build also hid the layout timer bar with CSS while the strip was on the page. That left two `StuckButton`s in the DOM with the same `id="stuck-category"`, so the open dialog's "Category" label pointed at the hidden one: an accessibility bug, caught by `solve-v2-strip.spec.ts`. It also kept two copies of every control mounted.
+
+### Decision
+
+- **v2 is a separate route:** `app/(solve-v2)/problems/[slug]/solve/v2/page.tsx`, in its own route group. It returns 404 while the flag is off, even when requested directly.
+- **Middleware rewrites** `/problems/[slug]/solve` to it only while `FEATURE_SOLVE_V2` is on (`lib/solve-v2/rewrite.ts`, read per request). It is a rewrite, not a redirect, so the browser URL never changes. Off, the middleware does nothing.
+- **The `(solve-v2)` layout renders the same authenticated shell without the layout timer bar.** The shell moved unchanged into `app/_shell/AppShell.tsx` with a `timerBar` switch; `(app)/layout.tsx` passes `timerBar`. On v2 `/solve` there is one "Solve session timer" (the strip), one set of controls and one heartbeat, which the strip now sends itself.
+- **Both routes build the same data and the same two halves** through `app/_solve/load-solve.tsx` (moved unchanged from the v1 page). `_shell` and `_solve` are private folders, `import 'server-only'`, and are exempted from the client/server lint rule by path.
+- **`StuckButton` generates its field ids with `useId()`.** Labels, test ids and behaviour are unchanged; two instances can no longer share an id.
+
+### How it is guarded
+
+- `e2e/solve-v2-off.spec.ts` (flag off): no v2 marker in any HTML, RSC or JS response from `/solve`; `/solve/v2` is a 404; `/solve` is not rewritten.
+- `e2e/solve-v2-shell.spec.ts` (flag on): `/solve` serves v2 on a full load and on a client navigation, and the URL stays `/solve`.
+- `e2e/solve-v2-strip.spec.ts` (flag on): exactly one timer region and one stuck dialog **in the DOM**, hidden elements included, and one heartbeat per 30-second interval.
+- `tests/solve-v2/rewrite.test.ts`: the rewrite rule, and the flag read at call time.
+- `tests/app/no-loading-boundary.test.ts` now also covers `(solve-v2)`, `_shell` and `_solve`.
+
+### The Preview database, as a build check
+
+`vercel env pull` cannot read Sensitive values, so the Preview database could not be verified from a laptop. `scripts/check-deployment-env.ts`, which `vercel.json` runs before every build, now fails a **Preview** build if any of `DATABASE_URL`, `DIRECT_DATABASE_URL`, `DATABASE_URL_UNPOOLED` or `TEST_DATABASE_URL` points at production (`lib/deployment/preview-database.ts`, via the production guard). It reports variable names only.
+
+Run locally with the real production URL in `DATABASE_URL_UNPOOLED` and `VERCEL_ENV=preview`, it failed naming that variable and printed no host. With a local URL it did not flag it.
+
+**Consequence: Preview builds fail until D30's cleanup item is done** (`DATABASE_URL_UNPOOLED` given a Preview-only value). That is intended.
+
+**Runtime use of `DATABASE_URL_UNPOOLED`:** none. The deployed app reads only `DATABASE_URL` (`server/db/client.ts`). `DATABASE_URL_UNPOOLED` is read only by `server/db/direct-url.ts` for the CLI tools (migrate, rollback, drizzle-kit, seeds, import), and only when `DIRECT_DATABASE_URL` is unset. Vercel builds run `deploy:check` and `next build`, never a migration. So a PR preview deployment did not reach production through this variable.
