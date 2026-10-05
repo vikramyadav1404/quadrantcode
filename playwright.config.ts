@@ -20,6 +20,37 @@ assertEnvNotProduction(
 );
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? '';
 
+/*
+ * v2 solve screen (C1). One server, one mode per run:
+ *
+ *   npx playwright test                    → project `chromium`, flag OFF, every spec
+ *   E2E_SOLVE_V2=1 npx playwright test     → project `chromium-v2`, flag ON,
+ *                                            every spec that touches /solve
+ *
+ * CI runs both as separate jobs, each with its own database and build, so the
+ * two never share fixtures. The v2 project runs the SAME specs as v1 for every
+ * /solve capability; a v2 that lost a label, a test id or a behaviour fails
+ * them. `solve-v2-off.spec.ts` proves the flag-off side.
+ */
+const SOLVE_V2 = process.env.E2E_SOLVE_V2 === '1';
+
+/** Every spec that reaches /problems/[slug]/solve, plus the v2-only shell spec. */
+const SOLVE_SPECS = [
+  'execution-queue.spec.ts',
+  'execution.spec.ts',
+  'native-platform.spec.ts',
+  'reflection.spec.ts',
+  'revision-modes.spec.ts',
+  'session-commit.spec.ts',
+  'session.spec.ts',
+  'solve-baseline-editor.spec.ts',
+  'solve-baseline-panel.spec.ts',
+  'solve-baseline-submit.spec.ts',
+  'timeline.spec.ts',
+  'viewports.spec.ts',
+  'solve-v2-shell.spec.ts',
+];
+
 /**
  * Browser tests, kept deliberately small.
  *
@@ -61,7 +92,22 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: SOLVE_V2
+    ? [
+        {
+          name: 'chromium-v2',
+          use: { ...devices['Desktop Chrome'] },
+          testMatch: SOLVE_SPECS.map((file) => `**/${file}`),
+        },
+      ]
+    : [
+        {
+          name: 'chromium',
+          use: { ...devices['Desktop Chrome'] },
+          // Asserts the v2 shell IS present, so it only means anything with the flag on.
+          testIgnore: '**/solve-v2-shell.spec.ts',
+        },
+      ],
 
   /**
    * `next start`, not `next dev`. The theme-flash spec measures what a real
@@ -125,6 +171,9 @@ export default defineConfig({
          * and remove none. See D34.
          */
         FEATURE_REVISION_MODES: 'true',
+        // Set explicitly either way, so `.env.local` can never decide which
+        // screen the suite is testing.
+        FEATURE_SOLVE_V2: SOLVE_V2 ? 'true' : 'false',
         /*
          * `next start` sets NODE_ENV=production, where the rate limiter refuses
          * the in-memory fallback — correctly, since it would not limit anything
