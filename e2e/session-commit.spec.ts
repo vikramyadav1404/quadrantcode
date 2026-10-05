@@ -20,11 +20,17 @@
  *
  * Retries are off: a retry that passes would hide exactly what this measures.
  *
- * ## Three places, because the layout is shared
+ * ## Every page the timer bar is used from, because the layout is shared
  *
  * The timer bar lives in the `(app)` layout, so its actions revalidate the
- * layout from whatever page is open. Each case exercises a page that had (or
- * has) a `loading.tsx` boundary above it, or the page where sessions start.
+ * layout from whatever page is open. The cases cover the page where sessions
+ * start, the two pages that had a `loading.tsx` boundary (/dashboard caught the
+ * bug in CI run 37223988230, after D39 had recorded it as unaffected), and the
+ * problem and solve pages where a sitting is actually worked on.
+ *
+ * Since 2026-10-05 no `loading.tsx` sits above any `(app)` page at all;
+ * `tests/app/no-loading-boundary.test.ts` keeps it that way. This spec is the
+ * behavioural half of that guard.
  */
 import { expect, test, type Page } from '@playwright/test';
 import type postgres from 'postgres';
@@ -125,6 +131,8 @@ test('STARTING A SESSION SHOWS THE TIMER, EVERY TIME (problem page)', async ({ p
 for (const [label, path] of [
   ['dashboard', '/dashboard'],
   ['catalog', '/problems'],
+  ['problem page', `/problems/${SLUG}`],
+  ['solve page', `/problems/${SLUG}/solve`],
 ] as const) {
   test(`PAUSE AND RESUME COMMIT, EVERY TIME (${label})`, async ({ page }) => {
     test.setTimeout(240_000);
