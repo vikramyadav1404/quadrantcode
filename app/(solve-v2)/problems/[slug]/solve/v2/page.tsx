@@ -19,7 +19,11 @@ import { getDb } from '@/server/db';
 import { problems } from '@/server/db/schema';
 import type { SessionView } from '@/server/services/session';
 import { getSessionStrip } from '@/server/services/timeline/strip';
-import { loadSolve } from '@/app/_solve/load-solve';
+import { type LoadedSolve, loadSolve } from '@/app/_solve/load-solve';
+import type { HistoryCardData } from '@/components/solve-v2/HistoryCardV2';
+import { OUTCOME_LABELS } from '@/lib/reflection/attempt-view';
+import { formatDay } from '@/lib/time/format-day';
+import { getNextRevisionDate } from '@/server/services/revision';
 import {
   abandonSessionAction,
   completeSessionAction,
@@ -33,15 +37,44 @@ export default async function SolveV2Page({ params }: { params: Promise<{ slug: 
   if (!isFeatureEnabled('FEATURE_SOLVE_V2')) notFound();
 
   const { slug } = await params;
-  const { user, problem, session, problemPanel, editor } = await loadSolve(slug);
+  const { user, problem, session, problemPanel, editor, blind, history, record } =
+    await loadSolve(slug);
 
   return (
     <SolveShellV2
       editor={editor}
+      history={
+        // Blind sitting: no card AND no query, as F2.2 requires of history.
+        user && !blind ? await historyFor(user.id, problem.id, record, history) : null
+      }
       problemPanel={problemPanel}
       strip={user && session ? await stripFor(user.id, session, problem) : null}
     />
   );
+}
+
+/**
+ * C3 · the history card: the record and attempts the solve screen already
+ * loaded, plus the next revision date from the one approved read-only function.
+ */
+async function historyFor(
+  userId: string,
+  problemId: string,
+  record: LoadedSolve['record'],
+  history: LoadedSolve['history'],
+): Promise<HistoryCardData> {
+  const next = await getNextRevisionDate(getDb(), { userId, problemId });
+  const latest = history.find((attempt) => attempt.outcome !== 'abandoned');
+
+  return {
+    attempts: record?.totalAttempts ?? 0,
+    bestTime: record?.bestTime ?? null,
+    lastAttempted: record?.lastAttempted ?? null,
+    lastOutcome: latest ? OUTCOME_LABELS[latest.outcome] : null,
+    // A local calendar date, already in the user's zone: formatted at noon UTC
+    // in UTC so no zone shift can move it, in the same style as every date here.
+    nextRevision: next ? formatDay(new Date(`${next}T12:00:00Z`), 'UTC') : null,
+  };
 }
 
 /**
