@@ -332,4 +332,34 @@ function topicWeakness(
   );
 }
 
+/**
+ * When one problem next comes back for revision, for one user, or null if it is
+ * not scheduled (step C3: the v2 solve screen's history card).
+ *
+ * The one read-only function the v2 plan approved for C3. A schedule row exists
+ * only after a SOLVE (completeSession with `solved`, or an accepted Submit), so a
+ * problem that was only ever given up on, or never finished, returns null and
+ * the card says "Not scheduled yet".
+ *
+ * The date is the user's LOCAL date (`due_local_date`, D18), returned as stored.
+ * Scoped by user, so another user's schedule is never visible. Writes nothing.
+ */
+export async function getNextRevisionDate(
+  db: Database,
+  input: { userId: string; problemId: string },
+): Promise<LocalDate | null> {
+  const [row] = await db
+    .select({ dueLocalDate: revisionSchedule.dueLocalDate })
+    .from(revisionSchedule)
+    .where(
+      and(
+        eq(revisionSchedule.userId, input.userId),
+        eq(revisionSchedule.problemId, input.problemId),
+      ),
+    )
+    .limit(1);
+
+  return (row?.dueLocalDate as LocalDate | undefined) ?? null;
+}
+
 export type { RevisionOutcome } from './ladder';
