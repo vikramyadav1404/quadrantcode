@@ -50,6 +50,7 @@ const SOLVE_SPECS = [
   'viewports.spec.ts',
   'solve-v2-shell.spec.ts',
   'solve-v2-strip.spec.ts',
+  'solve-v2-history.spec.ts',
 ];
 
 /**
@@ -106,7 +107,11 @@ export default defineConfig({
           name: 'chromium',
           use: { ...devices['Desktop Chrome'] },
           // These assert v2 IS present, so they only mean anything with the flag on.
-          testIgnore: ['**/solve-v2-shell.spec.ts', '**/solve-v2-strip.spec.ts'],
+          testIgnore: [
+            '**/solve-v2-shell.spec.ts',
+            '**/solve-v2-strip.spec.ts',
+            '**/solve-v2-history.spec.ts',
+          ],
         },
       ],
 
