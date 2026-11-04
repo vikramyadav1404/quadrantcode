@@ -70,6 +70,8 @@ export type LoadedSolve = {
     bestTime: string | null;
     lastAttempted: string | null;
   } | null;
+  /** C4 · the problem's topic tags, from the same query as the panel's chips. */
+  topics: string[];
 };
 
 /** Loads a problem's solve screen. Calls `notFound()` for an unknown slug. */
@@ -301,5 +303,6 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
           lastAttempted: record.lastAttempted,
         }
       : null,
+    topics: problem.tags.filter((tag) => tag.tagType === 'topic').map((tag) => tag.tagValue),
   };
 }
