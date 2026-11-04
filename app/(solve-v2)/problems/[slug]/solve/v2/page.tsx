@@ -24,6 +24,8 @@ import type { HistoryCardData } from '@/components/solve-v2/HistoryCardV2';
 import { OUTCOME_LABELS } from '@/lib/reflection/attempt-view';
 import { formatDay } from '@/lib/time/format-day';
 import { getNextRevisionDate } from '@/server/services/revision';
+import { readPatterns } from '@/server/services/mistakes';
+import { type RecurringChipData, matchRecurring } from '@/lib/solve-v2/recurring';
 import {
   abandonSessionAction,
   completeSessionAction,
@@ -37,20 +39,42 @@ export default async function SolveV2Page({ params }: { params: Promise<{ slug: 
   if (!isFeatureEnabled('FEATURE_SOLVE_V2')) notFound();
 
   const { slug } = await params;
-  const { user, problem, session, problemPanel, editor, blind, history, record } =
+  const { user, problem, session, problemPanel, editor, blind, history, record, topics } =
     await loadSolve(slug);
+
+  // Blind sitting: no card, no chip AND no query, as F2.2 requires of history
+  // and patterns.
+  const [historyCard, recurring] =
+    user && !blind
+      ? await Promise.all([
+          historyFor(user.id, problem.id, record, history),
+          recurringFor(user.id, topics),
+        ])
+      : [null, null];
 
   return (
     <SolveShellV2
       editor={editor}
-      history={
-        // Blind sitting: no card AND no query, as F2.2 requires of history.
-        user && !blind ? await historyFor(user.id, problem.id, record, history) : null
-      }
+      history={historyCard}
       problemPanel={problemPanel}
+      recurring={recurring}
       strip={user && session ? await stripFor(user.id, session, problem) : null}
     />
   );
+}
+
+/**
+ * C4 · the recurring-mistake chip: the user's stored patterns, read-only,
+ * matched to this problem's topics. Never `warningFor` (it writes a row) and
+ * never `rebuildPatterns` (it rewrites them). A problem with no topics cannot
+ * match, so it costs no query.
+ */
+async function recurringFor(
+  userId: string,
+  topics: string[],
+): Promise<RecurringChipData | null> {
+  if (topics.length === 0) return null;
+  return matchRecurring(await readPatterns(getDb(), userId), topics);
 }
 
 /**

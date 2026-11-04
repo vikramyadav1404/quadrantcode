@@ -101,6 +101,9 @@ export const mistakePatterns = pgTable(
     /**
      * Serves: "this user's recurring mistakes, worst first" — the panel and the
      * pre-solve warning's top three.
+     *
+     * Also serves `readPatterns` for the v2 solve screen's recurring chip (C4):
+     *   WHERE user_id = $1 ORDER BY occurrences DESC, category
      */
     index('mistake_patterns_user_occurrences_idx').on(table.userId, table.occurrences.desc()),
 

@@ -18,9 +18,13 @@ export const SOLVE_V2_STRIP_MARKER = 'solve-v2-strip';
 /** `data-solve-v2-history` on `HistoryCardV2`'s root (server component, C3). */
 export const SOLVE_V2_HISTORY_MARKER = 'solve-v2-history';
 
+/** `data-solve-v2-recurring` on `RecurringChipV2`'s root (server component, C4). */
+export const SOLVE_V2_RECURRING_MARKER = 'solve-v2-recurring';
+
 /** Every marker the flag-off check must find nowhere. */
 export const SOLVE_V2_MARKERS = [
   SOLVE_V2_MARKER,
   SOLVE_V2_STRIP_MARKER,
   SOLVE_V2_HISTORY_MARKER,
+  SOLVE_V2_RECURRING_MARKER,
 ] as const;
