@@ -5,14 +5,18 @@
  *
  * ## What it holds
  *
- * - C1: the page's existing `ProblemPanel` and `RunPanel` (with the limits
- *   strip), passed in unchanged and placed in the existing `SplitPane`, so every
- *   /solve spec runs unchanged against v2 (the `chromium-v2` project).
+ * - C1: the page's existing `ProblemPanel` and the limits strip, passed in
+ *   unchanged and placed in the existing `SplitPane`, so every /solve spec runs
+ *   unchanged against v2 (the `chromium-v2` project). C1 placed v1's
+ *   `RunPanel` here too; C5 replaced it with v2's copy, below.
  * - C2: the session strip above them while a sitting is live. The v2 route's
  *   layout renders no layout timer bar, so the strip is the only one.
  * - C3 and C4: the history card and the recurring-mistake chip, in one row
  *   under the strip. Both are server components and both are absent in a
  *   blind revision sitting.
+ * - C5: v2's own run panel, `RunPanelV2`, in the right pane in place of v1's
+ *   `RunPanel`, with the same props, look, labels and test ids, and the same
+ *   limits strip under it.
  *
  * ## Rules for everything v2 adds
  *
@@ -35,6 +39,7 @@ import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import { SessionStripV2 } from './SessionStripV2';
 import { type HistoryCardData, HistoryCardV2 } from './HistoryCardV2';
 import { RecurringChipV2 } from './RecurringChipV2';
+import { RunPanelV2 } from './RunPanelV2';
 import type { RecurringChipData } from '@/lib/solve-v2/recurring';
 
 type Result = Promise<{ ok: boolean; message?: string }>;
@@ -55,15 +60,18 @@ export type SolveShellV2Strip = {
 
 export function SolveShellV2({
   problemPanel,
-  editor,
+  runPanel,
+  limits,
   strip,
   history,
   recurring,
 }: {
   /** The page's `ProblemPanel`, unchanged. */
   problemPanel: React.ReactNode;
-  /** The page's `RunPanel` and the execution-limits strip, unchanged. */
-  editor: React.ReactNode;
+  /** C5 · the props v1's `RunPanel` gets, for v2's own copy. */
+  runPanel: React.ComponentProps<typeof RunPanelV2>;
+  /** The execution-limits strip, unchanged. */
+  limits: React.ReactNode;
   /** The live sitting, if any: the same session the timer bar would show. */
   strip: SolveShellV2Strip | null;
   /** C3 · the history card; null when signed out or in a blind sitting. */
@@ -84,7 +92,15 @@ export function SolveShellV2({
         leftLabel="the problem"
         rightLabel="the editor"
         left={problemPanel}
-        right={editor}
+        right={
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="min-h-0 flex-1">
+              <RunPanelV2 {...runPanel} />
+            </div>
+
+            {limits}
+          </div>
+        }
       />
     </div>
   );
