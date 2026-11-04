@@ -10,6 +10,9 @@
  *   /solve spec runs unchanged against v2 (the `chromium-v2` project).
  * - C2: the session strip above them while a sitting is live. The v2 route's
  *   layout renders no layout timer bar, so the strip is the only one.
+ * - C3 and C4: the history card and the recurring-mistake chip, in one row
+ *   under the strip. Both are server components and both are absent in a
+ *   blind revision sitting.
  *
  * ## Rules for everything v2 adds
  *
@@ -31,6 +34,8 @@ import type { Confidence } from '@/lib/session/confidence';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import { SessionStripV2 } from './SessionStripV2';
 import { type HistoryCardData, HistoryCardV2 } from './HistoryCardV2';
+import { RecurringChipV2 } from './RecurringChipV2';
+import type { RecurringChipData } from '@/lib/solve-v2/recurring';
 
 type Result = Promise<{ ok: boolean; message?: string }>;
 
@@ -53,6 +58,7 @@ export function SolveShellV2({
   editor,
   strip,
   history,
+  recurring,
 }: {
   /** The page's `ProblemPanel`, unchanged. */
   problemPanel: React.ReactNode;
@@ -62,13 +68,16 @@ export function SolveShellV2({
   strip: SolveShellV2Strip | null;
   /** C3 · the history card; null when signed out or in a blind sitting. */
   history: HistoryCardData | null;
+  /** C4 · the recurring-mistake chip; null when signed out, blind, or nothing matches. */
+  recurring: RecurringChipData | null;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid={SOLVE_V2_MARKER}>
       {strip ? <SessionStripV2 {...strip} /> : null}
-      {history ? (
+      {history || recurring ? (
         <div className="mb-3 flex shrink-0 flex-wrap gap-3">
-          <HistoryCardV2 data={history} />
+          {history ? <HistoryCardV2 data={history} /> : null}
+          {recurring ? <RecurringChipV2 data={recurring} /> : null}
         </div>
       ) : null}
       <SplitPane
