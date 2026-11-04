@@ -52,6 +52,7 @@ const SOLVE_SPECS = [
   'solve-v2-strip.spec.ts',
   'solve-v2-history.spec.ts',
   'solve-v2-recurring.spec.ts',
+  'solve-v2-viewports.spec.ts',
 ];
 
 /**
@@ -113,6 +114,7 @@ export default defineConfig({
             '**/solve-v2-strip.spec.ts',
             '**/solve-v2-history.spec.ts',
             '**/solve-v2-recurring.spec.ts',
+            '**/solve-v2-viewports.spec.ts',
           ],
         },
       ],
