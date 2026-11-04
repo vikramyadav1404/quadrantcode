@@ -77,6 +77,9 @@ export const revisionSchedule = pgTable(
      * One schedule per problem per user. Solving the same problem again moves
      * this row rather than adding a second one — two schedules for one problem
      * would put it in the queue twice, on different days.
+     *
+     * Also serves `getNextRevisionDate` (the v2 history card):
+     *   WHERE user_id = $1 AND problem_id = $2
      */
     uniqueIndex('revision_schedule_user_problem_key').on(table.userId, table.problemId),
 
