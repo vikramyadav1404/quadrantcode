@@ -55,6 +55,21 @@ export type LoadedSolve = {
   session: SessionView | null;
   problemPanel: React.ReactNode;
   editor: React.ReactNode;
+  /**
+   * C3 · a blind revision sitting is live on THIS problem. Then `history` is
+   * empty because it was never loaded, and v2 must not run any history or
+   * pattern query of its own either.
+   */
+  blind: boolean;
+  /** The attempts already loaded for the Submissions tab, newest first. Empty in a blind sitting. */
+  history: Awaited<ReturnType<typeof getAttemptHistory>>;
+  /** The aggregate record, preformatted in the user's timezone; null when signed out. */
+  record: {
+    status: string | null;
+    totalAttempts: number;
+    bestTime: string | null;
+    lastAttempted: string | null;
+  } | null;
 };
 
 /** Loads a problem's solve screen. Calls `notFound()` for an unknown slug. */
@@ -276,5 +291,15 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
     session,
     problemPanel,
     editor,
+    blind,
+    history,
+    record: record
+      ? {
+          status: record.status,
+          totalAttempts: record.totalAttempts,
+          bestTime: record.bestTime,
+          lastAttempted: record.lastAttempted,
+        }
+      : null,
   };
 }

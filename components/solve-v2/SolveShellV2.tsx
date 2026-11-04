@@ -30,6 +30,7 @@ import type { TimerBarState } from '@/lib/session/timer-bar-state';
 import type { Confidence } from '@/lib/session/confidence';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import { SessionStripV2 } from './SessionStripV2';
+import { type HistoryCardData, HistoryCardV2 } from './HistoryCardV2';
 
 type Result = Promise<{ ok: boolean; message?: string }>;
 
@@ -51,6 +52,7 @@ export function SolveShellV2({
   problemPanel,
   editor,
   strip,
+  history,
 }: {
   /** The page's `ProblemPanel`, unchanged. */
   problemPanel: React.ReactNode;
@@ -58,10 +60,17 @@ export function SolveShellV2({
   editor: React.ReactNode;
   /** The live sitting, if any: the same session the timer bar would show. */
   strip: SolveShellV2Strip | null;
+  /** C3 · the history card; null when signed out or in a blind sitting. */
+  history: HistoryCardData | null;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid={SOLVE_V2_MARKER}>
       {strip ? <SessionStripV2 {...strip} /> : null}
+      {history ? (
+        <div className="mb-3 flex shrink-0 flex-wrap gap-3">
+          <HistoryCardV2 data={history} />
+        </div>
+      ) : null}
       <SplitPane
         leftLabel="the problem"
         rightLabel="the editor"
