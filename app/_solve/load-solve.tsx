@@ -72,6 +72,10 @@ export type LoadedSolve = {
   } | null;
   /** C4 · the problem's topic tags, from the same query as the panel's chips. */
   topics: string[];
+  /** C5 · the props `editor`'s RunPanel was given, for v2's own copy. */
+  runPanel: React.ComponentProps<typeof RunPanel>;
+  /** C5 · the execution-limits strip `editor` shows under the panel. */
+  limits: React.ReactNode;
 };
 
 /** Loads a problem's solve screen. Calls `notFound()` for an unknown slug. */
@@ -232,58 +236,65 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
     />
   );
 
+  /*
+   * The editor's props, built once (C5). v1 hands them to `RunPanel` below;
+   * v2 hands the SAME object to its own copy, `RunPanelV2`, so the blind draft
+   * scope, the original-only Submit and the server-resolved session apply to
+   * both from one place, and neither can drift in what it is given.
+   */
+  const runPanel: React.ComponentProps<typeof RunPanel> = {
+    defaultLanguage: 'cpp17',
+    allowSubmit: problem.sourceType === 'original',
+    starters: native
+      ? Object.fromEntries(
+          Object.entries(native.templates).map(([language, template]) => [
+            language,
+            template?.starterCode,
+          ]),
+        )
+      : undefined,
+    /*
+     * The console's Case 1 / Case 2 / … tabs are the statement's own worked
+     * examples, editable. Same data the left panel renders — no extra query,
+     * and the two cannot disagree.
+     */
+    exampleInputs: native?.examples.map((example) => example.input) ?? [],
+    onSubmit: submitRunAction,
+    /*
+     * Only for an ORIGINAL problem in a live sitting. An external problem's
+     * accepted run is not a correctness claim (C1), so offering to close the
+     * sitting on one would be asserting something the verdict does not support.
+     */
+    ...(problem.sourceType === 'original' ? { onCompleteSession: completeSessionAction } : {}),
+    problemId: problem.id,
+    sessionId,
+    /*
+     * F2.2 · a blind sitting gets its own drafts, so the editor opens on the
+     * starter rather than restoring the previous attempt's code.
+     */
+    ...(blind && sessionId ? { draftScope: `blind-${sessionId}` } : {}),
+  };
+
+  /*
+   * Named honestly. This is Judge0 with these limits configured, not a sandbox
+   * this project built — the wording stays factual about what is SENT rather
+   * than about what is guaranteed.
+   */
+  const limits = (
+    <p className="border-t border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
+      {EXECUTION_LIMITS.cpuSeconds}s CPU · {EXECUTION_LIMITS.wallSeconds}s wall ·{' '}
+      {EXECUTION_LIMITS.memoryKb / 1024} MB · no network ·{' '}
+      {EXECUTION_LIMITS.maxOutputBytes / 1024} KB output
+    </p>
+  );
+
   const editor = (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1">
-        <RunPanel
-          defaultLanguage="cpp17"
-          allowSubmit={problem.sourceType === 'original'}
-          starters={
-            native
-              ? Object.fromEntries(
-                  Object.entries(native.templates).map(([language, template]) => [
-                    language,
-                    template?.starterCode,
-                  ]),
-                )
-              : undefined
-          }
-          /*
-                The console's Case 1 / Case 2 / … tabs are the statement's own
-                worked examples, editable. Same data the left panel renders —
-                no extra query, and the two cannot disagree.
-              */
-          exampleInputs={native?.examples.map((example) => example.input) ?? []}
-          onSubmit={submitRunAction}
-          /*
-                Only for an ORIGINAL problem in a live sitting. An external
-                problem's accepted run is not a correctness claim (C1), so
-                offering to close the sitting on one would be asserting
-                something the verdict does not support.
-              */
-          {...(problem.sourceType === 'original'
-            ? { onCompleteSession: completeSessionAction }
-            : {})}
-          problemId={problem.id}
-          sessionId={sessionId}
-          /*
-                F2.2 · a blind sitting gets its own drafts, so the editor opens on
-                the starter rather than restoring the previous attempt's code.
-              */
-          {...(blind && sessionId ? { draftScope: `blind-${sessionId}` } : {})}
-        />
+        <RunPanel {...runPanel} />
       </div>
 
-      {/*
-            Named honestly. This is Judge0 with these limits configured, not a
-            sandbox this project built — the wording stays factual about what is
-            SENT rather than about what is guaranteed.
-          */}
-      <p className="border-t border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        {EXECUTION_LIMITS.cpuSeconds}s CPU · {EXECUTION_LIMITS.wallSeconds}s wall ·{' '}
-        {EXECUTION_LIMITS.memoryKb / 1024} MB · no network ·{' '}
-        {EXECUTION_LIMITS.maxOutputBytes / 1024} KB output
-      </p>
+      {limits}
     </div>
   );
 
@@ -304,5 +315,7 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
         }
       : null,
     topics: problem.tags.filter((tag) => tag.tagType === 'topic').map((tag) => tag.tagValue),
+    runPanel,
+    limits,
   };
 }

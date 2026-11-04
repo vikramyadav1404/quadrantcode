@@ -1,6 +1,7 @@
 /**
  * C1 · with FEATURE_SOLVE_V2 ON, /solve renders the v2 shell around the SAME
- * ProblemPanel, RunPanel and limits strip.
+ * ProblemPanel and limits strip, and (since C5) v2's own copy of RunPanel with
+ * the same names and test ids.
  *
  * Runs only in the `chromium-v2` project (E2E_SOLVE_V2=1). The behavioural
  * proof that v2 loses nothing is the rest of that project: every /solve spec
@@ -10,7 +11,7 @@
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
 import { EXECUTION_LIMITS } from '../server/services/execution/provider';
-import { SOLVE_V2_MARKER } from '../lib/solve-v2/marker';
+import { SOLVE_V2_MARKER, SOLVE_V2_RUN_PANEL_MARKER } from '../lib/solve-v2/marker';
 import { cleanup, db, deleteProblems, signInAs } from './helpers/auth';
 import { capturePayload, settle } from './helpers/payload';
 
@@ -84,6 +85,14 @@ test('THE SHELL HOLDS THE EXISTING HALVES, with their names and test ids', async
   await expect(shell.getByRole('button', { name: /^run code$/i })).toBeVisible();
   await expect(shell.getByRole('button', { name: 'Reset code' })).toBeVisible();
   await expect(shell.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
+
+  // C5: those controls are v2's own copy, in the right pane, and there is one
+  // of them. A v2 that fell back to v1's RunPanel, or rendered both, fails here.
+  await expect(
+    shell.locator(`[data-pane="right"] [data-${SOLVE_V2_RUN_PANEL_MARKER}]`),
+  ).toHaveCount(1);
+  await expect(shell.getByRole('button', { name: /^run code$/i })).toHaveCount(1);
+  await expect(shell.getByLabel('Language')).toHaveCount(1);
 
   // The limits strip, from the same constant the runner sends.
   await expect(

@@ -21,10 +21,14 @@ export const SOLVE_V2_HISTORY_MARKER = 'solve-v2-history';
 /** `data-solve-v2-recurring` on `RecurringChipV2`'s root (server component, C4). */
 export const SOLVE_V2_RECURRING_MARKER = 'solve-v2-recurring';
 
+/** `data-solve-v2-run-panel` on `RunPanelV2`'s root (client component, C5). */
+export const SOLVE_V2_RUN_PANEL_MARKER = 'solve-v2-run-panel';
+
 /** Every marker the flag-off check must find nowhere. */
 export const SOLVE_V2_MARKERS = [
   SOLVE_V2_MARKER,
   SOLVE_V2_STRIP_MARKER,
   SOLVE_V2_HISTORY_MARKER,
   SOLVE_V2_RECURRING_MARKER,
+  SOLVE_V2_RUN_PANEL_MARKER,
 ] as const;
