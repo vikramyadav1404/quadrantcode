@@ -1,18 +1,21 @@
 {
   "$comment": [
-    "F1.2 curated starter library — INCOMPLETE AND KNOWN TO BE.",
+    "F1.2 curated starter library: 34 problems across ten themed sets, BY DECISION.",
     "",
-    "The ticket asks for 100 problems across eight themed sets. This file holds",
-    "far fewer, and that is a deliberate stop rather than a partial attempt.",
-    "Filling it to 100 would mean generating URLs from memory, and a URL that",
-    "looks right and 404s is worse than an absent row: it is a broken link with",
-    "our name on it, and inventing platform content is exactly what C1 forbids.",
+    "The ticket asked for 100 problems across eight themed sets. On 2026-11-05",
+    "the owner decided the library stays at these 34 (#11). Nothing in the app",
+    "reads it yet, and 34 well-known problems across ten themes is a usable",
+    "starter set. It was 'BLOCKED on a real list' before that.",
     "",
-    "Every slug below is a canonical, long-stable LeetCode problem slug. Run",
-    "`npm run library:verify` to check each one actually resolves — that turns",
-    "'every row has a working URL' from a claim into a result.",
+    "Why it is not simply filled to 100: that would mean writing slugs from",
+    "memory, and a URL that looks right and 404s is worse than an absent row.",
+    "It is a broken link with our name on it, and inventing platform content",
+    "is what C1 forbids. LeetCode also answers 403 to automated checks, so",
+    "`npm run library:verify` reports these rows BLOCKED, not working.",
     "",
-    "The remaining rows are BLOCKED on a real list. See docs/status.md."
+    "To grow it: add rows only from a list of pages a person actually opened",
+    "(URL | title | difficulty, as shown on the page), then update the < 100",
+    "guard in tests/ingest/library.test.ts deliberately."
   ],
   "sets": [
     {
