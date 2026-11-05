@@ -34,7 +34,10 @@ export async function loadAssessmentPaperLibrary(
 ): Promise<AssessmentPaperLibrary | null> {
   let raw: string;
   try {
-    raw = await readFile(filePath, 'utf8');
+    // turbopackIgnore (#29): only the CLI scripts call this; the app reaches it
+    // through the `assessments` barrel, and tracing a runtime path pulls in the
+    // whole project. See native-content/load.ts.
+    raw = await readFile(/* turbopackIgnore: true */ filePath, 'utf8');
   } catch {
     return null;
   }

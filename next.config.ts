@@ -44,9 +44,10 @@ const nextConfig: NextConfig = {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
 
-  // Fail the production build on type or lint errors rather than shipping them.
+  // Fail the production build on type errors rather than shipping them.
+  // Next 16 removed lint from `next build` and the `eslint` option with it
+  // (#29); lint runs in CI's `npm run lint` and in the pre-commit hook.
   typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: false },
 
   // `postgres` (postgres.js) and BullMQ are Node-only; keep them out of any
   // edge/client bundle attempt.
