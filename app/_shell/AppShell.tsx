@@ -8,8 +8,8 @@
  * ## Two layouts, one shell (C2)
  *
  * `app/(app)/layout.tsx` renders this with the timer bar, exactly as the layout
- * always did. `app/(solve-v2)/layout.tsx` renders it with `timerBar={false}`:
- * the v2 solve route draws its own session strip, and the layout bar must not
+ * always did. `app/(solve)/layout.tsx` renders it with `timerBar={false}`:
+ * the solve route draws its own session strip, and the layout bar must not
  * exist there at all, so there is one set of timer controls and one heartbeat.
  * Moved here unchanged from `app/(app)/layout.tsx`; only the `timerBar` switch
  * is new. A private folder (`_shell`), so it is not a route.
@@ -48,7 +48,7 @@ export async function AppShell({
   timerBar,
 }: {
   children: React.ReactNode;
-  /** False only for the v2 solve route, which draws its own session strip. */
+  /** False only for the solve route, which draws its own session strip. */
   timerBar: boolean;
 }) {
   /*

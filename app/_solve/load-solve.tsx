@@ -1,13 +1,10 @@
 /**
- * The solve screen's data and its two halves, shared by both solve routes (C2):
+ * The solve screen's data and its halves, for `app/(solve)/problems/[slug]/solve/page.tsx`.
  *
- *   · `app/(app)/problems/[slug]/solve/page.tsx`         v1, flag off
- *   · `app/(solve-v2)/problems/[slug]/solve/v2/page.tsx` v2, flag on (middleware rewrite)
- *
- * Moved here unchanged from the v1 page, so both routes build the SAME problem
- * panel and editor, with every guard below (blind retry, C1, the server-resolved
- * session) applied once. Server-only and imports no v2 code, so v1's route
- * bundle stays free of it. A private folder (`_solve`), so it is not a route.
+ * Built here once, with every guard below (blind retry, C1, the server-resolved
+ * session) applied in one place. It was shared by the v1 and v2 routes until #40
+ * removed v1 (2026-11-05). Server-only. A private folder (`_solve`), so it is not
+ * a route.
  *
  * The solve screen: problem on the left, editor on the right.
  *
@@ -33,7 +30,7 @@ import { AttemptHistory } from '@/components/session/AttemptHistory';
 import { RevisionSittingPanel } from '@/components/revision/RevisionSittingPanel';
 import { StartSolvingButton } from '@/components/session/StartSolvingButton';
 import { ProblemPanel } from '@/components/solve/ProblemPanel';
-import { RunPanel } from '@/components/editor/RunPanel';
+import type { RunPanelV2 } from '@/components/solve-v2/RunPanelV2';
 import type { SessionView } from '@/server/services/session';
 import { getDb } from '@/server/db';
 import { getCurrentUser } from '@/server/services/auth/session';
@@ -54,7 +51,6 @@ export type LoadedSolve = {
   /** The user's live sitting on ANY problem — the one the timer shows. */
   session: SessionView | null;
   problemPanel: React.ReactNode;
-  editor: React.ReactNode;
   /**
    * C3 · a blind revision sitting is live on THIS problem. Then `history` is
    * empty because it was never loaded, and v2 must not run any history or
@@ -72,9 +68,9 @@ export type LoadedSolve = {
   } | null;
   /** C4 · the problem's topic tags, from the same query as the panel's chips. */
   topics: string[];
-  /** C5 · the props `editor`'s RunPanel was given, for v2's own copy. */
-  runPanel: React.ComponentProps<typeof RunPanel>;
-  /** C5 · the execution-limits strip `editor` shows under the panel. */
+  /** The run panel's props, built once below. */
+  runPanel: React.ComponentProps<typeof RunPanelV2>;
+  /** The execution-limits strip shown under the run panel. */
   limits: React.ReactNode;
 };
 
@@ -168,10 +164,8 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
     : null;
 
   /*
-   * The two halves, built once. v1 places them in a SplitPane exactly as it
-   * always has; v2 (FEATURE_SOLVE_V2) hands the SAME elements to its shell, so
-   * every guard above — blind retry, C1, server-resolved session — applies to
-   * both, and neither can drift from the other in what it is given.
+   * The problem half, built once here so every guard above (blind retry, C1,
+   * the server-resolved session) applies to what the shell is given.
    */
   const problemPanel = (
     <ProblemPanel
@@ -237,12 +231,10 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
   );
 
   /*
-   * The editor's props, built once (C5). v1 hands them to `RunPanel` below;
-   * v2 hands the SAME object to its own copy, `RunPanelV2`, so the blind draft
-   * scope, the original-only Submit and the server-resolved session apply to
-   * both from one place, and neither can drift in what it is given.
+   * The run panel's props, built once, so the blind draft scope, the
+   * original-only Submit and the server-resolved session are decided here.
    */
-  const runPanel: React.ComponentProps<typeof RunPanel> = {
+  const runPanel: React.ComponentProps<typeof RunPanelV2> = {
     defaultLanguage: 'cpp17',
     allowSubmit: problem.sourceType === 'original',
     starters: native
@@ -288,22 +280,11 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
     </p>
   );
 
-  const editor = (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1">
-        <RunPanel {...runPanel} />
-      </div>
-
-      {limits}
-    </div>
-  );
-
   return {
     user,
     problem: { id: problem.id, title: problem.title, slug: problem.slug },
     session,
     problemPanel,
-    editor,
     blind,
     history,
     record: record
