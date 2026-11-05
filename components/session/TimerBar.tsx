@@ -2,32 +2,22 @@
 
 /**
  * The persistent solve timer, on every authenticated screen while a session is
- * live.
+ * live, except /solve, which draws its own strip (`SessionStripV2`).
  *
- * ## The clock here is decoration; the server holds the time
- *
- * The bar ticks once a second so the number moves, but that tick is display
- * only. Every heartbeat response overwrites the count with the server's, so the
- * two can differ by at most one heartbeat interval and always in the direction
- * of "the display is slightly behind". Nothing here is ever sent back: the
- * heartbeat body is a session id.
- *
- * That is why a refresh, a tab close or a machine with the wrong clock changes
- * nothing — the value came from timestamps the server wrote.
+ * The clock, the heartbeat and the control flows live in
+ * `useSessionControls`, shared with that strip (#40 part 2). This file is the
+ * bar's look. The clock is display only and the server holds the time; the
+ * hook says why.
  */
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { StuckButton } from '@/components/session/StuckButton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ConfidencePicker } from '@/components/session/ConfidencePicker';
-import type { Confidence } from '@/lib/session/confidence';
-import type { StuckCategory } from '@/lib/reflection/taxonomy';
-import { type TimerBarState, formatElapsed, seedElapsed } from '@/lib/session/timer-bar-state';
-
-const HEARTBEAT_MS = 30_000;
-
-type Action = (input: { sessionId: string }) => Promise<{ ok: boolean; message?: string }>;
+import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
+import {
+  type SessionControlActions,
+  useSessionControls,
+} from '@/components/session/useSessionControls';
 
 export function TimerBar({
   state,
@@ -36,108 +26,20 @@ export function TimerBar({
   onComplete,
   onAbandon,
   onMarkStuck,
-}: {
-  state: TimerBarState;
-  onPause: Action;
-  onResume: Action;
-  onAbandon: Action;
-  onComplete: (input: {
-    sessionId: string;
-    outcome: 'solved' | 'stuck';
-    confidence?: Confidence;
-  }) => Promise<{
-    ok: boolean;
-    message?: string;
-  }>;
-  onMarkStuck: (input: {
-    sessionId: string;
-    category: StuckCategory;
-    note?: string;
-  }) => Promise<{ ok: boolean; message?: string }>;
-}) {
-  const { sessionId, status } = state;
-  const router = useRouter();
-
-  /*
-   * Seeded from the server's number and the instant it was true, so a page that
-   * sat in a background tab for a minute before hydrating shows the right value
-   * immediately rather than counting up from a stale zero.
-   */
-  const [elapsed, setElapsed] = useState(() => seedElapsed(state));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmingAbandon, setConfirmingAbandon] = useState(false);
-  /** Solved was pressed; the confidence row is showing. Not a confirmation gate. */
-  const [askingConfidence, setAskingConfidence] = useState(false);
-
-  // Re-seed whenever the server sends a new state (a pause, a resume, a
-  // navigation): the prop is the authority, not the last thing we counted to.
-  const asOf = state.asOf;
-  useEffect(() => {
-    setElapsed(seedElapsed(state));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed on server updates only
-  }, [asOf, state.activeDurationSeconds, status]);
-
-  // The display tick. Stops while paused, because a paused session accrues
-  // nothing and a moving number would say otherwise.
-  useEffect(() => {
-    if (status !== 'active') return;
-
-    const id = setInterval(() => setElapsed((value) => value + 1), 1000);
-    return () => clearInterval(id);
-  }, [status]);
-
-  // The heartbeat, and the resync that comes back with it.
-  useEffect(() => {
-    if (status !== 'active') return;
-
-    const send = async () => {
-      try {
-        const response = await fetch('/api/session/heartbeat', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ sessionId }),
-        });
-        if (!response.ok) return;
-
-        const body: { activeDurationSeconds?: number } = await response.json();
-        if (typeof body.activeDurationSeconds === 'number') {
-          setElapsed(body.activeDurationSeconds);
-        }
-      } catch {
-        /*
-         * A missed heartbeat is not an error worth showing. The consequence is
-         * already designed for: enough of them and the server pauses the
-         * session from the last one it received.
-         */
-      }
-    };
-
-    const id = setInterval(send, HEARTBEAT_MS);
-    return () => clearInterval(id);
-  }, [sessionId, status]);
-
-  const run = async (action: () => Promise<{ ok: boolean; message?: string }>) => {
-    setBusy(true);
-    setError(null);
-    const result = await action();
-    if (!result.ok) setError(result.message ?? 'That did not work.');
-    setBusy(false);
-    return result.ok;
-  };
-
-  /**
-   * Finishing takes the user to the reflection — **the nudge, and the whole of
-   * it** (F1.5). A page they have to leave is harder to miss than a prompt, and
-   * skipping still costs one click, which is what keeps the answers worth
-   * having: a form nobody can escape is answered to get past it.
-   */
-  const finish = async (outcome: 'solved' | 'stuck', confidence?: Confidence) => {
-    const ok = await run(() =>
-      onComplete({ sessionId, outcome, ...(confidence ? { confidence } : {}) }),
-    );
-    if (ok) router.push(`/sessions/${sessionId}/reflect`);
-  };
+}: { state: TimerBarState } & SessionControlActions) {
+  const {
+    sessionId,
+    status,
+    elapsed,
+    busy,
+    error,
+    confirmingAbandon,
+    setConfirmingAbandon,
+    askingConfidence,
+    setAskingConfidence,
+    run,
+    finish,
+  } = useSessionControls(state, onComplete);
 
   return (
     <div
