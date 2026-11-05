@@ -12,7 +12,7 @@
  * context per test.
  */
 import { expect, test } from '@playwright/test';
-import { appliedTheme } from './helpers/auth';
+import { appliedTheme, recordThemeAtFirstBody, themeAtFirstBody } from './helpers/auth';
 
 test.describe('no flash of wrong theme', () => {
   test('dark is applied with no stored preference (dark-first default)', async ({
@@ -43,18 +43,17 @@ test.describe('no flash of wrong theme', () => {
     await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'light'));
 
     /*
-     * The decisive assertion. `document.documentElement.dataset.theme` is read
-     * inside an init script that runs at document_start — before ANY page
-     * script, including the theme bootstrap. We then check the attribute at the
-     * earliest possible moment after DOMContentLoaded: if the bootstrap were
-     * deferred, async, or in <body>, the attribute would still be unset while
-     * the first paint had already happened with dark styling.
+     * The decisive assertion. An init script, installed before the reload, runs
+     * before ANY page script and records the attribute at the moment <body> is
+     * inserted, the first moment anything can be painted (#53). A synchronous
+     * bootstrap in <head> has run by then. One that was deferred, async or in
+     * <body> has not, and the recording would be unset.
      */
+    await recordThemeAtFirstBody(page);
     await page.reload({ waitUntil: 'commit' });
-    const themeAtCommit = await page.evaluate(() =>
-      document.documentElement.getAttribute('data-theme'),
+    expect(await themeAtFirstBody(page), 'theme must be applied before <body> exists').toBe(
+      'light',
     );
-    expect(themeAtCommit, 'theme must be applied by document commit').toBe('light');
 
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     expect(bg).toBe('rgb(255, 255, 255)');
@@ -91,14 +90,15 @@ test.describe('no flash of wrong theme', () => {
     const context = await browser.newContext();
     const page = await context.newPage();
 
+    await recordThemeAtFirstBody(page);
     await page.goto('/sign-in');
     await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'light'));
     await page.reload({ waitUntil: 'commit' });
-    expect(await appliedTheme(page)).toBe('light');
+    expect(await themeAtFirstBody(page)).toBe('light');
 
     await page.evaluate(() => localStorage.setItem('quadrantcode-theme', 'dark'));
     await page.reload({ waitUntil: 'commit' });
-    expect(await appliedTheme(page)).toBe('dark');
+    expect(await themeAtFirstBody(page)).toBe('dark');
 
     await context.close();
   });
@@ -115,9 +115,10 @@ test.describe('no flash of wrong theme', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
+    await recordThemeAtFirstBody(page);
     await page.reload({ waitUntil: 'commit' });
 
-    const theme = await appliedTheme(page);
+    const theme = await themeAtFirstBody(page);
     expect(theme === null || theme === 'dark').toBe(true);
     expect(errors).toEqual([]);
 

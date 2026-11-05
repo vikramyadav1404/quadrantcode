@@ -187,3 +187,47 @@ export async function deleteProblems(
 export async function appliedTheme(page: Page): Promise<string | null> {
   return page.evaluate(() => document.documentElement.getAttribute('data-theme'));
 }
+
+type ThemeRecord = { value: string | null };
+type WindowWithThemeRecord = { __qcThemeAtBody?: ThemeRecord };
+
+/**
+ * #53 · records `<html data-theme>` at the moment `<body>` is inserted, the first
+ * moment anything on the page can be painted. Call BEFORE the navigation it
+ * should observe; it applies to every later document in this page.
+ *
+ * An init script runs before any page script, and a MutationObserver callback
+ * runs at the microtask checkpoint the parser performs before it executes the
+ * next script. So a synchronous `<head>` bootstrap has always run by then, and a
+ * bootstrap moved into `<body>` has not: the recording is decided by where the
+ * script is, not by timing.
+ *
+ * It replaces reading the attribute right after `reload({ waitUntil: 'commit' })`,
+ * which raced the new document: sometimes `<html>` did not exist yet and the read
+ * threw on `null`.
+ */
+export async function recordThemeAtFirstBody(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as WindowWithThemeRecord;
+    const record = (): boolean => {
+      if (w.__qcThemeAtBody || !document.body) return Boolean(w.__qcThemeAtBody);
+      w.__qcThemeAtBody = { value: document.documentElement.getAttribute('data-theme') };
+      return true;
+    };
+    if (record()) return;
+    const observer = new MutationObserver(() => {
+      if (record()) observer.disconnect();
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+}
+
+/** The theme `recordThemeAtFirstBody` saw when `<body>` first existed in the current document. */
+export async function themeAtFirstBody(page: Page): Promise<string | null> {
+  const handle = await page.waitForFunction(
+    () => (window as unknown as WindowWithThemeRecord).__qcThemeAtBody,
+    undefined,
+    { polling: 10 },
+  );
+  return ((await handle.jsonValue()) as ThemeRecord).value;
+}
