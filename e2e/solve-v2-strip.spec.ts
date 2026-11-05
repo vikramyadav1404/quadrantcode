@@ -1,5 +1,5 @@
 /**
- * C2 · the v2 session strip, with FEATURE_SOLVE_V2 on (`chromium-v2` only).
+ * C2 · the solve screen's session strip.
  *
  * The strip replaces the layout's timer bar on /solve while a sitting is live.
  * It must keep every control under the same accessible name and behave the same:
@@ -71,10 +71,7 @@ test('ONE "Solve session timer" on /solve, and it is the strip', async ({ page, 
   await expect(timerOf(page)).not.toHaveAttribute(`data-${SOLVE_V2_STRIP_MARKER}`, '');
 });
 
-test('the strip reaches the browser with the flag on (counterpart of the flag-off check)', async ({
-  page,
-  baseURL,
-}) => {
+test('the strip reaches the browser', async ({ page, baseURL }) => {
   await signInAs(page.context(), sql, { email: 'c2-payload@e2e.test', baseUrl: baseURL! });
   await page.goto(`/problems/${SLUG}`);
   const started = page.waitForResponse(

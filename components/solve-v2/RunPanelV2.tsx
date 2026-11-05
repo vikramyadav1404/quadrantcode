@@ -1,31 +1,23 @@
 'use client';
 
 /**
- * v2's own run panel (step C5): the editor, its controls, and the result.
+ * The solve screen's run panel: the editor, its controls, and the result.
  *
- * ## A deliberate copy of `components/editor/RunPanel.tsx`
- *
- * The v2 plan protects `RunPanel`: its behaviour, labels and test ids may not
- * change while v1 is live. So v2 owns this copy, approved in the plan with the
- * drift risk named, and tracked for removal in issue #40. What is copied:
  * Run/Submit execution, 700 ms polling with `MAX_POLLS`, the per-problem and
  * per-language draft autosave (including the blind `draftScope`), the refusal
  * message, and the accepted-Submit prompt wiring.
  *
- * What is NOT copied, but shared: `CodeEditor`, `ConsoleTabs` (and through it
+ * Shared, not owned here: `CodeEditor`, `ConsoleTabs` (and through it
  * `RunOutput`, the only renderer of program output), `SolvedPrompt`, and the
- * pure libraries. `draftKey` is the same function, so a draft written on v1 is
- * the draft v2 opens, and the reverse.
+ * pure libraries, `draftKey` among them.
  *
- * Same look, same labels ("Language", "Run code", "Submit", "Reset code") and
- * the same test ids (`run-refusal`, `solved-prompt`), so every /solve spec runs
- * unchanged against it in the `chromium-v2` project. Its props are exactly
- * `RunPanel`'s: `load-solve.tsx` builds one props object for both.
+ * Labels "Language", "Run code", "Submit" and "Reset code", and the test ids
+ * `run-refusal` and `solved-prompt`, are what the /solve specs rely on.
+ * `load-solve.tsx` builds its props.
  *
- * Imported only by SolveShellV2 (v2 rule). `data-solve-v2-run-panel` is the
- * marker the flag-off check looks for.
- *
- * Until v1 is removed, a fix to either copy belongs in both.
+ * History: this began as v2's copy of v1's `components/editor/RunPanel.tsx` (C5,
+ * #44). #40 removed v1 on 2026-11-05, and with it the original, so this is now
+ * the only one. `data-solve-v2-run-panel` stays as the marker the shell spec uses.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';

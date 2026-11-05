@@ -1,5 +1,5 @@
 /**
- * C3 · the v2 history card, with FEATURE_SOLVE_V2 on (`chromium-v2` only).
+ * C3 · the solve screen's history card.
  *
  *   · no history yet: says so, and "Not scheduled yet"
  *   · after a solve: attempts, last outcome, best time, and the next revision

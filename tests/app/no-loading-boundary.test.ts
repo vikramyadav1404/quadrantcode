@@ -3,7 +3,7 @@
  *
  * The timer bar is rendered by `app/_shell/AppShell.tsx`, which the `(app)`
  * layout uses, so it is on every page under `(app)`; the v2 solve route
- * (`(solve-v2)`, C2) renders the session strip instead, with the same actions.
+ * (`(solve)`, the v2 screen since #40) renders the session strip instead, with the same actions.
  * Those actions (Pause, Resume, I'm stuck, Solved, Give up, Abandon)
  * revalidate from whatever page is open. With Next 15.5.24 a server
  * action's re-render under a `<Suspense>` boundary is sometimes never committed
@@ -15,7 +15,7 @@
  * one appears anywhere it could wrap a page under `(app)`:
  *
  *   · `app/loading.tsx` — above both layouts
- *   · any `loading.tsx` inside `app/(app)/` or `app/(solve-v2)/`
+ *   · any `loading.tsx` inside `app/(app)/` or `app/(solve)/`
  *   · a hand-written `<Suspense` in a file inside those groups, or in the shared
  *     shell and solve loader (`app/_shell/`, `app/_solve/`) that render them
  *
@@ -46,7 +46,7 @@ const APP = join(ROOT, 'app');
 const SHELL = join(APP, '(app)');
 
 /** Every directory whose files render under a timer (bar or v2 strip). */
-const TIMER_TREES = ['(app)', '(solve-v2)', '_shell', '_solve'];
+const TIMER_TREES = ['(app)', '(solve)', '_shell', '_solve'];
 
 /** The first Next version the D39 revisit showed the bug gone on (#29). */
 const D39_FIXED_IN = '16.4.5';
@@ -114,9 +114,9 @@ describe('D39 · loading boundaries above the timer bar: only the allowed two, o
     const pages = shellFiles.filter((file) => file.endsWith(`${sep}page.tsx`));
     expect(pages.length).toBeGreaterThanOrEqual(10);
     expect(pages.map(rel)).toContain('app/(app)/dashboard/page.tsx');
-    expect(pages.map(rel)).toContain('app/(app)/problems/[slug]/solve/page.tsx');
+    expect(pages.map(rel)).toContain('app/(app)/problems/[slug]/page.tsx');
     expect(files.map((file) => file.path)).toContain(
-      'app/(solve-v2)/problems/[slug]/solve/v2/page.tsx',
+      'app/(solve)/problems/[slug]/solve/page.tsx',
     );
   });
 
@@ -124,7 +124,7 @@ describe('D39 · loading boundaries above the timer bar: only the allowed two, o
     // If they move, the scope of this rule has to move with them.
     expect(readFileSync(join(APP, '_shell', 'AppShell.tsx'), 'utf8')).toContain('<TimerBar');
     expect(readFileSync(join(SHELL, 'layout.tsx'), 'utf8')).toContain('<AppShell timerBar>');
-    expect(readFileSync(join(APP, '(solve-v2)', 'layout.tsx'), 'utf8')).toContain(
+    expect(readFileSync(join(APP, '(solve)', 'layout.tsx'), 'utf8')).toContain(
       '<AppShell timerBar={false}>',
     );
     expect(
@@ -170,7 +170,7 @@ describe('D39 · loading boundaries above the timer bar: only the allowed two, o
         { path: 'app/(app)/dashboard/loading.tsx', source: '' },
         { path: 'app/(app)/problems/(catalog)/loading.tsx', source: '' },
         { path: 'app/(app)/sessions/page.tsx', source: 'return <Suspense fallback={null}>' },
-        { path: 'app/(solve-v2)/problems/[slug]/solve/v2/loading.tsx', source: '' },
+        { path: 'app/(solve)/problems/[slug]/solve/loading.tsx', source: '' },
         { path: 'app/_shell/AppShell.tsx', source: '<Suspense fallback={null}>' },
       ]),
     ).toHaveLength(6);

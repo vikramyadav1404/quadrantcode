@@ -1,21 +1,17 @@
 /**
- * The solve screen, v2 (FEATURE_SOLVE_V2).
+ * The solve screen, `/problems/[slug]/solve`.
  *
- * Reached at `/problems/[slug]/solve`: middleware rewrites that URL here only
- * while the flag is on, so the browser URL does not change. With the flag off
- * this route is a 404 even when requested directly, so v2 cannot be reached at
- * all.
- *
- * Built from the same data as v1 (`loadSolve`): v1's `ProblemPanel`, and since
- * C5 v2's own copy of the run panel given v1's exact props, placed in
+ * Built from `loadSolve`: the `ProblemPanel` and the run panel, placed in
  * `SolveShellV2`, plus the session strip for the live sitting. This route's
- * layout renders no layout timer bar (`app/(solve-v2)/layout.tsx`), so the strip
+ * layout renders no layout timer bar (`app/(solve)/layout.tsx`), so the strip
  * is the only one.
+ *
+ * Until #40 (2026-11-05) this was the v2 screen behind FEATURE_SOLVE_V2, at an
+ * internal `/solve/v2` path that middleware rewrote to. v1 and the flag are gone,
+ * and this page is the solve route itself.
  */
-import { notFound } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { SolveShellV2, type SolveShellV2Strip } from '@/components/solve-v2/SolveShellV2';
-import { isFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { problems } from '@/server/db/schema';
 import type { SessionView } from '@/server/services/session';
@@ -35,10 +31,7 @@ import {
   resumeSessionAction,
 } from '@/app/(app)/sessions/actions';
 
-export default async function SolveV2Page({ params }: { params: Promise<{ slug: string }> }) {
-  // Read per request on the server. Off: not found, even for a direct request.
-  if (!isFeatureEnabled('FEATURE_SOLVE_V2')) notFound();
-
+export default async function SolvePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const {
     user,
