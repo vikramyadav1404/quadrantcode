@@ -14,6 +14,9 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const stored = document.documentElement.getAttribute('data-theme');
+    // An effect on purpose (#48): the attribute is set by the inline head
+    // script in the browser, so render cannot read it without a mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the DOM after hydration
     setTheme(stored === 'light' ? 'light' : 'dark');
   }, []);
 

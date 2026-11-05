@@ -75,13 +75,20 @@ export function useSessionControls(state: TimerBarState, onComplete: CompleteSes
   /** Solved was pressed; the confidence row is showing. Not a confirmation gate. */
   const [askingConfidence, setAskingConfidence] = useState(false);
 
-  // Re-seed whenever the server sends a new state (a pause, a resume, a
-  // navigation): the prop is the authority, not the last thing we counted to.
-  const asOf = state.asOf;
-  useEffect(() => {
+  /*
+   * Re-seed whenever the server sends a new state (a pause, a resume, a
+   * navigation): the prop is the authority, not the last thing we counted to.
+   *
+   * Adjusted during render rather than in an effect (#48): React's pattern for
+   * state that follows a prop, so the new number is on screen in the same
+   * render instead of one render late.
+   */
+  const seedKey = `${state.asOf}|${state.activeDurationSeconds}|${status}`;
+  const [seededFor, setSeededFor] = useState(seedKey);
+  if (seededFor !== seedKey) {
+    setSeededFor(seedKey);
     setElapsed(seedElapsed(state));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed on server updates only
-  }, [asOf, state.activeDurationSeconds, status]);
+  }
 
   // The display tick. Stops while paused, because a paused session accrues
   // nothing and a moving number would say otherwise.
