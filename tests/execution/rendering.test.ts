@@ -25,10 +25,16 @@ import { describe, expect, it } from 'vitest';
  * same things — program output moved into `ConsoleTabs`, and a problem
  * statement (F4.1) will land in `ProblemPanel`. A guard scoped to the old
  * directory would have gone quietly out of date the moment the code moved.
+ *
+ * `components/solve-v2/` was missed exactly that way: the v2 screen (C1 to C5)
+ * added the session strip, the history card and its own run panel there, and
+ * none of them was scanned. #40 removed v1's `editor/RunPanel.tsx`, the copy
+ * that WAS scanned, which made the gap the whole run panel. Added 2026-11-05.
  */
 const ROOTS = [
   join(process.cwd(), 'components', 'editor'),
   join(process.cwd(), 'components', 'solve'),
+  join(process.cwd(), 'components', 'solve-v2'),
 ];
 
 /** Anything that hands a string to the HTML parser. */
