@@ -48,7 +48,7 @@ history that makes practice compound.
 This is a portfolio build. It is **live and usable; sign-in is GitHub-only**.
 Specifically:
 
-- **Every `FEATURE_*` flag defaults to off in `.env.example`** — all eight.
+- **Every `FEATURE_*` flag defaults to off in `.env.example`** — all seven.
   Code execution is enabled in production.
 - **Code execution runs in production on a self-hosted Judge0 instance**,
   selected by `EXECUTION_BACKEND=judge0` and `JUDGE0_URL` (development falls back

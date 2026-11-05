@@ -1,5 +1,5 @@
 /**
- * C4 · the v2 recurring-mistake chip, with FEATURE_SOLVE_V2 on (`chromium-v2` only).
+ * C4 · the solve screen's recurring-mistake chip.
  *
  *   · a stored pattern on one of the problem's topics: the chip shows it
  *   · patterns on other topics, with no topic, or seen only once: no chip

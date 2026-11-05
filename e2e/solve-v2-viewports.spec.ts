@@ -1,6 +1,6 @@
 /**
- * C6 · the v2 solve screen at phone, tablet and desktop widths, with
- * FEATURE_SOLVE_V2 on (`chromium-v2` only), during a live sitting so the
+ * C6 · the solve screen at phone, tablet and desktop widths, during a live
+ * sitting so the
  * session strip, the history card and the split pane are all on the page.
  *
  * At each width:
@@ -29,7 +29,7 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 800 },
 ] as const;
 
-/** The strip's controls, by the names v1's timer bar gives them. */
+/** The strip's controls, by the names the layout timer bar also gives them. */
 const CONTROLS = ['Pause', "I'm stuck", 'Solved', 'Give up', 'Abandon'] as const;
 
 test.beforeAll(async () => {

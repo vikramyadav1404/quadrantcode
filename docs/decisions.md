@@ -2897,3 +2897,27 @@ Run locally with the real production URL in `DATABASE_URL_UNPOOLED` and `VERCEL_
 **Consequence: Preview builds fail until D30's cleanup item is done** (`DATABASE_URL_UNPOOLED` given a Preview-only value). That is intended.
 
 **Runtime use of `DATABASE_URL_UNPOOLED`:** none. The deployed app reads only `DATABASE_URL` (`server/db/client.ts`). `DATABASE_URL_UNPOOLED` is read only by `server/db/direct-url.ts` for the CLI tools (migrate, rollback, drizzle-kit, seeds, import), and only when `DIRECT_DATABASE_URL` is unset. Vercel builds run `deploy:check` and `next build`, never a migration. So a PR preview deployment did not reach production through this variable.
+
+### Superseded · 2026-11-05 (#40): v1 is gone, and so are the rewrite and the flag
+
+v2 went on in production on 2026-11-05, and the owner checked it there. #40 then
+removed v1:
+
+- the v1 page `app/(app)/problems/[slug]/solve/page.tsx`;
+- `components/editor/RunPanel.tsx`, the original that `RunPanelV2` copied;
+- `lib/solve-v2/rewrite.ts` and its middleware call;
+- the `FEATURE_SOLVE_V2` flag;
+- the flag-off spec;
+- the second Playwright project and its CI job.
+
+The internal `/solve/v2` path is gone too. The page moved to
+`app/(solve)/problems/[slug]/solve/page.tsx`, so `/problems/[slug]/solve` is
+served directly, with no rewrite. The group was renamed from `(solve-v2)` and
+keeps its layout, which renders the shell without the layout timer bar. That is
+still needed: every other page under `(app)` keeps the bar, and the solve page
+draws its own strip.
+
+Still duplicated, and folded in a follow-up: the session controls in
+`SessionStripV2` and `TimerBar`. Both are live now, the bar on every other page
+and the strip on /solve. So they share one implementation rather than one being
+deleted.

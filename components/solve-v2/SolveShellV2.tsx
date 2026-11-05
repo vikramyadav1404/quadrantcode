@@ -1,32 +1,24 @@
 /**
- * The v2 solve screen's shell, rendered only by the v2 route
- * (`app/(solve-v2)/problems/[slug]/solve/v2/page.tsx`), which middleware serves
- * at /problems/[slug]/solve while FEATURE_SOLVE_V2 is on.
+ * The solve screen's shell, rendered by `app/(solve)/problems/[slug]/solve/page.tsx`.
+ * Built as "v2" behind FEATURE_SOLVE_V2 (C1 to C6). Since #40 (2026-11-05) it is
+ * the only solve screen, and the flag is gone.
  *
  * ## What it holds
  *
- * - C1: the page's existing `ProblemPanel` and the limits strip, passed in
- *   unchanged and placed in the existing `SplitPane`, so every /solve spec runs
- *   unchanged against v2 (the `chromium-v2` project). C1 placed v1's
- *   `RunPanel` here too; C5 replaced it with v2's copy, below.
- * - C2: the session strip above them while a sitting is live. The v2 route's
- *   layout renders no layout timer bar, so the strip is the only one.
+ * - C1: the page's `ProblemPanel` and the limits strip, placed in `SplitPane`.
+ * - C2: the session strip above them while a sitting is live. The solve
+ *   route's layout renders no layout timer bar, so the strip is the only one.
  * - C3 and C4: the history card and the recurring-mistake chip, in one row
  *   under the strip. Both are server components and both are absent in a
  *   blind revision sitting.
- * - C5: v2's own run panel, `RunPanelV2`, in the right pane in place of v1's
- *   `RunPanel`, with the same props, look, labels and test ids, and the same
- *   limits strip under it.
+ * - C5: the run panel, `RunPanelV2`, in the right pane, with the limits strip
+ *   under it.
  *
- * ## Rules for everything v2 adds
+ * ## Rules
  *
- * - **v2 client components are imported only from this file** (or from files
- *   only it imports). Only the v2 route imports this file, so v2 code is in that
- *   route's bundle and never in v1's.
  * - **This file stays a server component.**
- * - **Every v2 component carries a marker** from `lib/solve-v2/marker.ts`.
- *   `e2e/solve-v2-off.spec.ts` checks every response /solve returns with the
- *   flag off (HTML, RSC payload and JS chunks) for all of them.
+ * - **Each component carries a marker** from `lib/solve-v2/marker.ts`, which the
+ *   solve specs find it by.
  * - **No Suspense boundary.** D39: a boundary above the timer drops
  *   server-action renders. `tests/app/no-loading-boundary.test.ts` enforces it.
  */
@@ -68,7 +60,7 @@ export function SolveShellV2({
 }: {
   /** The page's `ProblemPanel`, unchanged. */
   problemPanel: React.ReactNode;
-  /** C5 · the props v1's `RunPanel` gets, for v2's own copy. */
+  /** C5 · the run panel's props, built by `load-solve.tsx`. */
   runPanel: React.ComponentProps<typeof RunPanelV2>;
   /** The execution-limits strip, unchanged. */
   limits: React.ReactNode;
