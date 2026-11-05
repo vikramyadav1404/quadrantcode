@@ -211,16 +211,27 @@ export function SessionStripV2({
             Give up
           </button>
 
-          <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-[var(--border)]" />
+          {/*
+            The separator and Abandon wrap as one item. Apart, a narrow screen
+            moved Abandon to the next line and left the separator hanging at
+            the end of this one.
+          */}
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="mx-0.5 h-4 w-px bg-[var(--border)]"
+              data-solve-v2-strip-separator=""
+            />
 
-          <button
-            aria-disabled={busy}
-            className="rounded-[var(--radius)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60"
-            onClick={() => setConfirmingAbandon(true)}
-            type="button"
-          >
-            Abandon
-          </button>
+            <button
+              aria-disabled={busy}
+              className="rounded-[var(--radius)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] aria-disabled:opacity-60"
+              onClick={() => setConfirmingAbandon(true)}
+              type="button"
+            >
+              Abandon
+            </button>
+          </span>
         </div>
       </div>
 
