@@ -7,6 +7,7 @@
  */
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { LinkPending } from '@/components/ui/LinkPending';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DifficultyPill } from '@/components/solve/DifficultyPill';
 import { StatusMark } from '@/components/solve/StatusMark';
@@ -159,6 +160,7 @@ export default async function ProblemsPage({
                       href={`/problems/${problem.slug}`}
                     >
                       {problem.title}
+                      <LinkPending />
                     </Link>
                   </td>
                   <td className="px-3 py-2.5">
@@ -198,6 +200,7 @@ export default async function ProblemsPage({
           href={`/problems?${query.toString()}${query.size > 0 ? '&' : ''}cursor=${encodeURIComponent(nextCursor)}`}
         >
           Next page
+          <LinkPending />
         </Link>
       ) : null}
     </>

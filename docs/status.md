@@ -446,7 +446,7 @@ out during the solve-screen polish pass. Both look like oversights. Neither is.
 
 ### The catalog header cannot be sticky without changing the scroll model
 
-`app/(app)/problems/page.tsx` wraps the table in `overflow-x-auto` so it scrolls
+`app/(app)/problems/(catalog)/page.tsx` wraps the table in `overflow-x-auto` so it scrolls
 sideways at 375px instead of reflowing, which `e2e/viewports.spec.ts` holds.
 
 Per CSS spec, setting `overflow-x` to anything other than `visible` computes

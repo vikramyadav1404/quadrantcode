@@ -55,6 +55,7 @@ import postgres from 'postgres';
 import { DEMO_EMAIL } from '@/lib/auth/demo';
 import { schema } from '@/server/db/client';
 import { localDateFor, recomputeStreak } from '@/server/services/streak';
+import { assertNotProductionDatabase } from '@/lib/db/production-guard';
 
 /** The demo user's timezone, and therefore the one its day boundary uses. */
 const DEMO_TIMEZONE = 'Asia/Kolkata';
@@ -150,6 +151,13 @@ const VERSIONS = [
 async function main(): Promise<void> {
   const url = process.env['DATABASE_URL'];
   if (!url) throw new Error('DATABASE_URL is not set');
+
+  /*
+   * Never production, and no override (#27). The walkthrough rows this script
+   * writes are what left seven `demo-*` problems in production's catalog.
+   * Checked before the target is printed below, so the production host is not.
+   */
+  assertNotProductionDatabase(url, 'DATABASE_URL (scripts/demo-seed.ts)');
 
   /*
    * Say which database this is, before touching it.
