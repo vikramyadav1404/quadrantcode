@@ -4,6 +4,15 @@ import { nativeProblemBatchSchema, validateNativeLibrary } from './schema';
 
 export const NATIVE_PROBLEM_DATA_DIR = 'data/native-problems';
 
+/*
+ * Every fs call below carries `turbopackIgnore` (#29). These loaders run only
+ * from the CLI scripts (`native:import`, `native:validate`, `papers:*`), under
+ * tsx. The app never calls them; it reaches this module only through the
+ * `native-content` barrel. Without the comment, Turbopack cannot tell where a
+ * runtime `directory` points, so it traces the whole project into every route
+ * that imports the barrel (about 780 source files into the admin export).
+ */
+
 /**
  * Where a record goes when it stops being part of the library.
  *
@@ -47,14 +56,19 @@ async function assertRetiredDisjoint(directory: string, activeSlugs: ReadonlySet
 
   let names: string[];
   try {
-    names = await readdir(retiredDirectory);
+    names = await readdir(/* turbopackIgnore: true */ retiredDirectory);
   } catch {
     return;
   }
 
   const clashes: string[] = [];
   for (const name of names.filter((entry) => BATCH_FILE.test(entry))) {
-    const payload: unknown = JSON.parse(await readFile(join(retiredDirectory, name), 'utf8'));
+    const payload: unknown = JSON.parse(
+      await readFile(
+        /* turbopackIgnore: true */ join(/* turbopackIgnore: true */ retiredDirectory, name),
+        'utf8',
+      ),
+    );
     const problems = (payload as { problems?: { slug?: string }[] }).problems ?? [];
     for (const problem of problems) {
       if (problem.slug && activeSlugs.has(problem.slug)) clashes.push(problem.slug);
@@ -83,7 +97,7 @@ async function assertRetiredDisjoint(directory: string, activeSlugs: ReadonlySet
  * is what the importer iterates, and a stable order keeps its output readable.
  */
 export async function loadNativeProblemBatches(directory = NATIVE_PROBLEM_DATA_DIR) {
-  const files = (await readdir(directory))
+  const files = (await readdir(/* turbopackIgnore: true */ directory))
     .map((name) => ({ name, match: BATCH_FILE.exec(name) }))
     .filter((entry): entry is { name: string; match: RegExpExecArray } => entry.match !== null)
     .map((entry) => ({ name: entry.name, number: Number(entry.match[1]) }))
@@ -95,7 +109,12 @@ export async function loadNativeProblemBatches(directory = NATIVE_PROBLEM_DATA_D
 
   const batches = [];
   for (const file of files) {
-    const payload: unknown = JSON.parse(await readFile(join(directory, file.name), 'utf8'));
+    const payload: unknown = JSON.parse(
+      await readFile(
+        /* turbopackIgnore: true */ join(/* turbopackIgnore: true */ directory, file.name),
+        'utf8',
+      ),
+    );
     batches.push(nativeProblemBatchSchema.parse(payload));
   }
 

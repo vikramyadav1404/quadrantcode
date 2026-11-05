@@ -1,11 +1,6 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { FlatCompat } from '@eslint/eslintrc';
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const compat = new FlatCompat({ baseDirectory: __dirname });
 
 /**
  * F0.1 requirement 2 — the server-only boundary.
@@ -43,11 +38,26 @@ export default tseslint.config(
     ],
   },
 
-  ...compat.extends('next/core-web-vitals'),
+  // #29: eslint-config-next 16 ships flat config, so no FlatCompat bridge.
+  ...nextCoreWebVitals,
   ...tseslint.configs.recommended,
 
   {
     rules: {
+      /*
+       * #29: eslint-config-next 16 brings eslint-plugin-react-hooks 7, whose
+       * recommended set adds React Compiler rules that did not exist on 15.
+       * Two of them fire on existing code: `set-state-in-effect` (11 places)
+       * and `immutability` (3). They flag patterns the compiler cannot
+       * optimise, not runtime bugs, and this app does not enable the
+       * compiler. Fixing them means changing protected components (v1's
+       * RunPanel among them), which an upgrade must not do. Off here, and
+       * tracked for adoption on their own in #48. Every other new
+       * rule passes and stays on.
+       */
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
+
       // Business rule: `any` needs a written justification, so it must be
       // deliberate. The rule stays an error; the escape hatch is an inline
       // disable with a one-line reason, which is greppable in review.
