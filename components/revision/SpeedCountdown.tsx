@@ -22,7 +22,13 @@ export function SpeedCountdown({
 }) {
   const [elapsed, setElapsed] = useState(elapsedSeconds);
 
-  useEffect(() => setElapsed(elapsedSeconds), [elapsedSeconds]);
+  // Follow the server's number when it changes, during render rather than in
+  // an effect (#48), so the new value is on screen in the same render.
+  const [seededFor, setSeededFor] = useState(elapsedSeconds);
+  if (seededFor !== elapsedSeconds) {
+    setSeededFor(elapsedSeconds);
+    setElapsed(elapsedSeconds);
+  }
 
   useEffect(() => {
     if (paused) return;

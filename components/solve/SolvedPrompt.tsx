@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ConfidencePicker } from '@/components/session/ConfidencePicker';
 import { isPending, type ExecutionResultView } from '@/lib/execution/view';
 import type { Confidence } from '@/lib/session/confidence';
@@ -45,10 +45,13 @@ export function SolvedPrompt({
   const [error, setError] = useState<string | null>(null);
 
   // A new job is a new question. Without this, dismissing once would suppress
-  // the prompt for every later submission in the same sitting.
-  useEffect(() => {
+  // the prompt for every later submission in the same sitting. Reset during
+  // render rather than in an effect (#48).
+  const [errorFor, setErrorFor] = useState(jobId);
+  if (errorFor !== jobId) {
+    setErrorFor(jobId);
     setError(null);
-  }, [jobId]);
+  }
 
   const offer =
     result.mode === 'submit' &&
