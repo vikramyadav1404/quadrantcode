@@ -2808,6 +2808,31 @@ file, when a throwaway `app/(app)/dashboard/loading.tsx` was added.
 on a branch, relax `tests/app/no-loading-boundary.test.ts` in that same
 branch, and run `e2e/session-commit.spec.ts --repeat-each=5`.
 
+### Revisit · 2026-11-05 (#29): the bug no longer reproduces on Next 16.4.5
+
+The upgrade went to 16.4.5 rather than 16.2.x, because 16.2.12 carries
+critical advisories (see the #29 PR). The original condition,
+`app/(app)/problems/loading.tsx` restored from history unchanged, was run with
+the same spec, `--repeat-each=5 --retries=0`, against the same local test
+database. There was a **control on 15.5.24** in a separate worktree, so the
+result does not rest on this machine failing to reproduce the bug at all.
+
+| Next    | Tests of 25 | Start: timer missing  | Pause/Resume: stale bar |
+| ------- | ----------- | --------------------- | ----------------------- |
+| 15.5.24 | 14 failed   | **26 of 50** attempts | in 9 of the 20 cases    |
+| 16.4.5  | 25 passed   | **0 of 50**           | none                    |
+
+The control fails at about the rate D39 measured on CI (about half the
+starts), so the bug reproduces here. On 16.4.5 the same boundary drops
+nothing.
+
+**What this changes.** The framework cause is gone, so the rule "no boundary
+under `(app)`" can be lifted. That is **not** done in the upgrade. It restores
+the skeletons, relaxes `tests/app/no-loading-boundary.test.ts`, and puts
+`session-commit.spec.ts` against the restored boundaries in CI, so it belongs
+in its own change, once 16.4.5 is in production. Until then this decision
+stands, and the guard test still holds.
+
 ## D40 · The v2 solve screen is its own internal route, reached by a middleware rewrite
 
 **Date:** 2026-10-05 · **Status:** built behind `FEATURE_SOLVE_V2` (off everywhere). No migration.
