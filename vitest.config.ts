@@ -3,6 +3,10 @@ import { config as loadEnvFile } from 'dotenv';
 import { defineConfig } from 'vitest/config';
 import { applyLocalTestDefaults } from './lib/db/local-test-db';
 import { assertEnvNotProduction } from './lib/db/production-guard';
+import {
+  assertNoProductionServices,
+  blankProductionServices,
+} from './lib/db/production-services';
 
 /*
  * Issue #27. An optional, git-ignored `.env.test` may override settings (dotenv
@@ -17,6 +21,14 @@ assertEnvNotProduction(
   ['TEST_DATABASE_URL', 'DATABASE_URL', 'DIRECT_DATABASE_URL', 'DATABASE_URL_UNPOOLED'],
   'vitest.config.ts',
 );
+/*
+ * Issue #32. Production's other services (Upstash, Sentry) are blanked too,
+ * after `.env.test` loads, so a unit test that reaches a real client can never
+ * call production. The workers inherit this environment;
+ * `tests/db/production-services.test.ts` checks it there.
+ */
+blankProductionServices();
+assertNoProductionServices(process.env, 'vitest.config.ts');
 
 export default defineConfig({
   resolve: {
