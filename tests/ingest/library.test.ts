@@ -8,7 +8,8 @@
  * That is deliberate. Asserting a count of 100 would be asserting that I
  * generated 100 URLs, and a URL generated from memory that 404s is worse than
  * an absent row — it is a broken link with our name on it, and inventing
- * platform content is what C1 forbids. The count stays BLOCKED on a real list;
+ * platform content is what C1 forbids. On 2026-11-05 the owner decided the
+ * library stays at its 34 rows (#11) rather than stay "BLOCKED on a real list";
  * what IS here is checked properly.
  *
  * "Working URL" is a claim about the internet and cannot be settled here. It is
@@ -82,12 +83,12 @@ describe('F1.2 · data/library.json', () => {
     }
   });
 
-  it('is HONEST about being incomplete', () => {
+  it('stays below 100 unless a verified list arrives', () => {
     /*
      * The one assertion that would fail if someone "finished" the library by
-     * generating rows: the file must keep saying it is short of 100 for a
-     * reason. If the real list arrives and the count is genuinely met, this
-     * test is the thing that has to be updated deliberately.
+     * generating rows. It holds at 34 by decision (#11). If a list of pages a
+     * person actually opened arrives and the count is genuinely met, this test
+     * is the thing that has to be updated deliberately.
      */
     expect(library.length).toBeLessThan(100);
   });
