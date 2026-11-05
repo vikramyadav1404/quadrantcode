@@ -2833,6 +2833,33 @@ the skeletons, relaxes `tests/app/no-loading-boundary.test.ts`, and puts
 in its own change, once 16.4.5 is in production. Until then this decision
 stands, and the guard test still holds.
 
+### Lifted · 2026-11-05: the two list skeletons are back
+
+16.4.5 reached production the same day (#49). This change restores
+`app/(app)/dashboard/loading.tsx` and `app/(app)/problems/(catalog)/loading.tsx`
+as they were before the 2026-10-05 update. The catalog boundary stays in the
+`(catalog)` group, so `/problems/[slug]` and its solve page still sit under no
+boundary.
+
+**The guard is narrowed, not deleted.** `tests/app/no-loading-boundary.test.ts`
+now requires:
+
+- the boundaries above a timer to be exactly these two;
+- the installed Next to be at least 16.4.5 whenever there is one.
+
+A new boundary, or a downgrade, fails it. Shown locally with a throwaway
+`app/(app)/sessions/loading.tsx`, which failed the list check.
+
+**Verified with the boundaries in place:** `e2e/session-commit.spec.ts
+--repeat-each=5 --retries=0` against the local test database, on Next 16.4.5.
+
+| Mode          | Tests         | Starts without a timer | Pause/Resume on dashboard and catalog |
+| ------------- | ------------- | ---------------------- | ------------------------------------- |
+| flag off (v1) | 25 of 25 pass | 0 of 50                | no stale bar                          |
+| flag on (v2)  | 25 of 25 pass | 0 of 50                | no stale bar                          |
+
+CI runs the same spec on every PR in both browser jobs.
+
 ## D40 · The v2 solve screen is its own internal route, reached by a middleware rewrite
 
 **Date:** 2026-10-05 · **Status:** built behind `FEATURE_SOLVE_V2` (off everywhere). No migration.

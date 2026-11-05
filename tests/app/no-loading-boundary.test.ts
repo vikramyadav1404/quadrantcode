@@ -20,8 +20,22 @@
  *     shell and solve loader (`app/_shell/`, `app/_solve/`) that render them
  *
  * Routes outside those groups (sign-in, public pages) never render a timer
- * and may have boundaries. Revisit after upgrading to Next ≥ 16.2 (issue #29),
- * using the regression spec as D39 describes — not by deleting this test.
+ * and may have boundaries.
+ *
+ * ## Revisited 2026-11-05 (#29): two boundaries are allowed again, on Next ≥ 16.4.5
+ *
+ * The D39 revisit restored the original boundary and ran
+ * `session-commit.spec.ts --repeat-each=5`: 26 of 50 starts lost the timer on
+ * 15.5.24, and 0 of 50 on 16.4.5. So the rule is now:
+ *
+ *   · the boundaries above a timer are EXACTLY the two list skeletons
+ *     (dashboard, catalog). A new one is a deliberate change to this list, not
+ *     an accident.
+ *   · any boundary above a timer requires the installed Next to be at least
+ *     16.4.5, so a downgrade cannot quietly bring D39 back.
+ *
+ * `e2e/session-commit.spec.ts` still runs Pause/Resume ×10 on the dashboard
+ * and the catalog, now under these boundaries, as the behavioural guard.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -33,6 +47,30 @@ const SHELL = join(APP, '(app)');
 
 /** Every directory whose files render under a timer (bar or v2 strip). */
 const TIMER_TREES = ['(app)', '(solve-v2)', '_shell', '_solve'];
+
+/** The first Next version the D39 revisit showed the bug gone on (#29). */
+const D39_FIXED_IN = '16.4.5';
+
+/** The boundaries allowed above a timer since the revisit: the two list skeletons. */
+const ALLOWED_BOUNDARIES = [
+  'app/(app)/dashboard/loading.tsx',
+  'app/(app)/problems/(catalog)/loading.tsx',
+] as const;
+
+/** `version >= floor`, on major.minor.patch; a prerelease counts as its numbers. */
+function isAtLeast(version: string, floor: string): boolean {
+  const parts = (value: string) =>
+    value
+      .split('-')[0]!
+      .split('.')
+      .map((part) => Number(part));
+  const [a, b] = [parts(version), parts(floor)];
+  for (let index = 0; index < 3; index += 1) {
+    const [x, y] = [a[index] ?? 0, b[index] ?? 0];
+    if (x !== y) return x > y;
+  }
+  return true;
+}
 
 function walk(dir: string): string[] {
   const files: string[] = [];
@@ -62,7 +100,7 @@ function boundariesAboveTimerBar(files: { path: string; source: string }[]): str
     .map(({ path }) => path);
 }
 
-describe('D39 · no loading boundary above a page with the timer bar', () => {
+describe('D39 · loading boundaries above the timer bar: only the allowed two, on Next ≥ 16.4.5', () => {
   const shellFiles = walk(SHELL);
   const files = [
     ...TIMER_TREES.flatMap((tree) => walk(join(APP, tree))),
@@ -94,11 +132,35 @@ describe('D39 · no loading boundary above a page with the timer bar', () => {
     ).toContain('<SessionStripV2');
   });
 
-  it('THERE IS NO loading.tsx OR <Suspense> ABOVE ANY OF THEM', () => {
+  it('THE ONLY BOUNDARIES ABOVE THEM ARE THE TWO LIST SKELETONS', () => {
     expect(
       boundariesAboveTimerBar(files),
-      'a Suspense boundary above the timer bar brings back D39 (vercel/next.js#87529)',
-    ).toEqual([]);
+      'a new Suspense boundary above a timer: add it here deliberately, after running ' +
+        'e2e/session-commit.spec.ts --repeat-each=5 against it (D39)',
+    ).toEqual([...ALLOWED_BOUNDARIES].sort());
+  });
+
+  it('A BOUNDARY ABOVE A TIMER NEEDS NEXT ≥ 16.4.5, where D39 no longer reproduces', () => {
+    const installed = (
+      JSON.parse(readFileSync(join(ROOT, 'node_modules', 'next', 'package.json'), 'utf8')) as {
+        version: string;
+      }
+    ).version;
+    if (boundariesAboveTimerBar(files).length === 0) return;
+    expect(
+      isAtLeast(installed, D39_FIXED_IN),
+      `next ${installed} is older than ${D39_FIXED_IN}: below it, a boundary above the ` +
+        'timer bar drops server-action renders (D39, vercel/next.js#87529)',
+    ).toBe(true);
+  });
+
+  it('CONTROL · the version check refuses 15.5.24 and accepts 16.4.5 and later', () => {
+    expect(isAtLeast('15.5.24', D39_FIXED_IN)).toBe(false);
+    expect(isAtLeast('16.4.4', D39_FIXED_IN)).toBe(false);
+    expect(isAtLeast('16.4.5', D39_FIXED_IN)).toBe(true);
+    expect(isAtLeast('16.5.0', D39_FIXED_IN)).toBe(true);
+    expect(isAtLeast('17.0.0', D39_FIXED_IN)).toBe(true);
+    expect(isAtLeast('16.5.0-canary.3', D39_FIXED_IN)).toBe(true);
   });
 
   it('NEGATIVE CONTROL · the rule does catch each kind of boundary', () => {
