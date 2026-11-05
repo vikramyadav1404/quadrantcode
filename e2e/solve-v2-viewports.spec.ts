@@ -10,6 +10,7 @@
  *   · every strip control is visible, and reachable from the keyboard: Tab
  *     lands on each of Pause, I'm stuck, Solved, Give up and Abandon, and each
  *     is on screen when it has focus
+ *   · the separator before Abandon is on the same line as Abandon
  *
  * Below 768px the panes stack (SplitPane's rule, unchanged): the plan allowed
  * stacking or tabs, and stacking needs no new control.
@@ -92,6 +93,18 @@ for (const viewport of VIEWPORTS) {
     for (const name of CONTROLS) {
       await expect(timer.getByRole('button', { name, exact: true })).toBeVisible();
     }
+
+    // The separator before Abandon wraps with it, so it is never left hanging
+    // at the end of a line when Abandon moves to the next one (375px did that).
+    const separator = (await timer.locator('[data-solve-v2-strip-separator]').boundingBox())!;
+    const abandon = (await timer
+      .getByRole('button', { name: 'Abandon', exact: true })
+      .boundingBox())!;
+    const middle = (box: { y: number; height: number }) => box.y + box.height / 2;
+    expect(
+      Math.abs(middle(separator) - middle(abandon)),
+      `the separator is on a different line from Abandon at ${viewport.width}px`,
+    ).toBeLessThan(4);
 
     // ...and reachable by Tab, on screen when focused.
     expect(await tabWalk(page), `Tab order through the strip at ${viewport.width}px`).toEqual([
