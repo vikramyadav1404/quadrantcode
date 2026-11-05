@@ -65,7 +65,6 @@ contents.
 | `analytics/page.tsx`               | F1.6 · the dashboard; 163 B of route JS                              |
 | `revision/page.tsx`                | F2.1 · the due queue (D23); F2.2's modes behind a flag (D34)         |
 | `revision/actions.ts`              | F2.1 · record an outcome; deliberately does not revalidate           |
-| `problems/[slug]/solve/page.tsx`   | F3.1 · the editor; prints the limits that are sent                   |
 | `problems/[slug]/solve/actions.ts` | F3.1 · submit a run; picks the provider here                         |
 | `settings/goals/page.tsx`          | F1.3 · daily goal, timezone, and the activity heatmap                |
 | `settings/goals/GoalsForm.tsx`     | Daily-goal settings form, including timezone                         |
@@ -75,6 +74,15 @@ contents.
 | `settings/profile/page.tsx`        | Profile settings; loads via `getProfile` behind `requireCurrentUser` |
 | `settings/profile/ProfileForm.tsx` | Profile form with an **optimistic** save                             |
 | `settings/profile/actions.ts`      | Profile save — thin adapter: session check, then the service         |
+
+### Solve route — `app/(solve)/`
+
+| File                             | Purpose                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| `layout.tsx`                     | The shell without the layout timer bar; the page draws its own session strip            |
+| `problems/[slug]/solve/page.tsx` | The solve screen (v2 since #40): run panel, session strip, history card, recurring chip |
+
+The run action stays in `app/(app)/problems/[slug]/solve/actions.ts`, which has no page.
 
 ### Signed-out — `app/(auth)/`
 
@@ -159,7 +167,7 @@ contents.
 | `analytics/StuckDistribution.tsx` | F1.6 · marked vs reflected, kept apart                                               |
 | `revision/DueList.tsx`            | F2.1 · today's revisions, each with its reasons                                      |
 | `editor/CodeEditor.tsx`           | F3.1 · Monaco, dynamically imported, this route only                                 |
-| `editor/RunPanel.tsx`             | F3.1 · controls, polling, and the four states made visible                           |
+| `solve-v2/RunPanelV2.tsx`         | F3.1, C5 · controls, polling, the four states; the only run panel since #40          |
 | `editor/RunOutput.tsx`            | F3.1 · **the only component that renders program output** — text nodes, never markup |
 | `ui/ConfirmDialog.tsx`            | Built on `<dialog>` for free focus trapping and Escape-to-close                      |
 | `ui/DataTable.tsx`                | Generic, cursor-paginated, sortable table                                            |

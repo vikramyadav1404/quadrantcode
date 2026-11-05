@@ -1,12 +1,11 @@
 /**
- * C1 · with FEATURE_SOLVE_V2 ON, /solve renders the v2 shell around the SAME
- * ProblemPanel and limits strip, and (since C5) v2's own copy of RunPanel with
- * the same names and test ids.
+ * C1 · /solve renders the solve shell around the ProblemPanel, the limits strip
+ * and the run panel, with their names and test ids intact.
  *
- * Runs only in the `chromium-v2` project (E2E_SOLVE_V2=1). The behavioural
- * proof that v2 loses nothing is the rest of that project: every /solve spec
- * runs there unchanged. This file pins the structure: the shell is present,
- * and the existing halves sit inside it with their names and test ids intact.
+ * Built for the v2 screen behind FEATURE_SOLVE_V2. Since #40 (2026-11-05) that
+ * is the only solve screen and the flag is gone, so this runs in the one
+ * `chromium` project with every other /solve spec. This file pins the
+ * structure; the behaviour is pinned by the rest of the suite.
  */
 import { expect, test } from '@playwright/test';
 import type postgres from 'postgres';
@@ -87,7 +86,7 @@ test('THE SHELL HOLDS THE EXISTING HALVES, with their names and test ids', async
   await expect(shell.locator('.monaco-editor').first()).toBeVisible({ timeout: 30_000 });
 
   // C5: those controls are v2's own copy, in the right pane, and there is one
-  // of them. A v2 that fell back to v1's RunPanel, or rendered both, fails here.
+  // of them. A shell that rendered two run panels, or none, fails here.
   await expect(
     shell.locator(`[data-pane="right"] [data-${SOLVE_V2_RUN_PANEL_MARKER}]`),
   ).toHaveCount(1);
