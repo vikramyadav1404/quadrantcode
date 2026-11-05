@@ -150,8 +150,10 @@ jobs:
       - name: Migrate
         run: npm run db:migrate
 
+      # #32: production services blanked, so a local copy of this step never
+      # uploads source maps or inlines a Sentry DSN.
       - name: Build
-        run: npm run build
+        run: npm run e2e:build
 
       # playwright.config.ts starts `next start` itself via webServer.
       - name: Run browser tests
@@ -215,7 +217,7 @@ jobs:
         run: npm run db:migrate
 
       - name: Build
-        run: npm run build
+        run: npm run e2e:build
 
       - name: Run browser tests (v2 solve screen)
         run: npm run test:e2e
