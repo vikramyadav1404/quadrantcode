@@ -1,55 +1,46 @@
 'use client';
 
 /**
- * The v2 session strip (step C2): the live sitting's clock, its controls, and
- * what has happened in it so far, above the editor.
+ * The session strip on /solve (step C2): the live sitting's clock, its
+ * controls, and what has happened in it so far, above the editor.
  *
  * ## Same controls, same names, same behaviour as the timer bar
  *
  * Every control TimerBar has is here under the same accessible name, so every
- * spec that drives the timer bar drives this unchanged on v2 /solve:
- * the region "Solve session timer", Pause/Resume, "I'm stuck" (the existing
- * StuckButton, unchanged), Solved with its confidence picker, Give up, and
- * Abandon behind the same "Abandon it" confirmation. Finishing goes to the
- * reflection page exactly as TimerBar does.
+ * spec that drives the timer bar drives this on /solve unchanged: the region
+ * "Solve session timer", Pause/Resume, "I'm stuck" (the shared StuckButton),
+ * Solved with its confidence picker, Give up, and Abandon behind the same
+ * "Abandon it" confirmation. Finishing goes to the reflection page.
+ *
+ * The clock, the heartbeat and those control flows are `useSessionControls`,
+ * shared with TimerBar (#40 part 2). Until then this file held its own copy.
  *
  * ## The only timer on this page, so it sends the heartbeat
  *
- * The v2 route's layout renders no layout timer bar at all
- * (`app/(solve-v2)/layout.tsx`), so this strip is the one "Solve session timer"
- * and the one heartbeat: every 30 s while active, the same request TimerBar
- * makes, and the server's reply re-seeds the clock. Without it the server would
- * idle-autopause a sitting someone is actively working on.
+ * The solve route's layout renders no layout timer bar
+ * (`app/(solve)/layout.tsx`), so this strip is the one "Solve session timer"
+ * and the one heartbeat. Without it the server would idle-autopause a sitting
+ * someone is actively working on.
  *
- * ## The clock is display only
- *
- * Seeded with `seedElapsed` (the same function TimerBar uses) from the
- * server's number and the instant it was true. Nothing here is sent back; any
- * server update re-seeds it (D20).
- *
- * Imported only by SolveShellV2, which only the v2 route imports (v2 rule);
- * `data-solve-v2-strip` is the marker the flag-off bundle check looks for.
+ * Imported only by SolveShellV2. `data-solve-v2-strip` is the marker the strip
+ * spec finds it by.
  */
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ConfidencePicker } from '@/components/session/ConfidencePicker';
 import { StuckButton } from '@/components/session/StuckButton';
+import {
+  type SessionControlActions,
+  useSessionControls,
+} from '@/components/session/useSessionControls';
 import { VERDICT_LABELS } from '@/lib/execution/languages';
 import { STUCK_CATEGORY_LABELS } from '@/lib/reflection/taxonomy';
-import type { Confidence } from '@/lib/session/confidence';
-import { type TimerBarState, formatElapsed, seedElapsed } from '@/lib/session/timer-bar-state';
+import { type TimerBarState, formatElapsed } from '@/lib/session/timer-bar-state';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
 import type { StripEventView } from '@/lib/solve-v2/strip-view';
 
-type Action = (input: { sessionId: string }) => Promise<{ ok: boolean; message?: string }>;
-
 /** How many of the most recent events the strip lists; the rest are counted. */
 const SHOWN = 6;
-
-/** The same interval TimerBar uses. */
-const HEARTBEAT_MS = 30_000;
 
 export function SessionStripV2({
   state,
@@ -59,89 +50,20 @@ export function SessionStripV2({
   onComplete,
   onAbandon,
   onMarkStuck,
-}: {
-  state: TimerBarState;
-  events: StripEventView[];
-  onPause: Action;
-  onResume: Action;
-  onAbandon: Action;
-  onComplete: (input: {
-    sessionId: string;
-    outcome: 'solved' | 'stuck';
-    confidence?: Confidence;
-  }) => Promise<{ ok: boolean; message?: string }>;
-  onMarkStuck: (input: {
-    sessionId: string;
-    category: StuckCategory;
-    note?: string;
-  }) => Promise<{ ok: boolean; message?: string }>;
-}) {
-  const { sessionId, status } = state;
-  const router = useRouter();
-
-  const [elapsed, setElapsed] = useState(() => seedElapsed(state));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmingAbandon, setConfirmingAbandon] = useState(false);
-  const [askingConfidence, setAskingConfidence] = useState(false);
-
-  // Re-seed whenever the server sends a new state: the prop is the authority.
-  const asOf = state.asOf;
-  useEffect(() => {
-    setElapsed(seedElapsed(state));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed on server updates only
-  }, [asOf, state.activeDurationSeconds, status]);
-
-  // The display tick. Stops while paused: a paused session accrues nothing.
-  useEffect(() => {
-    if (status !== 'active') return;
-    const id = setInterval(() => setElapsed((value) => value + 1), 1000);
-    return () => clearInterval(id);
-  }, [status]);
-
-  // The heartbeat, as TimerBar sends it: the body is a session id, nothing
-  // about time, and the reply's number replaces the display's.
-  useEffect(() => {
-    if (status !== 'active') return;
-
-    const send = async () => {
-      try {
-        const response = await fetch('/api/session/heartbeat', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ sessionId }),
-        });
-        if (!response.ok) return;
-        const body: { activeDurationSeconds?: number } = await response.json();
-        if (typeof body.activeDurationSeconds === 'number') {
-          setElapsed(body.activeDurationSeconds);
-        }
-      } catch {
-        // A missed heartbeat is not an error to show: the server autopauses
-        // from the last one it received, by design.
-      }
-    };
-
-    const id = setInterval(send, HEARTBEAT_MS);
-    return () => clearInterval(id);
-  }, [sessionId, status]);
-
-  const run = async (action: () => Promise<{ ok: boolean; message?: string }>) => {
-    setBusy(true);
-    setError(null);
-    const result = await action();
-    if (!result.ok) setError(result.message ?? 'That did not work.');
-    setBusy(false);
-    return result.ok;
-  };
-
-  // As TimerBar: finishing takes the user to the reflection.
-  const finish = async (outcome: 'solved' | 'stuck', confidence?: Confidence) => {
-    const ok = await run(() =>
-      onComplete({ sessionId, outcome, ...(confidence ? { confidence } : {}) }),
-    );
-    if (ok) router.push(`/sessions/${sessionId}/reflect`);
-  };
+}: { state: TimerBarState; events: StripEventView[] } & SessionControlActions) {
+  const {
+    sessionId,
+    status,
+    elapsed,
+    busy,
+    error,
+    confirmingAbandon,
+    setConfirmingAbandon,
+    askingConfidence,
+    setAskingConfidence,
+    run,
+    finish,
+  } = useSessionControls(state, onComplete);
 
   const shown = events.slice(-SHOWN);
   const earlier = events.length - shown.length;
