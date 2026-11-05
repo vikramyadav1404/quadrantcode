@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CompanyDisclaimer } from '@/components/companies/CompanyDisclaimer';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { LinkPending } from '@/components/ui/LinkPending';
 import { isFeatureEnabled } from '@/lib/flags';
 import { getDb } from '@/server/db';
 import { requireCurrentUser } from '@/server/services/auth/session';
@@ -68,6 +69,7 @@ export default async function TrackPage({ params }: { params: Promise<{ slug: st
           {track.next ? (
             <Link className="font-medium underline" href={`/problems/${track.next.slug}/solve`}>
               {track.next.title}
+              <LinkPending />
             </Link>
           ) : (
             <p className="font-medium">Track complete</p>
@@ -108,6 +110,7 @@ export default async function TrackPage({ params }: { params: Promise<{ slug: st
                   {section.unlocked ? (
                     <Link className="underline" href={`/problems/${problem.slug}/solve`}>
                       {problem.title}
+                      <LinkPending />
                     </Link>
                   ) : (
                     <span className="text-[var(--text-muted)]">{problem.title}</span>

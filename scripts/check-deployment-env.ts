@@ -1,6 +1,7 @@
 /** Fails a deployment before compilation when its production contract is incomplete. */
 import 'dotenv/config';
 import { resolveDeploymentOrigin } from '@/lib/deployment/origin';
+import { previewDatabaseProblems } from '@/lib/deployment/preview-database';
 import { __testing } from '@/server/env';
 
 const env = __testing.parseServerEnv(process.env);
@@ -62,6 +63,24 @@ if (!env.SENTRY_DSN || !env.NEXT_PUBLIC_SENTRY_DSN) {
 }
 if (!env.NEXT_PUBLIC_SUPPORT_EMAIL) {
   issues.push('NEXT_PUBLIC_SUPPORT_EMAIL is required for the public support surface');
+}
+
+/*
+ * A Preview build must not use the production database (D30 follow-up).
+ * Vercel's Sensitive values cannot be read back with `vercel env pull`, but they
+ * are present here, at build time. Only variable NAMES are reported.
+ */
+if (process.env.VERCEL_ENV === 'preview') {
+  const database = previewDatabaseProblems(process.env);
+  for (const name of database.production) {
+    issues.push(
+      `${name} points at the PRODUCTION database in a Preview build. Give Preview its own ` +
+        'value (Vercel → Settings → Environment Variables, Preview only).',
+    );
+  }
+  for (const name of database.unparseable) {
+    issues.push(`${name} is not a connection URL, so it cannot be checked against production`);
+  }
 }
 
 if (issues.length > 0) {

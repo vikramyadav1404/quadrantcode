@@ -1,4 +1,60 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as loadEnvFile } from 'dotenv';
+import { applyLocalTestDefaults } from './lib/db/local-test-db';
+import { assertEnvNotProduction } from './lib/db/production-guard';
+import { blankedProductionServices } from './lib/db/production-services';
+
+/*
+ * Issue #27. An optional, git-ignored `.env.test` may override settings (it
+ * never overrides a variable already set, so CI's values win); outside CI an
+ * unset TEST_DATABASE_URL defaults to the local embedded Postgres. Then refuse
+ * to start if any database variable this process can see is production —
+ * fixtures insert and delete rows, and `next start` below runs as
+ * NODE_ENV=production, which is exactly the mode `server/env.ts` exempts from
+ * its own remote-database check.
+ */
+loadEnvFile({ path: '.env.test', quiet: true });
+applyLocalTestDefaults();
+assertEnvNotProduction(
+  ['TEST_DATABASE_URL', 'DATABASE_URL', 'DIRECT_DATABASE_URL', 'DATABASE_URL_UNPOOLED'],
+  'playwright.config.ts',
+);
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? '';
+
+/*
+ * v2 solve screen (C1). One server, one mode per run:
+ *
+ *   npx playwright test                    → project `chromium`, flag OFF, every spec
+ *   E2E_SOLVE_V2=1 npx playwright test     → project `chromium-v2`, flag ON,
+ *                                            every spec that touches /solve
+ *
+ * CI runs both as separate jobs, each with its own database and build, so the
+ * two never share fixtures. The v2 project runs the SAME specs as v1 for every
+ * /solve capability; a v2 that lost a label, a test id or a behaviour fails
+ * them. `solve-v2-off.spec.ts` proves the flag-off side.
+ */
+const SOLVE_V2 = process.env.E2E_SOLVE_V2 === '1';
+
+/** Every spec that reaches /problems/[slug]/solve, plus the v2-only shell spec. */
+const SOLVE_SPECS = [
+  'execution-queue.spec.ts',
+  'execution.spec.ts',
+  'native-platform.spec.ts',
+  'reflection.spec.ts',
+  'revision-modes.spec.ts',
+  'session-commit.spec.ts',
+  'session.spec.ts',
+  'solve-baseline-editor.spec.ts',
+  'solve-baseline-panel.spec.ts',
+  'solve-baseline-submit.spec.ts',
+  'timeline.spec.ts',
+  'viewports.spec.ts',
+  'solve-v2-shell.spec.ts',
+  'solve-v2-strip.spec.ts',
+  'solve-v2-history.spec.ts',
+  'solve-v2-recurring.spec.ts',
+  'solve-v2-viewports.spec.ts',
+];
 
 /**
  * Browser tests, kept deliberately small.
@@ -41,7 +97,28 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: SOLVE_V2
+    ? [
+        {
+          name: 'chromium-v2',
+          use: { ...devices['Desktop Chrome'] },
+          testMatch: SOLVE_SPECS.map((file) => `**/${file}`),
+        },
+      ]
+    : [
+        {
+          name: 'chromium',
+          use: { ...devices['Desktop Chrome'] },
+          // These assert v2 IS present, so they only mean anything with the flag on.
+          testIgnore: [
+            '**/solve-v2-shell.spec.ts',
+            '**/solve-v2-strip.spec.ts',
+            '**/solve-v2-history.spec.ts',
+            '**/solve-v2-recurring.spec.ts',
+            '**/solve-v2-viewports.spec.ts',
+          ],
+        },
+      ],
 
   /**
    * `next start`, not `next dev`. The theme-flash spec measures what a real
@@ -63,7 +140,24 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         NODE_ENV: 'production',
-        DATABASE_URL: process.env.TEST_DATABASE_URL ?? '',
+        /*
+         * All three database variables, not just DATABASE_URL. `next start`
+         * fills any variable left unset here from `.env.local`, which on the
+         * owner's machine holds production — so an unset DIRECT_DATABASE_URL
+         * was a way for the test server to reach production (#27).
+         */
+        DATABASE_URL: TEST_DATABASE_URL,
+        DIRECT_DATABASE_URL: TEST_DATABASE_URL,
+        DATABASE_URL_UNPOOLED: TEST_DATABASE_URL,
+        /*
+         * #32 · and production's other services, the same way: set to the
+         * empty string, which `.env.local` cannot override. Rate limiting falls
+         * back to the in-memory limiter (ALLOW_IN_MEMORY_RATE_LIMIT below) and
+         * Sentry stays disabled; `health.spec.ts` asserts both report
+         * `not_configured`. See `lib/db/production-services.ts`.
+         */
+        ...blankedProductionServices(),
+        SENTRY_ENVIRONMENT: 'e2e',
         AUTH_SECRET: process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production',
         NEXT_PUBLIC_APP_URL: BASE_URL,
         RESEND_API_KEY: 'test-only-api-key',
@@ -97,6 +191,9 @@ export default defineConfig({
          * and remove none. See D34.
          */
         FEATURE_REVISION_MODES: 'true',
+        // Set explicitly either way, so `.env.local` can never decide which
+        // screen the suite is testing.
+        FEATURE_SOLVE_V2: SOLVE_V2 ? 'true' : 'false',
         /*
          * `next start` sets NODE_ENV=production, where the rate limiter refuses
          * the in-memory fallback — correctly, since it would not limit anything

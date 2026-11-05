@@ -5,12 +5,16 @@
  * plans cannot be verified against a mock, so these tests talk to a real
  * Postgres. Point TEST_DATABASE_URL at one:
  *
- *   npx tsx scripts/test-db.ts start     # embedded Postgres on :55432
- *   TEST_DATABASE_URL=... npm test
+ *   npm run test:db:start     # embedded Postgres on :55432
+ *   npm test                  # TEST_DATABASE_URL defaults to that instance
  *
- * When TEST_DATABASE_URL is absent the suites skip themselves rather than
- * fail, so `npm test` stays green on a machine without a database. CI sets it
- * from the `postgres` service container.
+ * Outside CI, vitest.config.ts defaults TEST_DATABASE_URL to the embedded
+ * instance (`lib/db/local-test-db.ts`), so locally the suites run rather than
+ * skip. When the variable is absent anyway the suites skip themselves rather
+ * than fail. CI sets it from the `postgres` service container.
+ *
+ * **Never production (#27).** The connection is refused before it opens if the
+ * URL is the production database — see `lib/db/production-guard.ts`.
  *
  * **In CI that skip is refused.** Skipping locally is a convenience; skipping in
  * CI is a green build that verified none of the constraints, triggers, leases or
@@ -24,6 +28,7 @@ import { join } from 'node:path';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '@/server/db/schema';
+import { assertNotProductionDatabase } from '@/lib/db/production-guard';
 
 const MIGRATIONS_DIR = 'server/db/migrations';
 
@@ -37,6 +42,10 @@ const MIGRATIONS_DIR = 'server/db/migrations';
 const TEST_DB_LOCK_KEY = 415_523_198;
 
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
+
+// Every integration suite truncates and rebuilds the schema. Refuse production
+// here as well as in vitest.config.ts, so a worker can never reach it (#27).
+assertNotProductionDatabase(TEST_DATABASE_URL, 'TEST_DATABASE_URL (tests/helpers/db.ts)');
 
 if (process.env.CI && !TEST_DATABASE_URL) {
   throw new Error(

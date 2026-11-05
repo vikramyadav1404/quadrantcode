@@ -1,0 +1,211 @@
+/**
+ * Authenticated application shell (F0.4).
+ *
+ * Streak and goal values still arrive as props. The shell reads them once,
+ * through `summariseForShell` (F1.3), and the shell components query nothing —
+ * which is what let the real numbers land without changing their shape.
+ *
+ * ## Two layouts, one shell (C2)
+ *
+ * `app/(app)/layout.tsx` renders this with the timer bar, exactly as the layout
+ * always did. `app/(solve-v2)/layout.tsx` renders it with `timerBar={false}`:
+ * the v2 solve route draws its own session strip, and the layout bar must not
+ * exist there at all, so there is one set of timer controls and one heartbeat.
+ * Moved here unchanged from `app/(app)/layout.tsx`; only the `timerBar` switch
+ * is new. A private folder (`_shell`), so it is not a route.
+ */
+import 'server-only';
+import { headers } from 'next/headers';
+import { redirect, unauthorized } from 'next/navigation';
+import { PATHNAME_HEADER } from '@/lib/auth/pathname-header';
+import { validateReturnTo } from '@/lib/auth/return-to';
+import { getServerEnv } from '@/server/env';
+import { timed } from '@/server/lib/observability/logger';
+import { BottomNav } from '@/components/shell/BottomNav';
+import { Sidebar } from '@/components/shell/Sidebar';
+import { TopBar } from '@/components/shell/TopBar';
+import { ToastProvider } from '@/components/ui/Toast';
+import { getCurrentUser } from '@/server/services/auth/session';
+import { getDb } from '@/server/db';
+import { getProfile, isProfileComplete } from '@/server/services/profile';
+import { localDateFor, summariseForShell } from '@/server/services/streak';
+import { eq } from 'drizzle-orm';
+import { problems } from '@/server/db/schema';
+import { type SessionView, getActiveSession } from '@/server/services/session';
+import { TimerBar } from '@/components/session/TimerBar';
+import { ActiveSessionProvider } from '@/components/session/ActiveSessionContext';
+import type { TimerBarState } from '@/lib/session/timer-bar-state';
+import {
+  abandonSessionAction,
+  completeSessionAction,
+  markStuckAction,
+  pauseSessionAction,
+  resumeSessionAction,
+} from '@/app/(app)/sessions/actions';
+
+export async function AppShell({
+  children,
+  timerBar,
+}: {
+  children: React.ReactNode;
+  /** False only for the v2 solve route, which draws its own session strip. */
+  timerBar: boolean;
+}) {
+  /*
+   * `unauthorized()` rather than a thrown AuthenticationError.
+   *
+   * Middleware only checks that a session COOKIE exists, not that it is valid.
+   * A stale or revoked cookie therefore reaches this layout, where a thrown
+   * error became an uncaught 500 — every user with an expired session got
+   * "Something went wrong" instead of a sign-in prompt. Found by
+   * scripts/verify-admin-403.ts hitting the route with a bad cookie.
+   */
+  const user = await getCurrentUser();
+  if (!user) unauthorized();
+
+  const db = getDb();
+
+  // One read for the whole shell; `getProfile` supplies the initials fallback
+  // so the avatar renders identically whether or not an image is set.
+  const profile = await getProfile(db, user.id);
+
+  /*
+   * Onboarding is unskippable on first sign-in.
+   *
+   * `isProfileComplete` is the SAME predicate /onboarding uses to decide it has
+   * already been done — via its `hasCompletedProfile` wrapper — so the two
+   * cannot disagree and produce a redirect loop. Evaluated on the profile
+   * already loaded above, so it costs no extra query.
+   *
+   * The destination the user actually asked for is carried forward, so that
+   * finishing onboarding lands them where they were going rather than always
+   * on the default. It is re-validated here through the same allowlist any
+   * other returnTo goes through — the header is set by our own middleware, but
+   * "we set it" is not a reason to skip validation.
+   */
+  if (!isProfileComplete(profile)) {
+    const requested = (await headers()).get(PATHNAME_HEADER);
+    const intended = validateReturnTo(requested, getServerEnv().NEXT_PUBLIC_APP_URL);
+    redirect(intended ? `/onboarding?returnTo=${encodeURIComponent(intended)}` : '/onboarding');
+  }
+
+  /*
+   * The badge and the ring, resolved in the USER's timezone — the server's zone
+   * appears nowhere, which is the whole point of `day.ts`. Read after the
+   * onboarding gate above, so it never runs for a user who has not yet
+   * confirmed one.
+   */
+  const now = new Date();
+  // TEMPORARY INSTRUMENTATION — see the note in app/(app)/problems/(catalog)/page.tsx.
+  // This one runs on EVERY signed-in page, so it is the layout's share of the
+  // cost rather than anything /problems does.
+  const shellState = await timed('shell.summary', () =>
+    summariseForShell(db, user.id, localDateFor(now, user.timezone)),
+  );
+
+  /*
+   * The live session, if there is one (F1.4). This read is also what closes a
+   * session the user walked away from: `getActiveSession` sweeps and autopauses
+   * before it answers, which is how the six-hour rule holds without a scheduler
+   * to run it (D17).
+   */
+  const active = await getActiveSession(db, {
+    userId: user.id,
+    timeZone: user.timezone,
+    now,
+  });
+
+  const timer = active ? await toTimerBarState(db, active, now) : null;
+
+  return (
+    /*
+      `timer` is already resolved above, so publishing it costs nothing. A page
+      that renders a notice about the live session reads it from here instead of
+      querying again — see `components/session/ActiveSessionContext.tsx` for why
+      that is a context and not a prop.
+    */
+    <ActiveSessionProvider sessionId={timer?.sessionId ?? null}>
+      <ToastProvider>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:bg-[var(--surface-raised)] focus:px-3 focus:py-2"
+        >
+          Skip to main content
+        </a>
+
+        <div className="flex min-h-dvh flex-col">
+          <TopBar
+            {...shellState}
+            avatarAppearance={profile.appearance}
+            avatarUrl={profile.avatarUrl}
+          />
+
+          {timerBar && timer ? (
+            <TimerBar
+              onAbandon={abandonSessionAction}
+              onComplete={completeSessionAction}
+              onMarkStuck={markStuckAction}
+              onPause={pauseSessionAction}
+              onResume={resumeSessionAction}
+              state={timer}
+            />
+          ) : null}
+
+          <div className="flex flex-1">
+            <Sidebar />
+            {/*
+              `flex flex-col` so a page can ask for "the rest of the height" with
+              `flex-1 min-h-0` instead of guessing it.
+
+              The solve screen used to hard-code `calc(100vh-8rem)`, which assumed
+              the top bar, the timer bar and this padding. But the timer bar only
+              renders while a session is live, so that number was wrong in one of
+              the two states — the pane came up short and the problem panel
+              bottomed out into empty space. A flex chain is correct in both.
+            */}
+            <main
+              className="flex min-w-0 flex-1 flex-col px-4 pt-6 pb-20 md:px-6 md:pb-6"
+              id="main"
+            >
+              {children}
+            </main>
+          </div>
+
+          <BottomNav />
+        </div>
+      </ToastProvider>
+    </ActiveSessionProvider>
+  );
+}
+
+/**
+ * The bar's props: the session, plus the problem's name so it can link to it.
+ *
+ * The join lives here rather than in `getActiveSession` because a title and a
+ * slug are what this bar happens to draw, not part of what a session IS — and
+ * it costs a query only on the pages where a session is actually live.
+ */
+async function toTimerBarState(
+  db: ReturnType<typeof getDb>,
+  session: SessionView,
+  now: Date,
+): Promise<TimerBarState | null> {
+  const [problem] = await db
+    .select({ title: problems.title, slug: problems.slug })
+    .from(problems)
+    .where(eq(problems.id, session.problemId))
+    .limit(1);
+
+  if (!problem) return null;
+
+  return {
+    sessionId: session.id,
+    problemId: session.problemId,
+    problemTitle: problem.title,
+    problemSlug: problem.slug,
+    // Only a live session reaches here, so the status is one of these two.
+    status: session.status === 'paused' ? 'paused' : 'active',
+    activeDurationSeconds: session.activeDurationSeconds,
+    asOf: now.toISOString(),
+  };
+}
