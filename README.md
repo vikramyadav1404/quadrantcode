@@ -99,7 +99,7 @@ never installed, and the reasoning is in the decision log.
 
 | Layer      | Choice                                                                          |
 | ---------- | ------------------------------------------------------------------------------- |
-| Framework  | Next.js 15 (App Router), React 19                                               |
+| Framework  | Next.js 16 (App Router, Turbopack), React 19                                    |
 | Language   | TypeScript, `strict` + `noUncheckedIndexedAccess`                               |
 | Styling    | Tailwind CSS 4, custom token layer with a contrast gate in CI                   |
 | Database   | PostgreSQL (Neon), Drizzle ORM, 28 versioned migrations with hand-written downs |
