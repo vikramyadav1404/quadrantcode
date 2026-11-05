@@ -160,7 +160,7 @@ Requires **Node ≥ 22**.
 ```bash
 npm run test:db:start   # embedded Postgres on :55432 — this process IS the database
 npm test                # TEST_DATABASE_URL defaults to that local instance
-npm run build
+npm run e2e:build       # next build with Upstash and Sentry blanked (#32)
 npm run test:e2e        # Playwright, against the same local test database
 npm run contrast        # WCAG token audit, non-zero on failure
 npm run schema:check    # does a database match the migration files?
@@ -188,8 +188,16 @@ once:
 - **Content loaders:** `seed.ts`, `seed-companies.ts` and `import-native-problems.ts`
   can still target production, but only with `--production` typed on the
   command line. `demo-seed.ts` never can.
-- **What is not covered:** `next build` and `next start` still read
-  non-database values from `.env.local`, such as Upstash or Sentry.
+- **Other production services ([#32](https://github.com/vikramyadav1404/quadrantcode/issues/32)):**
+  vitest, the e2e server and `npm run e2e:build` set the Upstash and Sentry
+  variables to the empty string, which `.env.local` cannot override. Rate
+  limiting then uses the in-memory limiter and Sentry stays off. The list lives
+  in `lib/db/production-services.ts`.
+- **Build for e2e with `npm run e2e:build`:** a plain `npm run build` reads
+  `.env.local` in full, so it could upload source maps to Sentry and put the
+  browser Sentry DSN into the bundle the suite then runs.
+- **What is not covered:** `next dev` and a plain `npm run build` still read
+  every value in `.env.local`.
 
 | Suite              | Result                                  | Source                                                     |
 | ------------------ | --------------------------------------- | ---------------------------------------------------------- |

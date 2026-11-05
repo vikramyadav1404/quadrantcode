@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { config as loadEnvFile } from 'dotenv';
 import { applyLocalTestDefaults } from './lib/db/local-test-db';
 import { assertEnvNotProduction } from './lib/db/production-guard';
+import { blankedProductionServices } from './lib/db/production-services';
 
 /*
  * Issue #27. An optional, git-ignored `.env.test` may override settings (it
@@ -148,6 +149,15 @@ export default defineConfig({
         DATABASE_URL: TEST_DATABASE_URL,
         DIRECT_DATABASE_URL: TEST_DATABASE_URL,
         DATABASE_URL_UNPOOLED: TEST_DATABASE_URL,
+        /*
+         * #32 · and production's other services, the same way: set to the
+         * empty string, which `.env.local` cannot override. Rate limiting falls
+         * back to the in-memory limiter (ALLOW_IN_MEMORY_RATE_LIMIT below) and
+         * Sentry stays disabled; `health.spec.ts` asserts both report
+         * `not_configured`. See `lib/db/production-services.ts`.
+         */
+        ...blankedProductionServices(),
+        SENTRY_ENVIRONMENT: 'e2e',
         AUTH_SECRET: process.env.AUTH_SECRET ?? 'e2e-test-secret-not-for-production',
         NEXT_PUBLIC_APP_URL: BASE_URL,
         RESEND_API_KEY: 'test-only-api-key',

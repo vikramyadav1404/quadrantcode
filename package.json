@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "next build",
+    "e2e:build": "tsx scripts/e2e-build.ts",
     "deploy:check": "tsx scripts/check-deployment-env.ts",
     "contrast": "tsx scripts/contrast.ts",
     "db:explain": "tsx scripts/explain-report.ts",
