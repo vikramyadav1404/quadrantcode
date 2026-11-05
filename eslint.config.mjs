@@ -44,20 +44,6 @@ export default tseslint.config(
 
   {
     rules: {
-      /*
-       * #29: eslint-config-next 16 brings eslint-plugin-react-hooks 7, whose
-       * recommended set adds React Compiler rules that did not exist on 15.
-       * Two of them fire on existing code: `set-state-in-effect` (11 places)
-       * and `immutability` (3). They flag patterns the compiler cannot
-       * optimise, not runtime bugs, and this app does not enable the
-       * compiler. Fixing them means changing protected components (v1's
-       * RunPanel among them), which an upgrade must not do. Off here, and
-       * tracked for adoption on their own in #48. Every other new
-       * rule passes and stays on.
-       */
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/immutability': 'off',
-
       // Business rule: `any` needs a written justification, so it must be
       // deliberate. The rule stays an error; the escape hatch is an inline
       // disable with a one-line reason, which is greppable in review.
