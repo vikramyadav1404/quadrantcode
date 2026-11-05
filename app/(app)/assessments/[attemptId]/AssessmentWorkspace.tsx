@@ -80,11 +80,30 @@ export function AssessmentWorkspace(props: WorkspaceProps) {
   const [remaining, setRemaining] = useState(() => secondsUntil(props.attempt.expiresAt));
   const autoSubmitted = useRef(false);
 
-  useEffect(() => {
+  /*
+   * A different question (or its saved answer changing) resets the editor to
+   * that answer, or to the starter. Adjusted during render rather than in an
+   * effect (#48). On mount the stored values equal the initial state above,
+   * so nothing resets then, as before.
+   */
+  const resetFor = {
+    questionId,
+    language: answer?.language,
+    source: answer?.source,
+    starters,
+  };
+  const [lastReset, setLastReset] = useState(resetFor);
+  if (
+    lastReset.questionId !== resetFor.questionId ||
+    lastReset.language !== resetFor.language ||
+    lastReset.source !== resetFor.source ||
+    lastReset.starters !== resetFor.starters
+  ) {
+    setLastReset(resetFor);
     setLanguage(answer?.language ?? 'cpp17');
     setSource(answer?.source ?? starters[answer?.language ?? 'cpp17'] ?? '');
     setResult(null);
-  }, [questionId, answer?.language, answer?.source, starters]);
+  }
 
   useEffect(() => {
     if (!active) return;

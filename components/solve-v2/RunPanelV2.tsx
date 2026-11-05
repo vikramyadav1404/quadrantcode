@@ -126,6 +126,9 @@ export function RunPanelV2({
     } catch {
       // Private mode, or storage disabled. A missing draft is not an error.
     }
+    // An effect on purpose (#48): drafts live in localStorage, which exists
+    // only in the browser, and are re-read when the problem or language changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage
     setSource(stored ?? starters?.[language] ?? LANGUAGE_STARTERS[language]);
   }, [problemId, language, starters, draftScope]);
 
@@ -218,6 +221,8 @@ export function RunPanelV2({
           return;
         }
 
+        // Calls itself from its own timer, which only fires after `poll` exists.
+        // eslint-disable-next-line react-hooks/immutability -- safe self-reference in a timeout (#48)
         poll(jobId, attempt + 1);
       }, POLL_INTERVAL_MS);
     },

@@ -34,6 +34,9 @@ export function OnboardingForm({
     // Browser-resolved, because the server's zone is not the user's.
     try {
       const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // An effect on purpose (#48): the zone exists only in the browser, and
+      // reading it during render would not match the server-rendered HTML.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only value, after hydration
       if (resolved) setTimezone(resolved);
     } catch {
       // Keep the server default if the browser will not tell us.

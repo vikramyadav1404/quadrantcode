@@ -92,6 +92,9 @@ export function DataTable<Row>({
   );
 
   useEffect(() => {
+    // An effect on purpose (#48): fetching the first page is syncing with an
+    // external system, and `load` marks the table as loading as it starts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount and on sort or reset
     void load(null, 'replace').catch(() => {
       /* status already set to 'error'; the boundary shows the message */
     });

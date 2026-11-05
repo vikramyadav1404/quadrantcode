@@ -28,14 +28,15 @@ export function DifficultySplit({ split }: { split: Split }) {
     );
   }
 
-  let offset = 0;
+  // Each bar starts where the previous one ended. Built without reassigning a
+  // render-scope variable (#48), so the same bars come out.
   const bars = SEGMENTS.map((segment) => {
     const value = split[segment.key];
-    const width = (value / total) * 100;
-    const bar = { ...segment, value, width, x: offset };
-    offset += width;
-    return bar;
-  });
+    return { ...segment, value, width: (value / total) * 100 };
+  }).map((bar, index, all) => ({
+    ...bar,
+    x: all.slice(0, index).reduce((sum, previous) => sum + previous.width, 0),
+  }));
 
   const label = bars.map((bar) => `${bar.label} ${bar.value}`).join(', ');
 

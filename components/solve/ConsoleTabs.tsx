@@ -29,7 +29,7 @@
  * reaches the screen through `{value}` and nothing else. This component moved
  * where it sits; it did not change what it does.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { RunOutput } from '@/components/editor/RunOutput';
 import {
   type TestCaseTab,
@@ -67,9 +67,13 @@ export function ConsoleTabs({
    * tick re-runs this and drags the user back to Result each time they try to
    * click away.
    */
-  useEffect(() => {
+  // During render rather than in an effect (#48). Starts at null, so a panel
+  // that mounts with a run already in flight still switches, as the effect did.
+  const [followedJob, setFollowedJob] = useState<string | null>(null);
+  if (jobId !== followedJob) {
+    setFollowedJob(jobId);
     if (jobId) setTab('result');
-  }, [jobId]);
+  }
 
   /** The parent holds the stdin that gets submitted; this keeps it in step. */
   function commit(next: TestCaseTab[], nextActive: number) {
