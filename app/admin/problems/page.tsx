@@ -35,6 +35,11 @@ export default async function AdminProblemsPage({
       <PageHeader
         title="Problems"
         description="Create, edit and archive catalog entries. External-link problems store metadata and a link only."
+        actions={
+          <Link className="text-sm underline" href="/admin/problems/import">
+            Bulk import from CSV
+          </Link>
+        }
       />
 
       <NewProblemForm />

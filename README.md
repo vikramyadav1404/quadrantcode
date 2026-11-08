@@ -155,6 +155,24 @@ npm run dev
 
 Requires **Node ≥ 22**.
 
+## 📥 Adding problems in bulk
+
+An admin adds external-link problems to the public catalog from a CSV at
+**`/admin/problems/import`** (linked from the admin home and the admin problems page).
+
+- **Columns:** `title`, `url`, `difficulty` (`easy`, `medium` or `hard`), `topic`
+  (comma-separated) and optional `platform`. The page links a template,
+  `public/catalog-import-template.csv`.
+- **Limits:** up to 10,000 rows and 3 MB per file. Split bigger lists into several files.
+- **Preview first:** the page shows how many rows are new, how many are already in the
+  catalog, and each skipped row with its reason, before anything is written.
+- **Chunks:** the import runs 500 rows per request, with a progress bar. If it stops, choose
+  the same file again: links already imported are skipped, so nothing is duplicated.
+- **Existing links:** a published problem is left as it is. A user's private import of the
+  same link is published with the file's title, difficulty and platform.
+- **Links only:** no statements, per C1. Topics become kebab-case tags (`Binary Search` →
+  `binary-search`). Every chunk is recorded in the audit log.
+
 ## 🧪 Testing
 
 ```bash
