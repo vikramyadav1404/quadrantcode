@@ -11,6 +11,7 @@ describe('native admin security boundaries', () => {
       readFile('app/admin/papers/actions.ts', 'utf8'),
       readFile('app/admin/content-transfer/actions.ts', 'utf8'),
       readFile('app/api/admin/native-export/route.ts', 'utf8'),
+      readFile('app/api/admin/catalog-import/route.ts', 'utf8'),
     ]);
     for (const source of files) expect(source).toContain("requireCurrentUser('admin')");
   });

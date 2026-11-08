@@ -28,6 +28,11 @@ const sections = [
     description: 'Catalog and native-content workflow.',
   },
   {
+    href: '/admin/problems/import',
+    title: 'Bulk import problems',
+    description: 'Add thousands of external-link problems to the catalog from one CSV.',
+  },
+  {
     href: '/admin/interview-reports',
     title: 'Interview reports',
     description: 'Originality, NDA safety, evidence, and publishing moderation.',

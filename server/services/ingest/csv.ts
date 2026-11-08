@@ -13,7 +13,7 @@
 import { Readable } from 'node:stream';
 import { parse } from 'csv-parse';
 import { z } from 'zod';
-import { IMPORT_LIMITS } from './limits';
+import { IMPORT_LIMITS, type ImportFileLimits } from './limits';
 import { normaliseProblemUrl } from './normalise-url';
 import { unescapeCell } from './spreadsheet-safety';
 
@@ -146,6 +146,8 @@ function derivePlatform(explicit: string | undefined, normalisedUrl: string): st
     'hackerrank.com': 'hackerrank',
     'atcoder.jp': 'atcoder',
     'codechef.com': 'codechef',
+    'geeksforgeeks.org': 'geeksforgeeks',
+    'practice.geeksforgeeks.org': 'geeksforgeeks',
   };
   return known[host] ?? null;
 }
@@ -170,8 +172,14 @@ function parseTopics(raw: string | undefined): string[] {
  * @throws ImportTooManyRowsError  from inside the stream, at the first row past
  *   the cap — the remaining rows are never read
  * @throws ImportMissingColumnsError when `title` or `url` is absent
+ *
+ * `limits` defaults to the personal import's caps; the admin catalog import
+ * passes its own (`CATALOG_IMPORT_LIMITS`).
  */
-export async function parseImportCsv(source: string | Buffer): Promise<ParsedCsv> {
+export async function parseImportCsv(
+  source: string | Buffer,
+  limits: ImportFileLimits = IMPORT_LIMITS,
+): Promise<ParsedCsv> {
   /*
    * THE SIZE CAP, BEFORE THE PARSER EXISTS.
    *
@@ -180,8 +188,8 @@ export async function parseImportCsv(source: string | Buffer): Promise<ParsedCsv
    * one lets a multibyte file through at up to 3x the intended cap.
    */
   const bytes = Buffer.isBuffer(source) ? source.length : Buffer.byteLength(source, 'utf8');
-  if (bytes > IMPORT_LIMITS.maxBytes) {
-    throw new ImportFileTooLargeError(bytes, IMPORT_LIMITS.maxBytes);
+  if (bytes > limits.maxBytes) {
+    throw new ImportFileTooLargeError(bytes, limits.maxBytes);
   }
 
   const parser = Readable.from([source]).pipe(
@@ -219,9 +227,9 @@ export async function parseImportCsv(source: string | Buffer): Promise<ParsedCsv
        * source, so a 1-million-row file costs `maxRows + 1` rows of work rather
        * than being fully read and then rejected.
        */
-      if (totalRows > IMPORT_LIMITS.maxRows) {
+      if (totalRows > limits.maxRows) {
         parser.destroy();
-        throw new ImportTooManyRowsError(IMPORT_LIMITS.maxRows);
+        throw new ImportTooManyRowsError(limits.maxRows);
       }
 
       // 1-based, header excluded — the number the user sees in a spreadsheet
