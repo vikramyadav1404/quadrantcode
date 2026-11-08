@@ -42,6 +42,24 @@ export const IMPORT_LIMITS = {
   chunkRows: 100,
 } as const;
 
+/** The two caps `parseImportCsv` enforces. */
+export type ImportFileLimits = { readonly maxBytes: number; readonly maxRows: number };
+
+/**
+ * The admin catalog import (`/admin/problems/import`): bigger files, worked in
+ * chunks the browser drives one request at a time.
+ *
+ * 3 MiB stays under Vercel's ~4.5 MB request-body limit with room for the
+ * multipart envelope; 10,000 rows of realistic CSV is about 1 MiB, so the row
+ * cap is the one an admin meets. A 500-row chunk is a handful of bulk
+ * statements, well inside the 60 s function limit.
+ */
+export const CATALOG_IMPORT_LIMITS = {
+  maxBytes: 3 * 1024 * 1024,
+  maxRows: 10_000,
+  chunkRows: 500,
+} as const;
+
 /** Every column the importer understands. `title` and `url` are required. */
 export const IMPORT_COLUMNS = ['title', 'platform', 'url', 'difficulty', 'topic'] as const;
 

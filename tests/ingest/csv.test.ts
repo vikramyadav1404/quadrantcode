@@ -83,6 +83,40 @@ describe('F1.2 · parseImportCsv — the happy path', () => {
     );
     expect(result.valid[0]?.platform).toBe('mymirror');
   });
+
+  it('infers geeksforgeeks for both GfG hosts', async () => {
+    const result = await parseImportCsv(
+      csv(
+        'Example A,,https://www.geeksforgeeks.org/problems/example-a/1,easy,',
+        'Example B,,https://practice.geeksforgeeks.org/problems/example-b/1,medium,',
+      ),
+    );
+    expect(result.valid.map((row) => row.platform)).toEqual(['geeksforgeeks', 'geeksforgeeks']);
+  });
+});
+
+describe('parseImportCsv — caps a caller passes in (the admin catalog import)', () => {
+  it('applies a custom row cap instead of the default', async () => {
+    const rows = ['A', 'B', 'C'].map(
+      (name) => `${name},,https://judge.example.com/problems/${name},easy,`,
+    );
+    await expect(
+      parseImportCsv(csv(...rows), { maxBytes: IMPORT_LIMITS.maxBytes, maxRows: 2 }),
+    ).rejects.toMatchObject({ name: 'ImportTooManyRowsError', limit: 2 });
+  });
+
+  it('applies a custom byte cap instead of the default', async () => {
+    await expect(
+      parseImportCsv(csv('A,,https://judge.example.com/problems/a,easy,'), {
+        maxBytes: 10,
+        maxRows: IMPORT_LIMITS.maxRows,
+      }),
+    ).rejects.toBeInstanceOf(ImportFileTooLargeError);
+  });
+
+  it('keeps the personal import at its own defaults when no caps are passed', () => {
+    expect(IMPORT_LIMITS).toMatchObject({ maxBytes: 2 * 1024 * 1024, maxRows: 5_000 });
+  });
 });
 
 describe('F1.2 · parseImportCsv — partial success', () => {
