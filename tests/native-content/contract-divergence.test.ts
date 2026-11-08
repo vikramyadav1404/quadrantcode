@@ -51,12 +51,22 @@ describe('the panel and the editor name the same function', () => {
       (problem) => problem.functionContract.functionName !== 'solve',
     );
     expect(descriptive.map((problem) => problem.slug).sort()).toEqual([
+      'badge-gate-balance',
+      'camp-water-rations',
+      'coastal-beacon-spacing',
       'donation-target-subsets',
+      'ferris-seat-lottery',
       'ferry-weight-rating',
+      'festival-banner-cuts',
+      'grove-path-yield',
+      'harbour-lot-echo',
       'kiln-soak-window',
       'museum-ticket-pair-count',
+      'orchard-cart-haul',
       'pipeline-segment-from-end',
+      'quay-ferry-hops',
       'sorted-dock-insertion',
+      'warehouse-crate-sightlines',
     ]);
   });
 
