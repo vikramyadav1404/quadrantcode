@@ -12,6 +12,7 @@ import { hashImportContent, importRows } from './import';
 import { type JobRunner, getJobProgress, recordInvalidRows } from './jobs';
 import { IMPORT_LIMITS } from './limits';
 
+export * from './catalog';
 export * from './csv';
 export * from './export';
 export * from './import';
