@@ -172,6 +172,12 @@ An admin adds external-link problems to the public catalog from a CSV at
   same link is published with the file's title, difficulty and platform.
 - **Links only:** no statements, per C1. Topics become kebab-case tags (`Binary Search` →
   `binary-search`). Every chunk is recorded in the audit log.
+- **Codeforces, ready-made:** `npm run catalog:codeforces` reads Codeforces' official
+  problemset API (one request) and writes upload-ready files to `.tmp/catalog/`. The default
+  is ratings 800–2000, which is about 6,500 problems in 2 files. It bands the rating into
+  `easy` (up to 1200), `medium` (1300–1900) and `hard` (2000 and above), and maps tags onto
+  our topics. Pass `--min-rating` and `--max-rating` for another range, or `--from <file.json>`
+  to work offline. Each file is checked with the import's own parser before it is written.
 
 ## 🧪 Testing
 
