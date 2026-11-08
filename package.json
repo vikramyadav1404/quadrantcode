@@ -46,6 +46,7 @@
     "demo:walk": "tsx scripts/demo-walkthrough.ts",
     "analytics:rollup": "tsx scripts/rollup-analytics.ts",
     "library:verify": "tsx scripts/verify-library-urls.ts",
+    "catalog:codeforces": "tsx scripts/catalog-from-codeforces.ts",
     "native:validate": "tsx scripts/validate-native-problems.ts",
     "native:validate-references": "tsx scripts/validate-native-references.ts",
     "judge0:languages": "tsx scripts/judge0-languages.ts",
