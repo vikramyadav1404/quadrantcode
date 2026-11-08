@@ -1,0 +1,1528 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "needs_review",
+  "batch": 2,
+  "problems": [
+    {
+      "slug": "harbour-lot-echo",
+      "title": "Harbour Lot Echo",
+      "difficulty": "easy",
+      "primaryTopic": "arrays-hashing",
+      "topics": ["arrays-hashing"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 15,
+      "difficultyCalibration": 0,
+      "story": "A harbour office stamps every crate with a lot code as it comes off the ship. Crates from one lot are meant to be unloaded together, so when the same code turns up again soon after it was last seen, the tally clerk takes it as a sign that one lot was split across two pallets.",
+      "statement": "You are given the lot codes of the crates in the order they were unloaded.\n\nFor two crates that carry the same code, call the number of positions between them, counting from the first to the second, their gap. Two neighbouring crates with the same code have a gap of one.\n\nReturn the smallest gap between any two crates that share a code. If every code appears only once, return -1.",
+      "inputFormat": "Every number in the input is one lot code, in the order the crates were unloaded. There is at least one crate.",
+      "outputFormat": "Return one integer: the smallest gap between two crates with the same code, or -1 when no code repeats.",
+      "functionContract": {
+        "functionName": "closestRepeat",
+        "parameters": [
+          {
+            "name": "lotCodes",
+            "type": "integer[]",
+            "description": "The lot code stamped on each crate, in the order the crates came off the ship."
+          }
+        ],
+        "returnType": "32-bit integer"
+      },
+      "constraints": [
+        "1 <= lotCodes.length <= 200000",
+        "0 <= every lot code <= 1000000000",
+        "The answer is -1 when no lot code appears twice"
+      ],
+      "examples": [
+        {
+          "input": "5 8 3 8 1 5",
+          "output": "2",
+          "explanation": "Code 8 appears at positions 1 and 3, a gap of two. Code 5 appears at positions 0 and 5, a gap of five. The smaller gap is two."
+        },
+        {
+          "input": "11 12 13",
+          "output": "-1",
+          "explanation": "All three crates carry different codes, so no code repeats and the answer is -1."
+        },
+        {
+          "input": "6 6",
+          "output": "1",
+          "explanation": "The two crates are neighbours and share code 6, which is the closest a repeat can be."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 8 3 8 1 5",
+          "expectedOutput": "2",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "11 12 13",
+          "expectedOutput": "-1",
+          "explanation": "No code repeats.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "42",
+          "expectedOutput": "-1",
+          "explanation": "A single crate cannot repeat anything.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1000000000 0 1000000000",
+          "expectedOutput": "2",
+          "explanation": "Both extreme codes; the repeat is two apart.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 2 3 4 5 6 7 8 9 1 10 11 12 12",
+          "expectedOutput": "1",
+          "explanation": "The first repeat found is far apart; a later one is adjacent. Stopping at the first repeat gives the wrong answer.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9 9 9 9 9",
+          "expectedOutput": "1",
+          "explanation": "Every crate shares one code.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "20 31 20 44 31 58 44",
+          "expectedOutput": "2",
+          "explanation": "Three codes repeat; the closest pair is two apart.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "For each code you only ever need to know where you saw it most recently.",
+        "Walk the crates once. When a code has been seen before, the distance back to its last position is a candidate answer.",
+        "A hash map from code to last position gives each lookup in constant time on average."
+      ],
+      "editorial": {
+        "overview": "The closest repeat of a code is always between two consecutive appearances of that code, so the question reduces to remembering where each code was last seen while walking the list once.",
+        "bruteForceApproach": "Compare every pair of crates and keep the smallest distance between two equal codes. That is O(n^2) time, far too slow for two hundred thousand crates.",
+        "optimalApproach": "Walk the crates left to right with a map from code to the last position it appeared at. When the current code is already in the map, the distance from that position to the current one is a candidate; keep the smallest. Then record the current position as the code's last appearance. If no candidate was ever found, return -1.",
+        "correctnessProof": "Take any two appearances of the same code at positions i < j. If the code also appears at some k between them, then j - k < j - i, so the pair (i, j) is never the closest for that code. The closest pair for every code is therefore two consecutive appearances, and the walk examines exactly those pairs, because the map always holds the most recent earlier appearance. The minimum over them is the answer.",
+        "timeComplexity": "O(n) on average, one map lookup and one update per crate.",
+        "spaceComplexity": "O(n) for the map, which holds at most one entry per distinct code."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "static const long long *lotKeys;\nstatic int byCodeThenPosition(const void *a, const void *b) {\n  int x = *(const int *)a, y = *(const int *)b;\n  if (lotKeys[x] != lotKeys[y]) return lotKeys[x] < lotKeys[y] ? -1 : 1;\n  return x - y;\n}\nlong long closestRepeat(const long long *lotCodes, int n) {\n  int *order = (int *)malloc(sizeof(int) * (size_t)n);\n  for (int i = 0; i < n; i++) order[i] = i;\n  lotKeys = lotCodes;\n  qsort(order, (size_t)n, sizeof(int), byCodeThenPosition);\n  long long best = -1;\n  for (int i = 1; i < n; i++) {\n    if (lotCodes[order[i]] == lotCodes[order[i - 1]]) {\n      long long gap = order[i] - order[i - 1];\n      if (best < 0 || gap < best) best = gap;\n    }\n  }\n  free(order);\n  return best;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long closestRepeat(const vector<long long>& lotCodes) {\n  unordered_map<long long, int> last;\n  last.reserve(lotCodes.size() * 2 + 1);\n  long long best = -1;\n  for (int i = 0; i < (int)lotCodes.size(); i++) {\n    auto it = last.find(lotCodes[i]);\n    if (it != last.end()) {\n      long long gap = i - it->second;\n      if (best < 0 || gap < best) best = gap;\n    }\n    last[lotCodes[i]] = i;\n  }\n  return best;\n}"
+        },
+        "java": {
+          "referenceSolution": "static long closestRepeat(long[] lotCodes) {\n  HashMap<Long, Integer> last = new HashMap<>();\n  long best = -1;\n  for (int i = 0; i < lotCodes.length; i++) {\n    Integer seen = last.get(lotCodes[i]);\n    if (seen != null) {\n      long gap = i - seen;\n      if (best < 0 || gap < best) best = gap;\n    }\n    last.put(lotCodes[i], i);\n  }\n  return best;\n}"
+        },
+        "python3": {
+          "referenceSolution": "def closestRepeat(lotCodes: list[int]) -> int:\n    last = {}\n    best = -1\n    for i, code in enumerate(lotCodes):\n        if code in last:\n            gap = i - last[code]\n            if best < 0 or gap < best:\n                best = gap\n        last[code] = i\n    return best"
+        },
+        "javascript": {
+          "referenceSolution": "function closestRepeat(lotCodes) {\n  const last = new Map();\n  let best = -1;\n  for (let i = 0; i < lotCodes.length; i++) {\n    const seen = last.get(lotCodes[i]);\n    if (seen !== undefined) {\n      const gap = i - seen;\n      if (best < 0 || gap < best) best = gap;\n    }\n    last.set(lotCodes[i], i);\n  }\n  return best;\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, remembering the last position of each value in a hash map, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "orchard-cart-haul",
+      "title": "Orchard Cart Haul",
+      "difficulty": "medium",
+      "primaryTopic": "two-pointers-sliding-window",
+      "topics": ["two-pointers-sliding-window", "prefix-sums"],
+      "problemType": "function",
+      "shape": "int-array-int-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 25,
+      "difficultyCalibration": 0,
+      "story": "At the end of a picking day the baskets wait in a single row beside the orchard track. The cart can only collect baskets that stand next to each other, because the track is too narrow to skip one and come back for it, and it has a strict weight limit.",
+      "statement": "You are given the cart's weight limit, followed by the weights of the baskets in the order they stand along the row.\n\nThe cart may take any run of baskets that stand next to each other, as long as their total weight does not exceed the limit.\n\nReturn the largest number of baskets the cart can take in one such run. If even the lightest single basket is too heavy, return 0.",
+      "inputFormat": "The first number is the cart's weight limit. Every number after it is the weight of one basket, in the order the baskets stand along the row. There is at least one basket.",
+      "outputFormat": "Return one integer: the most baskets in any run of neighbouring baskets whose total weight stays within the limit.",
+      "functionContract": {
+        "functionName": "longestHaul",
+        "parameters": [
+          {
+            "name": "basketWeights",
+            "type": "integer[]",
+            "description": "The weight of each basket waiting along the row, from the gate onwards."
+          },
+          {
+            "name": "cartLimit",
+            "type": "integer",
+            "description": "The heaviest total load the cart may carry in one trip."
+          }
+        ],
+        "returnType": "32-bit integer"
+      },
+      "constraints": [
+        "1 <= basketWeights.length <= 200000",
+        "0 <= every basket weight <= 1000000000",
+        "0 <= cartLimit <= 200000000000000",
+        "A total of several baskets can exceed the range of a 32-bit signed integer"
+      ],
+      "examples": [
+        {
+          "input": "10 4 3 5 1 2 6",
+          "output": "3",
+          "explanation": "Runs such as 3 5 1 (total 9) and 5 1 2 (total 8) fit, but every run of four baskets weighs more than 10. The answer is three."
+        },
+        {
+          "input": "2 5 7",
+          "output": "0",
+          "explanation": "Each basket on its own already weighs more than the limit of 2, so the cart cannot take anything."
+        },
+        {
+          "input": "0 0 0 3 0",
+          "output": "2",
+          "explanation": "With a limit of zero only empty baskets fit. The first two baskets weigh nothing and stand together, a run of two."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "10 4 3 5 1 2 6",
+          "expectedOutput": "3",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 5 7",
+          "expectedOutput": "0",
+          "explanation": "Nothing fits.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 0",
+          "expectedOutput": "1",
+          "explanation": "One empty basket and a limit of zero.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "200000000000000 1000000000 1000000000 1000000000",
+          "expectedOutput": "3",
+          "explanation": "The largest limit: every basket fits.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3000000000 1000000000 1000000000 1000000000 1000000000",
+          "expectedOutput": "3",
+          "explanation": "The running total passes the 32-bit range, so a 32-bit total wraps and lets four baskets through.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "6 2 2 2 2 2",
+          "expectedOutput": "3",
+          "explanation": "Equal baskets: three of them weigh exactly the limit.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "15 9 1 1 1 1 9 1 1 1 1 1",
+          "expectedOutput": "7",
+          "explanation": "The best run straddles one of the heavy baskets.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Weights are never negative, so adding a basket to a run never makes it lighter.",
+        "If a run is too heavy, any longer run starting at the same basket is too heavy as well.",
+        "Keep a window with a left and a right edge. Move the right edge forward one basket at a time and move the left edge only while the window is over the limit."
+      ],
+      "editorial": {
+        "overview": "Because no basket has a negative weight, the total of a window only grows as it widens. That monotonicity is exactly what a two-pointer sliding window needs.",
+        "bruteForceApproach": "Try every starting basket and extend to the right while the total fits, tracking the longest run. That is O(n^2) in the worst case, for example when every basket is light.",
+        "optimalApproach": "Hold a window [left, right] and its running total in a 64-bit integer. For each right edge, add that basket, then drop baskets from the left while the total exceeds the limit. The window is now the longest valid run ending at right, so compare its length with the best so far. Each basket enters and leaves the window at most once, giving O(n) time.",
+        "correctnessProof": "For a fixed right edge, let L be the smallest left edge whose run fits. Any run ending at right and starting before L is too heavy, and any start after L is shorter, so the longest valid run ending at right starts at L. As right moves forward, L can only move forward too, because adding a non-negative weight never makes an earlier start fit again. The loop keeps left equal to L for every right, so it sees the longest valid run for each right edge and the maximum over them is the answer.",
+        "timeComplexity": "O(n), each basket enters and leaves the window once.",
+        "spaceComplexity": "O(1) beyond the input."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "long long longestHaul(const long long *basketWeights, int n, long long cartLimit) {\n  long long total = 0, best = 0;\n  int left = 0;\n  for (int right = 0; right < n; right++) {\n    total += basketWeights[right];\n    while (left <= right && total > cartLimit) total -= basketWeights[left++];\n    if (right - left + 1 > best) best = right - left + 1;\n  }\n  return best;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long longestHaul(const vector<long long>& basketWeights, long long cartLimit) {\n  long long total = 0, best = 0;\n  int left = 0;\n  for (int right = 0; right < (int)basketWeights.size(); right++) {\n    total += basketWeights[right];\n    while (left <= right && total > cartLimit) total -= basketWeights[left++];\n    best = max(best, (long long)(right - left + 1));\n  }\n  return best;\n}"
+        },
+        "java": {
+          "referenceSolution": "static long longestHaul(long[] basketWeights, long cartLimit) {\n  long total = 0, best = 0;\n  int left = 0;\n  for (int right = 0; right < basketWeights.length; right++) {\n    total += basketWeights[right];\n    while (left <= right && total > cartLimit) total -= basketWeights[left++];\n    best = Math.max(best, right - left + 1);\n  }\n  return best;\n}"
+        },
+        "python3": {
+          "referenceSolution": "def longestHaul(basketWeights: list[int], cartLimit: int) -> int:\n    total = 0\n    best = 0\n    left = 0\n    for right, weight in enumerate(basketWeights):\n        total += weight\n        while left <= right and total > cartLimit:\n            total -= basketWeights[left]\n            left += 1\n        best = max(best, right - left + 1)\n    return best"
+        },
+        "javascript": {
+          "referenceSolution": "function longestHaul(basketWeights, cartLimit) {\n  let total = 0;\n  let best = 0;\n  let left = 0;\n  for (let right = 0; right < basketWeights.length; right++) {\n    total += basketWeights[right];\n    while (left <= right && total > cartLimit) total -= basketWeights[left++];\n    best = Math.max(best, right - left + 1);\n  }\n  return best;\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, a sliding window over non-negative weights, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "coastal-beacon-spacing",
+      "title": "Coastal Beacon Spacing",
+      "difficulty": "hard",
+      "primaryTopic": "binary-search",
+      "topics": ["binary-search", "heap-greedy"],
+      "problemType": "function",
+      "shape": "int-array-int-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 40,
+      "difficultyCalibration": 0,
+      "story": "A coastguard station must place warning beacons along a straight coast road. Engineers have surveyed a set of sites where a beacon can stand. Beacons placed close together dazzle passing pilots, so the station wants every pair of beacons as far apart as the sites allow.",
+      "statement": "You are given how many beacons must be installed, followed by the surveyed sites as distances along the road. Two sites may share a distance.\n\nChoose exactly that many different sites for the beacons. The tightest gap of a choice is the smallest distance between any two chosen sites.\n\nReturn the largest tightest gap any choice can achieve.",
+      "inputFormat": "The first number is how many beacons must be installed. Every number after it is one surveyed site, as a distance along the road. There are at least as many sites as beacons.",
+      "outputFormat": "Return one integer: the largest possible smallest distance between two beacons.",
+      "functionContract": {
+        "functionName": "widestSpacing",
+        "parameters": [
+          {
+            "name": "sites",
+            "type": "integer[]",
+            "description": "Surveyed beacon sites, as distances along the coast road, in no particular order."
+          },
+          {
+            "name": "beacons",
+            "type": "integer",
+            "description": "How many beacons must be installed, each on a different site."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "2 <= beacons <= sites.length <= 200000",
+        "0 <= every site <= 1000000000",
+        "Sites are not given in sorted order, and two sites may share a distance"
+      ],
+      "examples": [
+        {
+          "input": "3 4 17 9 1 12",
+          "output": "8",
+          "explanation": "Sorted, the sites are 1 4 9 12 17. Placing beacons at 1, 9 and 17 makes the tightest gap 8. A gap of 9 cannot be kept: after 1 the next usable site is 12, and no site stands 9 beyond that."
+        },
+        {
+          "input": "2 5 1",
+          "output": "4",
+          "explanation": "With two beacons and two sites, both are used, and they stand 4 apart."
+        },
+        {
+          "input": "4 10 10 10 10",
+          "output": "0",
+          "explanation": "Every site is at the same distance, so any two beacons stand 0 apart."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "3 4 17 9 1 12",
+          "expectedOutput": "8",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "2 5 1",
+          "expectedOutput": "4",
+          "explanation": "Unsorted input with two sites.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 0 0",
+          "expectedOutput": "0",
+          "explanation": "The smallest legal input; both sites coincide.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 0 1000000000",
+          "expectedOutput": "1000000000",
+          "explanation": "The widest possible gap.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 1000000000 0 500000000",
+          "expectedOutput": "500000000",
+          "explanation": "Unsorted sites at the extremes; the search must reach the full range.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 7 7 7 20",
+          "expectedOutput": "0",
+          "explanation": "Three beacons must use at least two sites at the same distance.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 1 3 6 10 15 21",
+          "expectedOutput": "5",
+          "explanation": "Beacons at 1, 6, 15 and 21 are at least 5 apart.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Sort the sites first; only the order along the road matters.",
+        "If a tightest gap of g is achievable, every smaller gap is achievable too.",
+        "For a fixed gap, walk the sorted sites and place a beacon at every site at least that far from the previous beacon. Count how many fit.",
+        "Binary search on the gap with that greedy check."
+      ],
+      "editorial": {
+        "overview": "The answer is monotone: if beacons can be at least g apart, they can also be at least any smaller distance apart. That turns the optimisation into a search for the largest g whose feasibility check succeeds.",
+        "bruteForceApproach": "Try every choice of sites and compute its tightest gap. With the number of choices growing combinatorially this is hopeless beyond a handful of sites.",
+        "optimalApproach": "Sort the sites. To test a gap g, place the first beacon at the first site and then place each next beacon at the first site at least g beyond the previous beacon, counting placements; g is feasible when the count reaches the number of beacons. Binary search g between 0 and the distance from the first to the last site, keeping the largest feasible value. Sorting costs O(n log n) and each check is O(n), over O(log R) checks where R is the range of distances.",
+        "correctnessProof": "Feasibility is monotone because a placement that works for g also has every gap at least g' for any g' < g. For a fixed g, the greedy placement is optimal: given any valid placement, replace its first beacon with the first site and slide each later beacon to the earliest site at least g after its predecessor; every beacon moves left or stays, the gaps stay at least g, and the count is unchanged. So the greedy count is the maximum number of beacons with gaps of at least g, and the check is exact. The binary search over a monotone predicate then finds the largest feasible g.",
+        "timeComplexity": "O(n log n + n log R), where R is the distance between the outermost sites.",
+        "spaceComplexity": "O(n) for the sorted copy of the sites."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "static int byDistance(const void *a, const void *b) {\n  long long x = *(const long long *)a, y = *(const long long *)b;\n  return (x > y) - (x < y);\n}\nstatic long long beaconsFitting(const long long *s, int n, long long gap) {\n  long long count = 1, last = s[0];\n  for (int i = 1; i < n; i++) {\n    if (s[i] - last >= gap) { count++; last = s[i]; }\n  }\n  return count;\n}\nlong long widestSpacing(const long long *sites, int n, long long beacons) {\n  long long *s = (long long *)malloc(sizeof(long long) * (size_t)n);\n  memcpy(s, sites, sizeof(long long) * (size_t)n);\n  qsort(s, (size_t)n, sizeof(long long), byDistance);\n  long long lo = 0, hi = s[n - 1] - s[0];\n  while (lo < hi) {\n    long long mid = lo + (hi - lo + 1) / 2;\n    if (beaconsFitting(s, n, mid) >= beacons) lo = mid; else hi = mid - 1;\n  }\n  free(s);\n  return lo;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long widestSpacing(const vector<long long>& sites, long long beacons) {\n  vector<long long> s(sites);\n  sort(s.begin(), s.end());\n  auto fits = [&](long long gap) {\n    long long count = 1, last = s[0];\n    for (size_t i = 1; i < s.size(); i++) {\n      if (s[i] - last >= gap) { count++; last = s[i]; }\n    }\n    return count >= beacons;\n  };\n  long long lo = 0, hi = s.back() - s.front();\n  while (lo < hi) {\n    long long mid = lo + (hi - lo + 1) / 2;\n    if (fits(mid)) lo = mid; else hi = mid - 1;\n  }\n  return lo;\n}"
+        },
+        "java": {
+          "referenceSolution": "static long widestSpacing(long[] sites, long beacons) {\n  long[] s = sites.clone();\n  Arrays.sort(s);\n  long lo = 0, hi = s[s.length - 1] - s[0];\n  while (lo < hi) {\n    long mid = lo + (hi - lo + 1) / 2;\n    long count = 1, last = s[0];\n    for (int i = 1; i < s.length; i++) {\n      if (s[i] - last >= mid) { count++; last = s[i]; }\n    }\n    if (count >= beacons) lo = mid; else hi = mid - 1;\n  }\n  return lo;\n}"
+        },
+        "python3": {
+          "referenceSolution": "def widestSpacing(sites: list[int], beacons: int) -> int:\n    s = sorted(sites)\n\n    def fits(gap: int) -> bool:\n        count, last = 1, s[0]\n        for site in s[1:]:\n            if site - last >= gap:\n                count += 1\n                last = site\n        return count >= beacons\n\n    lo, hi = 0, s[-1] - s[0]\n    while lo < hi:\n        mid = lo + (hi - lo + 1) // 2\n        if fits(mid):\n            lo = mid\n        else:\n            hi = mid - 1\n    return lo"
+        },
+        "javascript": {
+          "referenceSolution": "function widestSpacing(sites, beacons) {\n  const s = [...sites].sort((a, b) => a - b);\n  const fits = (gap) => {\n    let count = 1;\n    let last = s[0];\n    for (let i = 1; i < s.length; i++) {\n      if (s[i] - last >= gap) { count++; last = s[i]; }\n    }\n    return count >= beacons;\n  };\n  let lo = 0;\n  let hi = s[s.length - 1] - s[0];\n  while (lo < hi) {\n    const mid = lo + Math.floor((hi - lo + 1) / 2);\n    if (fits(mid)) lo = mid; else hi = mid - 1;\n  }\n  return lo;\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, binary search on the answer with a greedy feasibility check, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "warehouse-crate-sightlines",
+      "title": "Warehouse Crate Sightlines",
+      "difficulty": "medium",
+      "primaryTopic": "stack-queue",
+      "topics": ["stack-queue", "monotonic-stack"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 30,
+      "difficultyCalibration": 0,
+      "story": "In a warehouse aisle the crate stacks stand in a line. A stock checker standing on top of a stack and looking down the aisle can see past every stack that is no taller than the one under their feet, until a strictly taller stack blocks the view.",
+      "statement": "You are given the heights of the crate stacks in order along the aisle.\n\nFor each stack, its sightline is the number of stacks after it that the checker can see past: count forward from the next stack and stop at the first stack strictly taller than this one, without counting that taller stack. If no later stack is taller, the sightline runs to the end of the aisle.\n\nReturn the sum of the sightlines of all stacks.",
+      "inputFormat": "Every number in the input is the height of one stack, in order along the aisle. There is at least one stack.",
+      "outputFormat": "Return one integer: the total of every stack's sightline.",
+      "functionContract": {
+        "functionName": "totalSightlines",
+        "parameters": [
+          {
+            "name": "heights",
+            "type": "integer[]",
+            "description": "The height of each crate stack, in order along the aisle."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= heights.length <= 200000",
+        "1 <= every height <= 1000000000",
+        "The total can exceed the range of a 32-bit signed integer"
+      ],
+      "examples": [
+        {
+          "input": "2 5 3 3 6",
+          "output": "3",
+          "explanation": "From 2 the next stack is taller, sightline 0. From 5 the view passes 3 and 3 and stops at 6, sightline 2. From the first 3 it passes the second 3, sightline 1. The rest see 0. The total is 3."
+        },
+        {
+          "input": "9 4 2 1",
+          "output": "6",
+          "explanation": "Each stack is taller than everything after it, so the sightlines are 3, 2, 1 and 0, which add up to 6."
+        },
+        {
+          "input": "2 4 7",
+          "output": "0",
+          "explanation": "Every stack is followed directly by a taller one, so every sightline is 0."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 5 3 3 6",
+          "expectedOutput": "3",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "9 4 2 1",
+          "expectedOutput": "6",
+          "explanation": "A strictly falling aisle.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5",
+          "expectedOutput": "0",
+          "explanation": "A single stack sees nothing.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1000000000 1 1",
+          "expectedOutput": "3",
+          "explanation": "The tallest and shortest heights; the two short stacks are equal, and equal stacks do not block each other.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 4 4 4",
+          "expectedOutput": "6",
+          "explanation": "Equal heights never block. A solution that stops at the first stack at least as tall reports 0.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 1 3 2 2",
+          "expectedOutput": "12",
+          "explanation": "Repeated heights mixed with lower ones.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "8 1 5 2 7 3 9 4",
+          "expectedOutput": "8",
+          "explanation": "Several nested blockers.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "A stack's sightline ends just before the next strictly taller stack, so you need the position of that stack for every stack.",
+        "Walking from the end of the aisle backwards, which earlier stacks can still be the next taller stack for something further left?",
+        "Keep a stack of positions whose heights strictly decrease from bottom to top. Pop every position whose height is not taller than the current stack."
+      ],
+      "editorial": {
+        "overview": "Each sightline is the distance to the next strictly greater element, minus one. Finding the next greater element for every position is the classic use of a monotonic stack.",
+        "bruteForceApproach": "For each stack, scan forward until a taller one appears. In a strictly falling aisle every scan runs to the end, so this is O(n^2).",
+        "optimalApproach": "Walk the aisle from right to left with a stack of positions. Before handling position i, pop every position whose height is less than or equal to heights[i]; those can never be the next taller stack for anything further left, because i blocks them. The stack top, if any, is now the next strictly taller stack j, so the sightline is j - i - 1, or n - i - 1 when the stack is empty. Push i and add the sightline to a 64-bit total.",
+        "correctnessProof": "Invariant: after handling position i, the stack holds exactly the positions k >= i that are taller than every stack between i and k, in increasing order of position from top to bottom. A popped position p has heights[p] <= heights[i] with p > i, so for any position left of i, stack i comes first and is at least as tall, so p can never be its first strictly taller stack. Therefore, when position i is handled, the top of the stack after popping is the nearest later position strictly taller than heights[i], which is the definition of the end of its sightline.",
+        "timeComplexity": "O(n), every position is pushed and popped at most once.",
+        "spaceComplexity": "O(n) for the stack of positions."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "long long totalSightlines(const long long *heights, int n) {\n  int *stack = (int *)malloc(sizeof(int) * (size_t)n);\n  int top = 0;\n  long long total = 0;\n  for (int i = n - 1; i >= 0; i--) {\n    while (top > 0 && heights[stack[top - 1]] <= heights[i]) top--;\n    int end = top > 0 ? stack[top - 1] : n;\n    total += end - i - 1;\n    stack[top++] = i;\n  }\n  free(stack);\n  return total;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long totalSightlines(const vector<long long>& heights) {\n  int n = (int)heights.size();\n  vector<int> st;\n  st.reserve(n);\n  long long total = 0;\n  for (int i = n - 1; i >= 0; i--) {\n    while (!st.empty() && heights[st.back()] <= heights[i]) st.pop_back();\n    int end = st.empty() ? n : st.back();\n    total += end - i - 1;\n    st.push_back(i);\n  }\n  return total;\n}"
+        },
+        "java": {
+          "referenceSolution": "static long totalSightlines(long[] heights) {\n  int n = heights.length;\n  int[] st = new int[n];\n  int top = 0;\n  long total = 0;\n  for (int i = n - 1; i >= 0; i--) {\n    while (top > 0 && heights[st[top - 1]] <= heights[i]) top--;\n    int end = top > 0 ? st[top - 1] : n;\n    total += end - i - 1;\n    st[top++] = i;\n  }\n  return total;\n}"
+        },
+        "python3": {
+          "referenceSolution": "def totalSightlines(heights: list[int]) -> int:\n    n = len(heights)\n    stack = []\n    total = 0\n    for i in range(n - 1, -1, -1):\n        while stack and heights[stack[-1]] <= heights[i]:\n            stack.pop()\n        end = stack[-1] if stack else n\n        total += end - i - 1\n        stack.append(i)\n    return total"
+        },
+        "javascript": {
+          "referenceSolution": "function totalSightlines(heights) {\n  const n = heights.length;\n  const st = [];\n  let total = 0;\n  for (let i = n - 1; i >= 0; i--) {\n    while (st.length > 0 && heights[st[st.length - 1]] <= heights[i]) st.pop();\n    const end = st.length > 0 ? st[st.length - 1] : n;\n    total += end - i - 1;\n    st.push(i);\n  }\n  return total;\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, a monotonic stack for the next strictly larger element, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "ferris-seat-lottery",
+      "title": "Ferris Seat Lottery",
+      "difficulty": "medium",
+      "primaryTopic": "linked-list",
+      "topics": ["linked-list", "math"],
+      "problemType": "function",
+      "shape": "int-array-int-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 30,
+      "difficultyCalibration": 0,
+      "story": "A fairground runs a lottery for the last seat on the night's final Ferris wheel ride. The hopefuls stand in a circle, and the operator walks around it counting. Whoever the count lands on steps out of the circle, and the count carries on from the next person, until one rider is left standing.",
+      "statement": "You are given the step, followed by the riders' ticket numbers in the order they stand around the circle. After the last rider comes the first again.\n\nThe operator starts at the first rider and counts step riders, the first rider counted being number one. The rider counted last leaves the circle, and counting starts again at the rider after them, with the same step. This repeats until one rider remains.\n\nReturn the ticket number of the rider who remains.",
+      "inputFormat": "The first number is the step. Every number after it is one ticket number, in the order the riders stand around the circle. There is at least one rider.",
+      "outputFormat": "Return one integer: the ticket number of the last rider left in the circle.",
+      "functionContract": {
+        "functionName": "lastRider",
+        "parameters": [
+          {
+            "name": "tickets",
+            "type": "integer[]",
+            "description": "Ticket numbers of the riders, in the order they stand around the circle."
+          },
+          {
+            "name": "step",
+            "type": "integer",
+            "description": "How many riders are counted for each elimination, starting the count at the first rider still waiting."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= tickets.length <= 200000",
+        "1 <= step <= 1000000000",
+        "1 <= every ticket number <= 1000000000",
+        "The step can be much larger than the number of riders"
+      ],
+      "examples": [
+        {
+          "input": "3 10 20 30 40 50",
+          "output": "40",
+          "explanation": "Counting three at a time removes 30, then 10, then 50, then 20. The rider holding ticket 40 is left."
+        },
+        {
+          "input": "1 7 8 9",
+          "output": "9",
+          "explanation": "A step of one removes the riders in order, 7 and then 8, so the last in line keeps the seat."
+        },
+        {
+          "input": "5 42",
+          "output": "42",
+          "explanation": "With only one rider there is nobody to remove, so ticket 42 remains."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "3 10 20 30 40 50",
+          "expectedOutput": "40",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "1 7 8 9",
+          "expectedOutput": "9",
+          "explanation": "A step of one.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 1",
+          "expectedOutput": "1",
+          "explanation": "One rider, the smallest step and the smallest ticket number.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1000000000 1000000000 7",
+          "expectedOutput": "1000000000",
+          "explanation": "The largest step on two riders. It is even, so the count ends on the second rider and the largest ticket number remains.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "7 4 6 8",
+          "expectedOutput": "8",
+          "explanation": "The step is larger than the circle, so the count wraps around more than once per removal.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 5 5 5 5",
+          "expectedOutput": "5",
+          "explanation": "Every rider holds the same ticket number.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 11 22 33 44 55 66 77",
+          "expectedOutput": "22",
+          "explanation": "Several laps of the circle.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Simulating with a circular list works but costs a lot of steps when the step is large.",
+        "Number the riders from 0. Think about who survives in a circle of m riders if you already know the survivor of a circle of m - 1.",
+        "After the first removal, the circle of m - 1 riders starts at the rider just after the one removed. Shift the smaller answer by the step, modulo m."
+      ],
+      "editorial": {
+        "overview": "This is the classic elimination circle. Removing riders from a linked list is the natural simulation, but the survivor's position also follows a short recurrence, which avoids walking the circle at all.",
+        "bruteForceApproach": "Keep the riders in a circular linked list and walk step - 1 links before each removal. That is O(n * step) time, which a step of a billion makes impossible.",
+        "optimalApproach": "Let J(m) be the zero-based position of the survivor in a circle of m riders. J(1) = 0. In a circle of m riders the first rider removed is at position (step - 1) mod m, and the next count begins at position step mod m, so the remaining circle is the smaller problem relabelled by that shift: J(m) = (J(m - 1) + step) mod m. Compute it for m = 2 up to n, then return the ticket at position J(n).",
+        "correctnessProof": "Label the riders 0 to m - 1. After the rider at (step - 1) mod m leaves, the counting restarts at s = step mod m, and the remaining m - 1 riders in counting order are s, s + 1, ..., wrapping around, which is exactly a circle of m - 1 riders relabelled so that s becomes 0. The survivor of that circle is at relabelled position J(m - 1), which is original position (J(m - 1) + s) mod m = (J(m - 1) + step) mod m. Induction on m gives J(n).",
+        "timeComplexity": "O(n), one step of the recurrence per circle size.",
+        "spaceComplexity": "O(1) beyond the input."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "long long lastRider(const long long *tickets, int n, long long step) {\n  long long pos = 0;\n  for (long long m = 2; m <= n; m++) pos = (pos + step) % m;\n  return tickets[pos];\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long lastRider(const vector<long long>& tickets, long long step) {\n  long long n = (long long)tickets.size();\n  long long pos = 0;\n  for (long long m = 2; m <= n; m++) pos = (pos + step) % m;\n  return tickets[pos];\n}"
+        },
+        "java": {
+          "referenceSolution": "static long lastRider(long[] tickets, long step) {\n  long pos = 0;\n  for (long m = 2; m <= tickets.length; m++) pos = (pos + step) % m;\n  return tickets[(int) pos];\n}"
+        },
+        "python3": {
+          "referenceSolution": "def lastRider(tickets: list[int], step: int) -> int:\n    pos = 0\n    for m in range(2, len(tickets) + 1):\n        pos = (pos + step) % m\n    return tickets[pos]"
+        },
+        "javascript": {
+          "referenceSolution": "function lastRider(tickets, step) {\n  let pos = 0;\n  for (let m = 2; m <= tickets.length; m++) pos = (pos + step) % m;\n  return tickets[pos];\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, the elimination-circle recurrence, with a circular list as the direct simulation, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "grove-path-yield",
+      "title": "Grove Path Yield",
+      "difficulty": "easy",
+      "primaryTopic": "trees-bst",
+      "topics": ["trees-bst", "dynamic-programming"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 20,
+      "difficultyCalibration": 0,
+      "story": "An estate's footpaths branch like a tree from the gatehouse: every grove has at most two paths leading further in, and each path ends at a grove with nowhere further to go. A forager walks one route from the gatehouse to an end grove and collects whatever each grove on the way yields, which after a bad season can be a loss.",
+      "statement": "You are given the yield of every grove, listed level by level starting from the gatehouse grove, left to right within each level. Every level is full except possibly the last, which is filled from the left.\n\nIn that listing, the grove at position i (counting from 0) leads on to the groves at positions 2i + 1 and 2i + 2, when those positions exist. A grove with neither is an end grove.\n\nReturn the largest total yield of any route that starts at the gatehouse grove and ends at an end grove, adding the yield of every grove on the route.",
+      "inputFormat": "Every number in the input is the yield of one grove, in the level-by-level order described. There is at least one grove.",
+      "outputFormat": "Return one integer: the best total yield over all routes from the gatehouse to an end grove.",
+      "functionContract": {
+        "functionName": "bestPath",
+        "parameters": [
+          {
+            "name": "yields",
+            "type": "integer[]",
+            "description": "The yield recorded at each grove, listed level by level from the gatehouse, left to right within a level."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= yields.length <= 200000",
+        "-1000000000 <= every yield <= 1000000000",
+        "A route total can exceed the range of a 32-bit signed integer"
+      ],
+      "examples": [
+        {
+          "input": "3 2 7 1 5 6",
+          "output": "16",
+          "explanation": "The end groves are at positions 3, 4 and 5. The routes total 3+2+1 = 6, 3+2+5 = 10 and 3+7+6 = 16, so the best is 16."
+        },
+        {
+          "input": "-4",
+          "output": "-4",
+          "explanation": "The gatehouse grove is the only grove and therefore an end grove itself. The only route yields -4."
+        },
+        {
+          "input": "5 -10 -1",
+          "output": "4",
+          "explanation": "Two routes: 5 - 10 = -5 and 5 - 1 = 4. Both are short of the gatehouse yield, but 4 is the better of them."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "3 2 7 1 5 6",
+          "expectedOutput": "16",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "5 -10 -1",
+          "expectedOutput": "4",
+          "explanation": "Negative yields.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "-1000000000",
+          "expectedOutput": "-1000000000",
+          "explanation": "A single grove at the lowest yield.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000 1000000000",
+          "expectedOutput": "4000000000",
+          "explanation": "Four full levels at the highest yield; the total passes the 32-bit range.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 10 2 -100 -100 50 50",
+          "expectedOutput": "53",
+          "explanation": "Always stepping to the better next grove takes the 10 and then loses 100. The best route goes through the 2.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 2 2 2 2 2 2",
+          "expectedOutput": "6",
+          "explanation": "Every grove yields the same.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "4 -2 3 8 -6 1 -9 2 7",
+          "expectedOutput": "17",
+          "explanation": "A partly filled last level.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "An end grove is any position whose first child position, 2i + 1, is past the end of the list.",
+        "The best route from a grove is its own yield plus the better of the best routes from its children.",
+        "Work from the last position back to the first so both children are finished before their parent."
+      ],
+      "editorial": {
+        "overview": "The level-order listing is the array layout of a complete binary tree. The best root-to-leaf total satisfies a simple recurrence over children, so one backwards pass over the array computes it.",
+        "bruteForceApproach": "Enumerate every route from the gatehouse to each end grove and add up its yields. There are about n / 2 end groves and each route has O(log n) groves, so this is O(n log n); fine, but the bottom-up pass is simpler and linear.",
+        "optimalApproach": "Let best[i] be the largest route total from grove i down to an end grove. If 2i + 1 is past the end, best[i] = yields[i]. Otherwise best[i] = yields[i] + the larger of best[2i + 1] and best[2i + 2], ignoring a child position that does not exist. Fill best from the last position down to 0 in 64-bit integers and return best[0].",
+        "correctnessProof": "A route from grove i either stops there, which happens exactly when i is an end grove, or continues to one of its existing children and then follows some route from that child. The best total is therefore yields[i] plus the best continuation, and the best continuation through a child is best[child] by induction on the height of the subtree. Processing positions in decreasing order guarantees both children, which have larger positions, are finished first.",
+        "timeComplexity": "O(n), one pass over the groves.",
+        "spaceComplexity": "O(n) for the best totals."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "long long bestPath(const long long *yields, int n) {\n  long long *best = (long long *)malloc(sizeof(long long) * (size_t)n);\n  for (int i = n - 1; i >= 0; i--) {\n    long long left = 2LL * i + 1, right = 2LL * i + 2;\n    if (left >= n) best[i] = yields[i];\n    else if (right >= n) best[i] = yields[i] + best[left];\n    else best[i] = yields[i] + (best[left] > best[right] ? best[left] : best[right]);\n  }\n  long long answer = best[0];\n  free(best);\n  return answer;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long bestPath(const vector<long long>& yields) {\n  long long n = (long long)yields.size();\n  vector<long long> best(n);\n  for (long long i = n - 1; i >= 0; i--) {\n    long long left = 2 * i + 1, right = 2 * i + 2;\n    if (left >= n) best[i] = yields[i];\n    else if (right >= n) best[i] = yields[i] + best[left];\n    else best[i] = yields[i] + max(best[left], best[right]);\n  }\n  return best[0];\n}"
+        },
+        "java": {
+          "referenceSolution": "static long bestPath(long[] yields) {\n  int n = yields.length;\n  long[] best = new long[n];\n  for (int i = n - 1; i >= 0; i--) {\n    long left = 2L * i + 1, right = 2L * i + 2;\n    if (left >= n) best[i] = yields[i];\n    else if (right >= n) best[i] = yields[i] + best[(int) left];\n    else best[i] = yields[i] + Math.max(best[(int) left], best[(int) right]);\n  }\n  return best[0];\n}"
+        },
+        "python3": {
+          "referenceSolution": "def bestPath(yields: list[int]) -> int:\n    n = len(yields)\n    best = [0] * n\n    for i in range(n - 1, -1, -1):\n        left, right = 2 * i + 1, 2 * i + 2\n        if left >= n:\n            best[i] = yields[i]\n        elif right >= n:\n            best[i] = yields[i] + best[left]\n        else:\n            best[i] = yields[i] + max(best[left], best[right])\n    return best[0]"
+        },
+        "javascript": {
+          "referenceSolution": "function bestPath(yields) {\n  const n = yields.length;\n  const best = new Array(n);\n  for (let i = n - 1; i >= 0; i--) {\n    const left = 2 * i + 1;\n    const right = 2 * i + 2;\n    if (left >= n) best[i] = yields[i];\n    else if (right >= n) best[i] = yields[i] + best[left];\n    else best[i] = yields[i] + Math.max(best[left], best[right]);\n  }\n  return best[0];\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, a bottom-up pass over the array layout of a complete binary tree, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "camp-water-rations",
+      "title": "Camp Water Rations",
+      "difficulty": "medium",
+      "primaryTopic": "heap-greedy",
+      "topics": ["heap-greedy", "priority-queue"],
+      "problemType": "function",
+      "shape": "int-array-int-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 25,
+      "difficultyCalibration": 0,
+      "story": "A desert relief camp keeps its drinking water in a row of tanks. The water bowser that tops them up carries a single measured load of seven litres per refill, and the camp rule is simple: every refill goes into whichever tank holds the least water at that moment.",
+      "statement": "You are given the number of refills, followed by the current level of every tank in litres.\n\nEach refill adds exactly 7 litres to a tank that holds the least water at that moment. When several tanks tie for the least, the refill goes to any one of them.\n\nAfter all the refills have been delivered, return the level of the tank that holds the least water.",
+      "inputFormat": "The first number is how many refills are delivered. Every number after it is the level of one tank in litres. There is at least one tank.",
+      "outputFormat": "Return one integer: the lowest level among all tanks once every refill has been delivered.",
+      "functionContract": {
+        "functionName": "lowestAfterRefills",
+        "parameters": [
+          {
+            "name": "levels",
+            "type": "integer[]",
+            "description": "How many litres each tank holds before the bowser arrives."
+          },
+          {
+            "name": "refills",
+            "type": "integer",
+            "description": "How many refills the bowser delivers."
+          }
+        ],
+        "returnType": "64-bit integer"
+      },
+      "constraints": [
+        "1 <= levels.length <= 200000",
+        "0 <= refills <= 200000",
+        "0 <= every level <= 1000000000",
+        "Tanks have no maximum capacity"
+      ],
+      "examples": [
+        {
+          "input": "3 6 11 4",
+          "output": "11",
+          "explanation": "The first refill lifts the 4 to 11, the second lifts the 6 to 13, and the third lifts one of the two tanks at 11 to 18. The tanks hold 13, 18 and 11, so the lowest is 11."
+        },
+        {
+          "input": "0 8 3",
+          "output": "3",
+          "explanation": "No refills arrive, so the lowest tank still holds 3 litres."
+        },
+        {
+          "input": "4 10",
+          "output": "38",
+          "explanation": "With a single tank every refill goes into it: 10 plus four loads of 7 is 38."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "3 6 11 4",
+          "expectedOutput": "11",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "0 8 3",
+          "expectedOutput": "3",
+          "explanation": "No refills.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0 0",
+          "expectedOutput": "0",
+          "explanation": "One empty tank, no refills.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 1000000000",
+          "expectedOutput": "1000000007",
+          "explanation": "The fullest tank still takes the refill when it is the only one.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 6 6 6",
+          "expectedOutput": "6",
+          "explanation": "Three tanks tie; after two refills one of them is still at 6. Lifting every tied tank at once overshoots.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "5 3 3 3 3 3",
+          "expectedOutput": "10",
+          "explanation": "Five equal tanks and five refills: each gets one.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "6 1 20 2 15 3",
+          "expectedOutput": "15",
+          "explanation": "Refills chase the lowest tank around the row.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Each refill needs the current smallest tank, and the smallest changes after every refill.",
+        "A structure that always hands back the smallest value and lets you put a bigger one back is exactly what is needed.",
+        "Use a min-heap of levels: pop the smallest, add 7, push it back, once per refill."
+      ],
+      "editorial": {
+        "overview": "Every refill is a greedy step on the current minimum, so the task is to repeat \"take the smallest, raise it\" efficiently. A min-heap gives the smallest level in logarithmic time per step.",
+        "bruteForceApproach": "For each refill, scan every tank for the lowest level and raise it. That is O(n * refills), up to four times ten to the tenth operations.",
+        "optimalApproach": "Build a min-heap of the levels in O(n). For each refill, pop the smallest level, add 7 and push it back, O(log n) per refill. After all refills the top of the heap is the answer. Levels stay well inside 64-bit range.",
+        "correctnessProof": "The process is fully specified: each refill raises some tank holding the current minimum, and ties do not affect the multiset of levels, because raising any one of several equal values leaves the same multiset. The heap always holds exactly the current multiset of levels, so popping its minimum performs the specified refill, and its top after the last refill is the lowest level.",
+        "timeComplexity": "O(n + refills * log n).",
+        "spaceComplexity": "O(n) for the heap."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "static void siftDown(long long *h, int size, int i) {\n  for (;;) {\n    int l = 2 * i + 1, r = l + 1, s = i;\n    if (l < size && h[l] < h[s]) s = l;\n    if (r < size && h[r] < h[s]) s = r;\n    if (s == i) return;\n    long long t = h[i]; h[i] = h[s]; h[s] = t;\n    i = s;\n  }\n}\nlong long lowestAfterRefills(const long long *levels, int n, long long refills) {\n  long long *h = (long long *)malloc(sizeof(long long) * (size_t)n);\n  memcpy(h, levels, sizeof(long long) * (size_t)n);\n  for (int i = n / 2 - 1; i >= 0; i--) siftDown(h, n, i);\n  for (long long r = 0; r < refills; r++) {\n    h[0] += 7;\n    siftDown(h, n, 0);\n  }\n  long long answer = h[0];\n  free(h);\n  return answer;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long lowestAfterRefills(const vector<long long>& levels, long long refills) {\n  priority_queue<long long, vector<long long>, greater<long long>> heap(levels.begin(), levels.end());\n  for (long long r = 0; r < refills; r++) {\n    long long low = heap.top();\n    heap.pop();\n    heap.push(low + 7);\n  }\n  return heap.top();\n}"
+        },
+        "java": {
+          "referenceSolution": "static long lowestAfterRefills(long[] levels, long refills) {\n  PriorityQueue<Long> heap = new PriorityQueue<>();\n  for (long level : levels) heap.add(level);\n  for (long r = 0; r < refills; r++) heap.add(heap.poll() + 7);\n  return heap.peek();\n}"
+        },
+        "python3": {
+          "referenceSolution": "def lowestAfterRefills(levels: list[int], refills: int) -> int:\n    import heapq\n\n    heap = list(levels)\n    heapq.heapify(heap)\n    for _ in range(refills):\n        heapq.heapreplace(heap, heap[0] + 7)\n    return heap[0]"
+        },
+        "javascript": {
+          "referenceSolution": "function lowestAfterRefills(levels, refills) {\n  const h = [...levels];\n  const n = h.length;\n  const siftDown = (i) => {\n    for (;;) {\n      const l = 2 * i + 1;\n      const r = l + 1;\n      let s = i;\n      if (l < n && h[l] < h[s]) s = l;\n      if (r < n && h[r] < h[s]) s = r;\n      if (s === i) return;\n      [h[i], h[s]] = [h[s], h[i]];\n      i = s;\n    }\n  };\n  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) siftDown(i);\n  for (let r = 0; r < refills; r++) {\n    h[0] += 7;\n    siftDown(0);\n  }\n  return h[0];\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, a min-heap that repeatedly raises its smallest value, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "quay-ferry-hops",
+      "title": "Quay Ferry Hops",
+      "difficulty": "medium",
+      "primaryTopic": "graphs",
+      "topics": ["graphs", "breadth-first-search"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 30,
+      "difficultyCalibration": 0,
+      "story": "Berths are numbered along a long quay, and each berth runs one water taxi with a fixed route length. From a berth, the taxi travels exactly that many berths up the quay or exactly that many down it, never further and never shorter, and it will not leave the quay.",
+      "statement": "You are given the route length of the taxi at every berth, in order along the quay. Berths are numbered from 0.\n\nFrom berth i you may take the taxi to berth i + hopLengths[i] or to berth i - hopLengths[i], provided that berth exists. A route length of zero goes nowhere.\n\nReturn the fewest taxi rides needed to get from berth 0 to the last berth. If the last berth cannot be reached, return -1. If the quay has only one berth, you are already there and the answer is 0.",
+      "inputFormat": "Every number in the input is the route length of the taxi at one berth, in order along the quay starting from berth 0. There is at least one berth.",
+      "outputFormat": "Return one integer: the fewest rides from the first berth to the last, or -1 when it cannot be done.",
+      "functionContract": {
+        "functionName": "fewestHops",
+        "parameters": [
+          {
+            "name": "hopLengths",
+            "type": "integer[]",
+            "description": "For each berth along the quay, the exact distance the water taxi from that berth travels."
+          }
+        ],
+        "returnType": "32-bit integer"
+      },
+      "constraints": [
+        "1 <= hopLengths.length <= 200000",
+        "0 <= every route length <= 1000000000",
+        "Rides may go back down the quay as well as up it"
+      ],
+      "examples": [
+        {
+          "input": "2 4 1 3 1 2",
+          "output": "3",
+          "explanation": "From berth 0 the only ride goes up to berth 2, whose taxi reaches berth 1 or berth 3. Berth 3 only leads back to berth 0, but the taxi at berth 1 travels four berths up to berth 5, the last: three rides."
+        },
+        {
+          "input": "0 5",
+          "output": "-1",
+          "explanation": "The taxi at berth 0 has a route length of zero, so you can never leave the first berth."
+        },
+        {
+          "input": "9",
+          "output": "0",
+          "explanation": "There is only one berth, so you start at the last berth and need no rides."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "2 4 1 3 1 2",
+          "expectedOutput": "3",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "0 5",
+          "expectedOutput": "-1",
+          "explanation": "Stuck at the start.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "0",
+          "explanation": "One berth.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1000000000 1000000000",
+          "expectedOutput": "-1",
+          "explanation": "The longest route length leaves the quay in both directions.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 1 0 1",
+          "expectedOutput": "-1",
+          "explanation": "Berths 0 and 1 send you back and forth forever without reaching berth 3. A search without a visited set never stops.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 1 1 1 1",
+          "expectedOutput": "4",
+          "explanation": "Every taxi moves one berth; the quickest way is straight up.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 5 1 2 1 0 3",
+          "expectedOutput": "3",
+          "explanation": "The quickest route rides up to berth 2, back down to berth 1, then five berths up to the end.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Treat every berth as a point and every taxi ride as a one-way link between two berths.",
+        "All rides count the same, so the fewest rides is a shortest path in an unweighted graph.",
+        "Breadth-first search from berth 0, marking berths as visited so the same berth is never queued twice."
+      ],
+      "editorial": {
+        "overview": "The berths and rides form a directed graph with at most two edges per berth. Because every ride costs one, breadth-first search from berth 0 finds the fewest rides to every reachable berth.",
+        "bruteForceApproach": "Explore every sequence of rides depth-first, keeping the shortest that reaches the end. Without remembering visited berths this can loop forever, and with it but without a breadth-first order it can still revisit berths many times.",
+        "optimalApproach": "Run breadth-first search from berth 0 with a distance array initialised to -1. For each berth taken from the queue, try both destinations; any destination inside the quay with no distance yet gets the current distance plus one and joins the queue. Stop as soon as the last berth is given a distance, or report -1 when the queue empties.",
+        "correctnessProof": "Breadth-first search visits berths in non-decreasing order of the number of rides from berth 0, because every berth discovered while processing distance d is given distance d + 1 and joins the back of the queue. The first time a berth receives a distance, that distance is therefore the fewest rides needed to reach it. If the last berth is never reached, no sequence of rides leads to it, because every ride from every reachable berth was explored.",
+        "timeComplexity": "O(n), each berth is queued once and has two outgoing rides.",
+        "spaceComplexity": "O(n) for the distances and the queue."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "long long fewestHops(const long long *hopLengths, int n) {\n  if (n == 1) return 0;\n  int *dist = (int *)malloc(sizeof(int) * (size_t)n);\n  int *queue = (int *)malloc(sizeof(int) * (size_t)n);\n  for (int i = 0; i < n; i++) dist[i] = -1;\n  int head = 0, tail = 0;\n  dist[0] = 0;\n  queue[tail++] = 0;\n  long long answer = -1;\n  while (head < tail && answer < 0) {\n    int at = queue[head++];\n    long long next[2] = {at + hopLengths[at], at - hopLengths[at]};\n    for (int k = 0; k < 2; k++) {\n      long long to = next[k];\n      if (to < 0 || to >= n || dist[to] >= 0) continue;\n      dist[to] = dist[at] + 1;\n      if (to == n - 1) { answer = dist[to]; break; }\n      queue[tail++] = (int)to;\n    }\n  }\n  free(dist);\n  free(queue);\n  return answer;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long fewestHops(const vector<long long>& hopLengths) {\n  long long n = (long long)hopLengths.size();\n  if (n == 1) return 0;\n  vector<long long> dist(n, -1);\n  queue<long long> q;\n  dist[0] = 0;\n  q.push(0);\n  while (!q.empty()) {\n    long long at = q.front();\n    q.pop();\n    for (long long to : {at + hopLengths[at], at - hopLengths[at]}) {\n      if (to < 0 || to >= n || dist[to] >= 0) continue;\n      dist[to] = dist[at] + 1;\n      if (to == n - 1) return dist[to];\n      q.push(to);\n    }\n  }\n  return -1;\n}"
+        },
+        "java": {
+          "referenceSolution": "static long fewestHops(long[] hopLengths) {\n  int n = hopLengths.length;\n  if (n == 1) return 0;\n  int[] dist = new int[n];\n  Arrays.fill(dist, -1);\n  int[] queue = new int[n];\n  int head = 0, tail = 0;\n  dist[0] = 0;\n  queue[tail++] = 0;\n  while (head < tail) {\n    int at = queue[head++];\n    long[] next = {at + hopLengths[at], at - hopLengths[at]};\n    for (long to : next) {\n      if (to < 0 || to >= n || dist[(int) to] >= 0) continue;\n      dist[(int) to] = dist[at] + 1;\n      if (to == n - 1) return dist[(int) to];\n      queue[tail++] = (int) to;\n    }\n  }\n  return -1;\n}"
+        },
+        "python3": {
+          "referenceSolution": "def fewestHops(hopLengths: list[int]) -> int:\n    from collections import deque\n\n    n = len(hopLengths)\n    if n == 1:\n        return 0\n    dist = [-1] * n\n    dist[0] = 0\n    queue = deque([0])\n    while queue:\n        at = queue.popleft()\n        for to in (at + hopLengths[at], at - hopLengths[at]):\n            if 0 <= to < n and dist[to] < 0:\n                dist[to] = dist[at] + 1\n                if to == n - 1:\n                    return dist[to]\n                queue.append(to)\n    return -1"
+        },
+        "javascript": {
+          "referenceSolution": "function fewestHops(hopLengths) {\n  const n = hopLengths.length;\n  if (n === 1) return 0;\n  const dist = new Array(n).fill(-1);\n  const queue = [0];\n  dist[0] = 0;\n  for (let head = 0; head < queue.length; head++) {\n    const at = queue[head];\n    for (const to of [at + hopLengths[at], at - hopLengths[at]]) {\n      if (to < 0 || to >= n || dist[to] >= 0) continue;\n      dist[to] = dist[at] + 1;\n      if (to === n - 1) return dist[to];\n      queue.push(to);\n    }\n  }\n  return -1;\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, breadth-first search on an implicit graph, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "badge-gate-balance",
+      "title": "Badge Gate Balance",
+      "difficulty": "medium",
+      "primaryTopic": "backtracking-trie-bit",
+      "topics": ["backtracking-trie-bit", "arrays-hashing"],
+      "problemType": "function",
+      "shape": "int-array-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 25,
+      "difficultyCalibration": 0,
+      "story": "A conference gate keeps a running checksum of the badge codes it scans by combining each new code into the checksum with bitwise exclusive or. Auditors look for stretches of consecutive scans that leave the checksum exactly where it started, which happens when every bit was flipped an even number of times.",
+      "statement": "You are given the badge codes in the order they were scanned.\n\nA stretch is a run of one or more consecutive scans. A stretch is balanced when the bitwise exclusive or of all its codes is zero.\n\nReturn the length of the longest balanced stretch. If no stretch is balanced, return 0.",
+      "inputFormat": "Every number in the input is one badge code, in the order the badges were scanned. There is at least one scan.",
+      "outputFormat": "Return one integer: the length of the longest run of consecutive scans whose codes combine to zero under exclusive or, or 0.",
+      "functionContract": {
+        "functionName": "longestBalancedStretch",
+        "parameters": [
+          {
+            "name": "badgeCodes",
+            "type": "integer[]",
+            "description": "The code of each badge scanned at the gate, in scanning order."
+          }
+        ],
+        "returnType": "32-bit integer"
+      },
+      "constraints": [
+        "1 <= badgeCodes.length <= 200000",
+        "0 <= every badge code <= 1000000000",
+        "A single code of 0 is a balanced stretch of length 1"
+      ],
+      "examples": [
+        {
+          "input": "5 3 6 2 7",
+          "output": "4",
+          "explanation": "The last four codes combine as 3 xor 6 = 5, then 5 xor 2 = 7, then 7 xor 7 = 0, so that stretch of four is balanced. All five codes together give 5, so four is the longest."
+        },
+        {
+          "input": "16 2 4",
+          "output": "0",
+          "explanation": "Each code sets a different bit, so no run of them can cancel out and no stretch is balanced."
+        },
+        {
+          "input": "8 8",
+          "output": "2",
+          "explanation": "The same code twice cancels itself out, a balanced stretch of two."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 3 6 2 7",
+          "expectedOutput": "4",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "16 2 4",
+          "expectedOutput": "0",
+          "explanation": "Nothing cancels.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "0",
+          "expectedOutput": "1",
+          "explanation": "A single code of zero is balanced on its own.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1000000000 1000000000",
+          "expectedOutput": "2",
+          "explanation": "The largest codes cancel each other.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "6 6 6 6 1",
+          "expectedOutput": "4",
+          "explanation": "The running checksum returns to zero several times. Remembering the latest position of each checksum instead of the first gives 2.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "7 7 7",
+          "expectedOutput": "2",
+          "explanation": "Any two neighbouring sevens cancel; all three do not.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9 4 13 2 2 9 4",
+          "expectedOutput": "5",
+          "explanation": "Overlapping balanced stretches.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Write p[i] for the exclusive or of the first i codes, with p[0] = 0.",
+        "The stretch from position a to position b - 1 is balanced exactly when p[a] equals p[b].",
+        "For each running value remember the first prefix length at which it appeared; the longest stretch ending here starts there."
+      ],
+      "editorial": {
+        "overview": "Exclusive or is its own inverse, so the xor of a stretch is the xor of two prefix values. A balanced stretch is a pair of equal prefix values, and the longest one pairs each value with its earliest appearance.",
+        "bruteForceApproach": "Try every start and extend to the right, keeping a running xor and recording the longest stretch that reaches zero. That is O(n^2) time.",
+        "optimalApproach": "Walk the codes keeping the running xor p. Store in a map the first prefix length at which each value of p appeared, starting with p = 0 at length 0. At prefix length i, if p has been seen at length f, the stretch of length i - f is balanced; keep the largest. Only record p when it is new, so the stored length is always the earliest.",
+        "correctnessProof": "For prefixes of lengths f < i, the xor of codes f to i - 1 equals p[f] xor p[i], which is zero exactly when p[f] = p[i]. For a fixed end i, the longest balanced stretch ending there starts at the smallest f with p[f] = p[i], which is the first appearance the map stores. Taking the maximum over all i considers every possible end, so it is the longest balanced stretch.",
+        "timeComplexity": "O(n) on average, one map operation per code.",
+        "spaceComplexity": "O(n) for the map of first appearances."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "typedef struct { long long value; int index; } PrefixEntry;\nstatic int byValueThenIndex(const void *a, const void *b) {\n  const PrefixEntry *x = (const PrefixEntry *)a, *y = (const PrefixEntry *)b;\n  if (x->value != y->value) return x->value < y->value ? -1 : 1;\n  return x->index - y->index;\n}\nlong long longestBalancedStretch(const long long *badgeCodes, int n) {\n  PrefixEntry *p = (PrefixEntry *)malloc(sizeof(PrefixEntry) * (size_t)(n + 1));\n  long long running = 0;\n  p[0].value = 0; p[0].index = 0;\n  for (int i = 0; i < n; i++) {\n    running ^= badgeCodes[i];\n    p[i + 1].value = running;\n    p[i + 1].index = i + 1;\n  }\n  qsort(p, (size_t)(n + 1), sizeof(PrefixEntry), byValueThenIndex);\n  long long best = 0;\n  int start = 0;\n  for (int i = 1; i <= n; i++) {\n    if (p[i].value != p[start].value) start = i;\n    else if (p[i].index - p[start].index > best) best = p[i].index - p[start].index;\n  }\n  free(p);\n  return best;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long longestBalancedStretch(const vector<long long>& badgeCodes) {\n  unordered_map<long long, int> first;\n  first.reserve(badgeCodes.size() * 2 + 1);\n  first[0] = 0;\n  long long running = 0, best = 0;\n  for (int i = 0; i < (int)badgeCodes.size(); i++) {\n    running ^= badgeCodes[i];\n    auto it = first.find(running);\n    if (it == first.end()) first[running] = i + 1;\n    else best = max(best, (long long)(i + 1 - it->second));\n  }\n  return best;\n}"
+        },
+        "java": {
+          "referenceSolution": "static long longestBalancedStretch(long[] badgeCodes) {\n  HashMap<Long, Integer> first = new HashMap<>();\n  first.put(0L, 0);\n  long running = 0, best = 0;\n  for (int i = 0; i < badgeCodes.length; i++) {\n    running ^= badgeCodes[i];\n    Integer seen = first.get(running);\n    if (seen == null) first.put(running, i + 1);\n    else best = Math.max(best, i + 1 - seen);\n  }\n  return best;\n}"
+        },
+        "python3": {
+          "referenceSolution": "def longestBalancedStretch(badgeCodes: list[int]) -> int:\n    first = {0: 0}\n    running = 0\n    best = 0\n    for i, code in enumerate(badgeCodes, start=1):\n        running ^= code\n        if running in first:\n            best = max(best, i - first[running])\n        else:\n            first[running] = i\n    return best"
+        },
+        "javascript": {
+          "referenceSolution": "function longestBalancedStretch(badgeCodes) {\n  const first = new Map([[0, 0]]);\n  let running = 0;\n  let best = 0;\n  for (let i = 0; i < badgeCodes.length; i++) {\n    running ^= badgeCodes[i];\n    const seen = first.get(running);\n    if (seen === undefined) first.set(running, i + 1);\n    else best = Math.max(best, i + 1 - seen);\n  }\n  return best;\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, prefix exclusive-or values with first occurrences in a hash map, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    },
+    {
+      "slug": "festival-banner-cuts",
+      "title": "Festival Banner Cuts",
+      "difficulty": "hard",
+      "primaryTopic": "dynamic-programming",
+      "topics": ["dynamic-programming", "two-pointers-sliding-window"],
+      "problemType": "function",
+      "shape": "int-array-int-to-int",
+      "version": 1,
+      "status": "needs_review",
+      "estimatedMinutes": 40,
+      "difficultyCalibration": 0,
+      "story": "A long festival banner is printed as a strip of panels and must be cut into pieces before it is hung, one piece per frame. Cuts can only be made at the seams between panels, and a piece wider than a frame cannot be hung. The organisers want to know how many different ways there are to cut it.",
+      "statement": "You are given the frame width, followed by the widths of the panels in order along the banner.\n\nA cutting plan chooses some of the seams between neighbouring panels, possibly none, and cuts there. Every resulting piece is a run of neighbouring panels, and its width is the total of their widths. A plan is valid when every piece is at most the frame width.\n\nReturn the number of valid cutting plans, modulo 1000000007. Two plans differ when they cut at a different set of seams.",
+      "inputFormat": "The first number is the frame width. Every number after it is the width of one panel, in order along the banner. There is at least one panel.",
+      "outputFormat": "Return one integer: the number of valid cutting plans, modulo 1000000007.",
+      "functionContract": {
+        "functionName": "cutPlans",
+        "parameters": [
+          {
+            "name": "panelWidths",
+            "type": "integer[]",
+            "description": "The width of each printed panel, in order along the banner."
+          },
+          {
+            "name": "frameWidth",
+            "type": "integer",
+            "description": "The widest stretch of banner a single hanging frame can hold."
+          }
+        ],
+        "returnType": "32-bit integer"
+      },
+      "constraints": [
+        "1 <= panelWidths.length <= 200000",
+        "1 <= every panel width <= 1000000000",
+        "1 <= frameWidth <= 200000000000000",
+        "Return the count modulo 1000000007; when a single panel is wider than a frame the answer is 0"
+      ],
+      "examples": [
+        {
+          "input": "5 2 3 1",
+          "output": "3",
+          "explanation": "Valid plans are 2 | 3 | 1, then 2 3 | 1 (width 5), then 2 | 3 1 (width 4). Leaving the banner whole gives width 6, which is too wide. Three plans."
+        },
+        {
+          "input": "4 5 1",
+          "output": "0",
+          "explanation": "The first panel alone is 5 wide and no plan can split a panel, so nothing can be hung."
+        },
+        {
+          "input": "10 1 1",
+          "output": "2",
+          "explanation": "Either cut at the single seam or do not. Both pieces fit in either case, so there are two plans."
+        }
+      ],
+      "testCases": [
+        {
+          "visibility": "sample",
+          "input": "5 2 3 1",
+          "expectedOutput": "3",
+          "explanation": "The worked example.",
+          "coverage": "sample",
+          "isPerformance": false
+        },
+        {
+          "visibility": "visible",
+          "input": "4 5 1",
+          "expectedOutput": "0",
+          "explanation": "A panel wider than a frame.",
+          "coverage": "typical",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "1 1",
+          "expectedOutput": "1",
+          "explanation": "One panel exactly a frame wide.",
+          "coverage": "minimum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "200000000000000 1000000000 1000000000 1000000000",
+          "expectedOutput": "4",
+          "explanation": "The largest frame: every one of the four seam choices is valid.",
+          "coverage": "maximum",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "64 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1",
+          "expectedOutput": "291172004",
+          "explanation": "Every one of the 2^63 plans is valid, so a count kept without the modulus overflows.",
+          "coverage": "adversarial",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 1 1 1 1",
+          "expectedOutput": "5",
+          "explanation": "Equal panels: the pieces hold one or two panels each.",
+          "coverage": "duplicates",
+          "isPerformance": false
+        },
+        {
+          "visibility": "hidden",
+          "input": "9 4 2 5 1 3 6 2",
+          "expectedOutput": "28",
+          "explanation": "The window of usable cut points slides along the banner.",
+          "coverage": "typical",
+          "isPerformance": false
+        }
+      ],
+      "timeLimitMs": 2000,
+      "memoryLimitKb": 262144,
+      "hints": [
+        "Let ways[i] be the number of valid plans for the first i panels, with ways[0] = 1.",
+        "The last piece of a plan for the first i panels starts at some seam j; it is valid when panels j to i - 1 fit in a frame.",
+        "Widths are positive, so the valid starts for the last piece form a contiguous range that only moves forward as i grows.",
+        "Keep a running sum of ways over that range and drop terms from the left as the range shrinks."
+      ],
+      "editorial": {
+        "overview": "Counting plans splits naturally by where the last piece starts, which gives a prefix recurrence. Because widths are positive, the starts allowed for the last piece form a sliding window, so the recurrence can be evaluated in linear time.",
+        "bruteForceApproach": "Enumerate all 2^(n - 1) sets of seams and check each plan. That is exponential. The direct recurrence, summing ways[j] over every valid j for each i, is O(n^2), still too slow for two hundred thousand panels.",
+        "optimalApproach": "Define ways[0] = 1 and ways[i] = sum of ways[j] over all j < i where panels j to i - 1 fit in a frame. Keep a left pointer L and the width of panels L to i - 1. For each i, add panel i - 1 to the width and the term ways[i - 1] to a running sum, then, while the width exceeds the frame, subtract panel L from the width and ways[L] from the sum and advance L. The sum is now ways[i]. All sums are taken modulo 1000000007, and the answer is ways[n].",
+        "correctnessProof": "Every valid plan for the first i panels has a last piece covering some panels j to i - 1 that fits in a frame, preceded by a valid plan for the first j panels, and distinct choices of j or of the earlier plan give distinct plans; so the recurrence is exact. Since widths are positive, if panels j to i - 1 fit then so do panels j' to i - 1 for every j' > j, so the valid j for a given i are exactly L, L + 1, ..., i - 1 for the smallest valid L, and L never decreases as i increases. The running sum therefore always equals the sum of ways[j] over exactly the valid j.",
+        "timeComplexity": "O(n), every panel joins and leaves the window once.",
+        "spaceComplexity": "O(n) for the ways array."
+      },
+      "languages": {
+        "c11": {
+          "referenceSolution": "long long cutPlans(const long long *panelWidths, int n, long long frameWidth) {\n  const long long MOD = 1000000007LL;\n  long long *ways = (long long *)malloc(sizeof(long long) * (size_t)(n + 1));\n  ways[0] = 1;\n  long long width = 0, sum = 0;\n  int left = 0;\n  for (int i = 1; i <= n; i++) {\n    width += panelWidths[i - 1];\n    sum = (sum + ways[i - 1]) % MOD;\n    while (left < i && width > frameWidth) {\n      width -= panelWidths[left];\n      sum = (sum - ways[left] + MOD) % MOD;\n      left++;\n    }\n    ways[i] = sum;\n  }\n  long long answer = ways[n];\n  free(ways);\n  return answer;\n}"
+        },
+        "cpp17": {
+          "referenceSolution": "long long cutPlans(const vector<long long>& panelWidths, long long frameWidth) {\n  const long long MOD = 1000000007LL;\n  int n = (int)panelWidths.size();\n  vector<long long> ways(n + 1, 0);\n  ways[0] = 1;\n  long long width = 0, sum = 0;\n  int left = 0;\n  for (int i = 1; i <= n; i++) {\n    width += panelWidths[i - 1];\n    sum = (sum + ways[i - 1]) % MOD;\n    while (left < i && width > frameWidth) {\n      width -= panelWidths[left];\n      sum = (sum - ways[left] + MOD) % MOD;\n      left++;\n    }\n    ways[i] = sum;\n  }\n  return ways[n];\n}"
+        },
+        "java": {
+          "referenceSolution": "static long cutPlans(long[] panelWidths, long frameWidth) {\n  final long MOD = 1000000007L;\n  int n = panelWidths.length;\n  long[] ways = new long[n + 1];\n  ways[0] = 1;\n  long width = 0, sum = 0;\n  int left = 0;\n  for (int i = 1; i <= n; i++) {\n    width += panelWidths[i - 1];\n    sum = (sum + ways[i - 1]) % MOD;\n    while (left < i && width > frameWidth) {\n      width -= panelWidths[left];\n      sum = (sum - ways[left] + MOD) % MOD;\n      left++;\n    }\n    ways[i] = sum;\n  }\n  return ways[n];\n}"
+        },
+        "python3": {
+          "referenceSolution": "def cutPlans(panelWidths: list[int], frameWidth: int) -> int:\n    MOD = 1000000007\n    n = len(panelWidths)\n    ways = [0] * (n + 1)\n    ways[0] = 1\n    width = 0\n    total = 0\n    left = 0\n    for i in range(1, n + 1):\n        width += panelWidths[i - 1]\n        total = (total + ways[i - 1]) % MOD\n        while left < i and width > frameWidth:\n            width -= panelWidths[left]\n            total = (total - ways[left]) % MOD\n            left += 1\n        ways[i] = total\n    return ways[n]"
+        },
+        "javascript": {
+          "referenceSolution": "function cutPlans(panelWidths, frameWidth) {\n  const MOD = 1000000007;\n  const n = panelWidths.length;\n  const ways = new Array(n + 1).fill(0);\n  ways[0] = 1;\n  let width = 0;\n  let sum = 0;\n  let left = 0;\n  for (let i = 1; i <= n; i++) {\n    width += panelWidths[i - 1];\n    sum = (sum + ways[i - 1]) % MOD;\n    while (left < i && width > frameWidth) {\n      width -= panelWidths[left];\n      sum = (sum - ways[left] + MOD) % MOD;\n      left++;\n    }\n    ways[i] = sum;\n  }\n  return ways[n];\n}"
+        }
+      },
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Content License",
+        "licenseUrl": null,
+        "author": "Vikram Yadav",
+        "note": "Written for batch 2 of the original library. The story, statement, examples, tests, hints, editorial and reference solutions are Quadrantcode's own, and every example value was invented for this record. The underlying technique, a prefix-count recurrence evaluated with a sliding-window sum, is standard and is named openly in the editorial."
+      },
+      "companies": []
+    }
+  ]
+}
