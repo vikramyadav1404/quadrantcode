@@ -115,7 +115,10 @@
     "vitest": "^3.2.0"
   },
   "overrides": {
-    "dompurify": "3.4.14",
-    "postcss": "8.5.26"
+    "dompurify": "3.4.17",
+    "postcss": "8.5.26",
+    "@vercel/cli-config": {
+      "zod": "^4.6.6"
+    }
   }
 }
