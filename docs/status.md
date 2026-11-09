@@ -453,7 +453,18 @@ both flag states and that the two differ.
 `assertFeatureEnabled` at the action or service, which is the actual gate. Hiding
 a button is not a gate.
 
-### A forgotten session keeps writing
+### A forgotten session keeps writing — fixed on `auto-pause-hidden-tab`
+
+**Fixed (2026-11-09), not yet deployed.** The heartbeat now lives in
+`components/session/useSessionControls.ts` and skips every beat while
+`document.visibilityState` is `hidden`, beating once when the tab comes back
+(`lib/session/heartbeat-policy.ts`). After five silent minutes the existing
+idle autopause pauses the sitting, stamped at the last beat. `heartbeat()` now
+applies that autopause (and the six-hour sweep) before refreshing
+`last_heartbeat_at`, so the first beat after a long absence answers `paused`
+instead of crediting the gap. Proven by `tests/session/lifecycle.test.ts`
+(late heartbeat cases) and `e2e/session-hidden-tab.spec.ts`. The text below is
+the risk as it stood before.
 
 `components/session/TimerBar.tsx:81` posts to `/api/session/heartbeat` every 30
 seconds while a session is `active`. There is **no `visibilitychange` handler** —
