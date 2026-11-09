@@ -16,6 +16,11 @@ import {
   validateNativeProblemReferencesAction,
 } from './actions';
 
+// "Validate on Judge0" runs inside this route's function: every language
+// against every test. Without this it falls back to the project default, which
+// was 10s and cut validation off with a 504.
+export const maxDuration = 300;
+
 export default async function NativeProblemAdminPage({
   params,
 }: {
