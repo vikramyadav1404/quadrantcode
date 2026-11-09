@@ -11,11 +11,15 @@ write-up and are kept as history.
   storage unavailable.
 - **Execution:** Judge0 v1.13.1 on the Azure VM, reached over HTTPS with token
   auth.
-- **Catalog:** 100 entries — 10 native originals (`data/native-problems/batch-02.json`)
-  and 90 external-link problems, all `published`. Each native problem was sent to
-  review, validated on Judge0 (5 languages × every test, ~60s each) and published
-  one at a time; none were bulk-promoted. The generated D27 library is not in
-  this catalog.
+- **Catalog:** the public `/problems` list pages through 403 published entries,
+  26 of them native originals — 16 from `batch-01.json`, published earlier, and
+  the 10 from `batch-02.json`, each sent to review, validated on Judge0
+  (5 languages × every test, ~60s each) and published one at a time on 9 Nov.
+  The rest are external links (Codeforces and LeetCode). The generated D27
+  library is not in this catalog. `/admin/problems` caps its list at 100 rows,
+  so it cannot be used to count the catalog.
+- **Rate limiting is down:** the configured Upstash host no longer resolves, so
+  every rate-limited route returns 500. See the launch checklist.
 - **Vercel Functions:** Fluid Compute enabled on 9 Nov. Before that the project
   default was a 10s function limit, and "Validate on Judge0" died with a 504 at
   10.1s.
