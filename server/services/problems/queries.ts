@@ -131,6 +131,11 @@ export async function listProblems({
 
   if (filters.difficulty) conditions.push(eq(problems.difficulty, filters.difficulty));
   if (filters.platform) conditions.push(eq(problems.platform, filters.platform));
+  if (filters.source) {
+    conditions.push(
+      eq(problems.sourceType, filters.source === 'original' ? 'original' : 'external_link'),
+    );
+  }
   if (filters.topic) conditions.push(hasTag('topic', filters.topic));
   if (filters.pattern) conditions.push(hasTag('pattern', filters.pattern));
 
@@ -201,6 +206,64 @@ export async function listProblems({
     rows: decorated,
     nextCursor:
       hasMore && last ? encodeCursor({ createdAt: last.createdAt, id: last.id }) : null,
+  };
+}
+
+/**
+ * The public catalog's default view: our own problems first, then the links.
+ *
+ * Not an `ORDER BY source_type` on the main query. That order has no index
+ * behind it, and `tests/problems/plans.test.ts` pins the plan of the one that
+ * does. Instead the listing runs in two phases, each of them the ordinary
+ * `listProblems` query with a `source` filter, and the phase rides in the
+ * cursor:
+ *
+ *   `o.<token>`  still inside the originals
+ *   `e.<token>`  inside the external links
+ *   `e.`         the external links, from their first row
+ *
+ * The page that exhausts the originals is topped up from the externals, so no
+ * page is short except the last. `.` is outside the base64url alphabet, so a
+ * prefixed token can never be mistaken for a bare one. A bare token — a link
+ * someone kept from before this existed — still pages the plain listing it was
+ * issued by.
+ *
+ * Applies only with no `source` chosen: a reader who picked one asked for that
+ * list, in the plain order.
+ */
+export async function listProblemsOriginalsFirst(options: ListOptions): Promise<ProblemPage> {
+  const { filters } = options;
+  if (filters.source) return listProblems(options);
+
+  const token = filters.cursor;
+  const phased = token === undefined || token.startsWith('o.') || token.startsWith('e.');
+  if (!phased) return listProblems(options);
+
+  const run = (source: 'original' | 'external', cursor: string | undefined, limit: number) =>
+    listProblems({
+      ...options,
+      filters: { ...filters, source, cursor: cursor || undefined, limit },
+    });
+
+  if (token?.startsWith('e.')) {
+    const page = await run('external', token.slice(2), filters.limit);
+    return { ...page, nextCursor: page.nextCursor ? `e.${page.nextCursor}` : null };
+  }
+
+  const originals = await run('original', token?.slice(2), filters.limit);
+  if (originals.nextCursor) return { ...originals, nextCursor: `o.${originals.nextCursor}` };
+
+  const room = filters.limit - originals.rows.length;
+  if (room === 0) {
+    // A full page of originals and none left: is there an external page to come?
+    const probe = await run('external', undefined, 1);
+    return { rows: originals.rows, nextCursor: probe.rows.length > 0 ? 'e.' : null };
+  }
+
+  const externals = await run('external', undefined, room);
+  return {
+    rows: [...originals.rows, ...externals.rows],
+    nextCursor: externals.nextCursor ? `e.${externals.nextCursor}` : null,
   };
 }
 
