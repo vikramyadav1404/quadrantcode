@@ -18,8 +18,11 @@ write-up and are kept as history.
   The rest are external links (Codeforces and LeetCode). The generated D27
   library is not in this catalog. `/admin/problems` caps its list at 100 rows,
   so it cannot be used to count the catalog.
-- **Rate limiting is down:** the configured Upstash host no longer resolves, so
-  every rate-limited route returns 500. See the launch checklist.
+- **Rate limiting:** the old Upstash database had disappeared (its host no
+  longer resolved), so every rate-limited route returned 500. Replaced with a
+  new free database in `ap-southeast-1`; the over-limit test now returns 429.
+- **Sign-in:** GitHub, and email links sent through Gmail SMTP (#64). A real
+  link was delivered and used on 9 Nov. Resend is not configured.
 - **Vercel Functions:** Fluid Compute enabled on 9 Nov. Before that the project
   default was a 10s function limit, and "Validate on Judge0" died with a 504 at
   10.1s.
