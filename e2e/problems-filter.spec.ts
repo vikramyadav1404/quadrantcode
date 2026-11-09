@@ -125,3 +125,32 @@ test('a platform alone, shown by its own name and kept after Apply', async ({ pa
   // Preselected on the result page, so the next Apply does not drop it.
   await expect(page.getByLabel('Filter by platform')).toHaveValue('codeforces');
 });
+
+test('a source alone: Original hides the links, and the choice is kept', async ({ page }) => {
+  await sql`
+    INSERT INTO problems (slug, title, source_type, statement, difficulty, status, estimated_minutes, created_at)
+    VALUES ('filt-orig-one', 'Filter Original One', 'original', 'Our own statement.',
+            'medium', 'published', 30, now() - interval '1 day')
+  `;
+
+  // Default view: ours listed before the links, even though it is not newer.
+  await page.goto('/problems?search=Filter');
+  await expect(page.getByRole('link', { name: 'Filter Original One' })).toBeVisible();
+  const titles = await page.getByRole('table').getByRole('link').allTextContents();
+  expect(titles[0]).toContain('Filter Original One');
+
+  await page.goto('/problems');
+  await page.getByLabel('Filter by source').selectOption('original');
+  await page.getByRole('button', { name: 'Apply' }).click();
+
+  await expect(page).toHaveURL(/source=original/);
+  await expectNoErrorBoundary(page);
+  await expect(page.getByRole('link', { name: 'Filter Original One' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Filter Easy One' })).toHaveCount(0);
+  await expect(page.getByLabel('Filter by source')).toHaveValue('original');
+
+  await page.getByLabel('Filter by source').selectOption('external');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByRole('link', { name: 'Filter Easy One' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Filter Original One' })).toHaveCount(0);
+});

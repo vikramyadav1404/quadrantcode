@@ -26,12 +26,22 @@
       signed-in GETs to `/api/ingest/export` returned 200 × 20, then 429 × 2 —
       exactly `exportPerUser` (20/hour).)_
 - [ ] Sentry receives a symbolicated preview error and an alert reaches a person.
+      _(2026-11-09: two blockers found. (1) The Production build log of `2b2c598`
+      says `[@sentry/nextjs] Warning: No auth token provided`, so no source maps
+      were uploaded: `SENTRY_AUTH_TOKEN` exists in Vercel but is empty. (2) The
+      CSP allowed only `*.ingest.sentry.io`, and the browser DSN is
+      `o….ingest.us.sentry.io`, so browser events were refused — fixed on branch
+      `auto-pause-hidden-tab` (`lib/security/connect-src.ts`). No alert rule
+      exists yet.)_
 - [ ] Support mailbox is monitored.
 - [x] Optional phone, execution and avatar features stay off until their real
       provider tests pass. _(2026-11-09: execution is on and passed — Judge0
       reference validation for 10 problems × 5 languages, and a native Submit
       7/7. Phone is off: no `FEATURE_PHONE_OTP` in Vercel. Avatar is off:
-      `/api/health/ready` reports avatar storage unavailable.)_
+      `/api/health/ready` reports avatar storage unavailable — the five `S3_*`
+      variables exist in Vercel but are empty. Turning it on also needs the
+      bucket's CORS to allow `PUT` from the site, and the CSP now admits the
+      `S3_ENDPOINT` origin at build time.)_
 - [ ] Migrations 0020–0024 are applied and `npm run native:import` reports
       exactly 100 problems and 20 papers. _(Obsolete as worded: D27 retired the
       generated 100-problem library and the 20 papers. The live native library

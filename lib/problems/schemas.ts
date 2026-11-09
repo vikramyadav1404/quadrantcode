@@ -18,6 +18,9 @@ import { z } from 'zod';
 export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 export const PROBLEM_STATUSES = ['draft', 'review', 'tested', 'published', 'archived'] as const;
 export const TAG_TYPES = ['topic', 'pattern', 'company_style'] as const;
+/** The catalog's source filter. `external` is every `external_link` row. */
+export const CATALOG_SOURCES = ['original', 'external'] as const;
+export type CatalogSource = (typeof CATALOG_SOURCES)[number];
 export const USER_PROBLEM_STATUSES = [
   'not_started',
   'in_progress',
@@ -169,6 +172,8 @@ export const listFiltersSchema = z.object({
   topic: blankToAbsent(tagValue),
   pattern: blankToAbsent(tagValue),
   platform: blankToAbsent(z.string().min(1).max(64)),
+  /** Our own problems, or links out to another platform. Absent means both. */
+  source: blankToAbsent(z.enum(CATALOG_SOURCES)),
   /** The signed-in user's own solve status. Ignored when anonymous. */
   userStatus: blankToAbsent(z.enum(USER_PROBLEM_STATUSES)),
   search: blankToAbsent(z.string().trim().min(1).max(200)),

@@ -244,7 +244,9 @@ test('/problems traverses in order, with no trap and a ring at every stop', asyn
   await expect(page.getByRole('heading', { name: 'Problems' })).toBeVisible();
   await resetFocus(page);
 
-  const stops = await walk(page, 16);
+  // 18, not 16: the source filter added a stop to the form, and the first row
+  // has to be inside the walk for the reachability check to mean anything.
+  const stops = await walk(page, 18);
 
   // ORDER: the skip link precedes the navigation, which precedes the content.
   expect(stops[0]?.element, 'skip link should be first').toContain('a');

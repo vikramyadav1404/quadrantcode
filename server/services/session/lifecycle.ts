@@ -252,12 +252,30 @@ async function transition(
  * A heartbeat for a session that is not active is ignored rather than rejected:
  * a client that pauses in one tab while another is mid-heartbeat is racing
  * itself, not doing something wrong.
+ *
+ * **A late heartbeat does not revive an idle sitting.** The client stops
+ * beating while its tab is hidden (`shouldSendHeartbeat`), so the first beat
+ * after a long absence arrives with `last_heartbeat_at` well in the past.
+ * Refreshing it here would silently credit the whole gap as active time — the
+ * exact thing the idle autopause exists to prevent — because the only other
+ * place that applies it is the page-load path. So the same two sweeps run
+ * first, and the reply says `paused` (or the sitting is gone) instead.
  */
 export async function heartbeat(
   db: Database,
   input: Actor & { sessionId: string },
 ): Promise<SessionView> {
   const row = await loadOwned(db, input.sessionId, input.userId);
+
+  if (row.status === 'active' || row.status === 'paused') {
+    if (await abandonIfStale(db, { ...row, timeZone: input.timeZone }, input.now)) {
+      return toView(db, await loadOwned(db, input.sessionId, input.userId), input.now);
+    }
+  }
+
+  if (row.status === 'active' && (await applyIdleAutopause(db, row, input.now))) {
+    return toView(db, await loadOwned(db, input.sessionId, input.userId), input.now);
+  }
 
   if (row.status === 'active') {
     await db
