@@ -46,7 +46,9 @@ test.beforeEach(async ({ context, baseURL }) => {
       ('filt-easy-one', 'Filter Easy One', 'external_link', 'leetcode',
        'https://leetcode.com/problems/filt-easy-one/', 'easy', 'published', 20),
       ('filt-hard-one', 'Filter Hard One', 'external_link', 'leetcode',
-       'https://leetcode.com/problems/filt-hard-one/', 'hard', 'published', 50)
+       'https://leetcode.com/problems/filt-hard-one/', 'hard', 'published', 50),
+      ('filt-cf-one', 'Filter Codeforces One', 'external_link', 'codeforces',
+       'https://codeforces.com/problemset/problem/99999/A', 'easy', 'published', 20)
   `;
 });
 
@@ -106,4 +108,20 @@ test('a whitespace-only search behaves as no search', async ({ page }) => {
 
   await expectNoErrorBoundary(page);
   await expect(page.getByRole('link', { name: 'Filter Easy One' })).toBeVisible();
+});
+
+test('a platform alone, shown by its own name and kept after Apply', async ({ page }) => {
+  await page.goto('/problems');
+  const platform = page.getByLabel('Filter by platform');
+  await expect(platform.locator('option', { hasText: 'Codeforces' })).toHaveCount(1);
+  await platform.selectOption('codeforces');
+  await page.getByRole('button', { name: 'Apply' }).click();
+
+  await expect(page).toHaveURL(/platform=codeforces/);
+  await expectNoErrorBoundary(page);
+  await expect(page.getByRole('link', { name: 'Filter Codeforces One' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Filter Easy One' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Filter Hard One' })).toHaveCount(0);
+  // Preselected on the result page, so the next Apply does not drop it.
+  await expect(page.getByLabel('Filter by platform')).toHaveValue('codeforces');
 });
