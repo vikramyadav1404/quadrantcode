@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { resolveDeploymentOrigin } from '@/lib/deployment/origin';
 import { previewDatabaseProblems } from '@/lib/deployment/preview-database';
 import { __testing } from '@/server/env';
+import { resolveEmailDelivery } from '@/server/services/auth/email-delivery';
 
 const env = __testing.parseServerEnv(process.env);
 const issues: string[] = [];
@@ -34,10 +35,10 @@ if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
   issues.push('Upstash REST URL and token are required for distributed auth rate limiting');
 }
 
-const email = Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
+const email = resolveEmailDelivery(env) !== null;
 const github = Boolean(env.GITHUB_ID && env.GITHUB_SECRET);
 if (!email && !github)
-  issues.push('configure at least one real sign-in provider (Resend or GitHub)');
+  issues.push('configure at least one real sign-in provider (Resend, Gmail SMTP or GitHub)');
 
 if (process.env.FEATURE_PHONE_OTP === 'true' && !env.MSG91_AUTH_KEY) {
   issues.push('MSG91 credentials are required while FEATURE_PHONE_OTP=true');
