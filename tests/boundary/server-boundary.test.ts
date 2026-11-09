@@ -180,6 +180,7 @@ describe('server boundary · build-time guard is present', () => {
       'DATABASE_URL',
       'AUTH_SECRET',
       'RESEND_API_KEY',
+      'GMAIL_APP_PASSWORD',
       'MSG91_AUTH_KEY',
       'UPSTASH_REDIS_REST_TOKEN',
     ]) {
