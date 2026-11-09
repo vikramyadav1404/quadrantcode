@@ -96,10 +96,97 @@ function checkConfigured(
     : { name, state: 'not_configured', latencyMs: null, detail: absentMeans };
 }
 
+const NO_REDIS =
+  'no Redis — rate limiting is per-process and would not limit anything on serverless (F0.3)';
+
+/**
+ * Why a fetch failed, WITHOUT the error's message.
+ *
+ * On 2026-11-09 a token pasted with a stray quote made `Headers.append` throw,
+ * and its message quoted the header value — the Upstash token — into the
+ * runtime logs. Anything shown here must never echo an error message, only a
+ * fixed phrase or a system error code.
+ */
+function describeFetchFailure(error: unknown, timeoutMs: number): string {
+  if (error instanceof Error && error.name === 'AbortError') {
+    return `no answer within ${timeoutMs}ms`;
+  }
+  const code = (error as { cause?: { code?: unknown } } | null)?.cause?.code;
+  if (typeof code === 'string' && /^[A-Z_]+$/.test(code)) return `could not connect (${code})`;
+  if (error instanceof TypeError) {
+    return 'the request could not be built — check the token for quotes, spaces or line breaks';
+  }
+  return 'the request failed';
+}
+
+/**
+ * A real round trip to Upstash: `PING` over its REST API.
+ *
+ * Admin-only on purpose (see `checkHealth`). The public health endpoints keep
+ * the configuration-only check, so an anonymous caller cannot turn them into a
+ * stream of Redis commands. On 2026-11-09 the configuration-only check said
+ * `up` for a database that had been deleted, while every rate-limited route
+ * returned 500; this is what would have shown it.
+ */
+export async function probeRedis(
+  url: string | undefined,
+  token: string | undefined,
+  options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<DependencyHealth> {
+  if (!url || !token) {
+    return { name: 'redis', state: 'not_configured', latencyMs: null, detail: NO_REDIS };
+  }
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const timeoutMs = options.timeoutMs ?? 2_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const started = Date.now();
+
+  try {
+    const response = await fetchImpl(`${url.replace(/\/+$/, '')}/ping`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    const latencyMs = Date.now() - started;
+    if (!response.ok) {
+      return {
+        name: 'redis',
+        state: 'down',
+        latencyMs,
+        detail: `Upstash answered HTTP ${response.status} to PING`,
+      };
+    }
+    const body = (await response.json().catch(() => null)) as { result?: unknown } | null;
+    return body?.result === 'PONG'
+      ? { name: 'redis', state: 'up', latencyMs, detail: 'PING answered PONG' }
+      : { name: 'redis', state: 'down', latencyMs, detail: 'unexpected reply to PING' };
+  } catch (error) {
+    return {
+      name: 'redis',
+      state: 'down',
+      latencyMs: Date.now() - started,
+      detail: describeFetchFailure(error, timeoutMs),
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export type HealthOptions = {
+  /**
+   * Call Upstash instead of only checking it is configured. Only the admin
+   * dashboard sets this; `/api/health` and `/api/health/ready` are public.
+   */
+  probeRedis?: boolean;
+  fetchImpl?: typeof fetch;
+};
+
 export async function checkHealth(
   db: Database,
   env: Record<string, string | undefined>,
   now: Date,
+  options: HealthOptions = {},
 ): Promise<HealthReport> {
   const dependencies: DependencyHealth[] = [
     await checkDatabase(db),
@@ -109,11 +196,11 @@ export async function checkHealth(
       env['EXECUTION_BACKEND'],
       'no EXECUTION_BACKEND — code execution is unavailable; production never invents a verdict',
     ),
-    checkConfigured(
-      'redis',
-      env['UPSTASH_REDIS_REST_URL'],
-      'no Redis — rate limiting is per-process and would not limit anything on serverless (F0.3)',
-    ),
+    options.probeRedis
+      ? await probeRedis(env['UPSTASH_REDIS_REST_URL'], env['UPSTASH_REDIS_REST_TOKEN'], {
+          ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+        })
+      : checkConfigured('redis', env['UPSTASH_REDIS_REST_URL'], NO_REDIS),
     checkConfigured(
       'email',
       resolveEmailDelivery(env) ?? undefined,
@@ -135,7 +222,7 @@ export async function checkHealth(
     (entry) => entry.name === 'postgres' && entry.state === 'down',
   )
     ? 'down'
-    : dependencies.some((entry) => entry.state === 'not_configured')
+    : dependencies.some((entry) => entry.state !== 'up')
       ? 'degraded'
       : 'ok';
 
