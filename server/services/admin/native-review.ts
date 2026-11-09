@@ -405,10 +405,20 @@ export async function validateNativeProblemReferences(
       .orderBy(asc(testCases.ordinal)),
   ]);
   const runtimeVersions: Record<string, string> = {};
-  const validations: { id: string; hash: string; runtimeVersion: string }[] = [];
-  for (const language of EXECUTION_LANGUAGES) {
+  // Every template must exist before anything is sent to the provider.
+  const templateFor = (language: (typeof EXECUTION_LANGUAGES)[number]) => {
     const template = templates.find((entry) => entry.language === language);
     if (!template) throw new Error(`Missing ${language} template.`);
+    return template;
+  };
+  EXECUTION_LANGUAGES.forEach(templateFor);
+
+  // Languages run concurrently; each language's tests stay sequential. Run one
+  // after another, 5 languages × N tests took ~60s and outgrew the function
+  // limit. Promise.all keeps EXECUTION_LANGUAGES order and rejects on the first
+  // failure, so the error messages are unchanged.
+  const validateLanguage = async (language: (typeof EXECUTION_LANGUAGES)[number]) => {
+    const template = templateFor(language);
     // `language` matters: Python needs its future imports hoisted so PEP 585
     // annotations survive 3.8. Omitting it here would validate a DIFFERENT
     // source from the one a user's submission runs through.
@@ -447,8 +457,9 @@ export async function validateNativeProblemReferences(
       runtimeVersion ||= result.compilerRuntimeVersion ?? 'provider did not report version';
     }
     runtimeVersions[language] = runtimeVersion;
-    validations.push({ id: template.id, hash, runtimeVersion });
-  }
+    return { id: template.id, hash, runtimeVersion };
+  };
+  const validations = await Promise.all(EXECUTION_LANGUAGES.map(validateLanguage));
 
   const validatedAt = new Date();
   await db.transaction(async (tx) => {
