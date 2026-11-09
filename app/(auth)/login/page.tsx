@@ -31,6 +31,7 @@ import { redirect } from 'next/navigation';
 import { resolveLoginView } from '@/lib/auth/login-gate';
 import { isFeatureEnabled } from '@/lib/flags';
 import { getServerEnv } from '@/server/env';
+import { resolveEmailDelivery } from '@/server/services/auth/email-delivery';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { LoginPanel } from './LoginPanel';
 import { signOutAndContinueWithGitHubAction } from './actions';
@@ -97,7 +98,7 @@ export default async function LoginPage({
 
   // Both halves, because one without the other is a provider Auth.js refuses.
   const github = Boolean(env.GITHUB_ID && env.GITHUB_SECRET);
-  const email = Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
+  const email = resolveEmailDelivery(env) !== null;
   const phone = Boolean(
     isFeatureEnabled('FEATURE_PHONE_OTP') &&
     ((env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID) ||
