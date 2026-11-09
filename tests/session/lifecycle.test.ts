@@ -306,6 +306,50 @@ suite('F1.4 · solve-session lifecycle', () => {
       const after = await heartbeat(ctx.db, { ...actor(at(6)), sessionId: session.id });
       expect(after.status).toBe('paused');
     });
+
+    it('A LATE HEARTBEAT AFTER A HIDDEN TAB DOES NOT CREDIT THE GAP', async () => {
+      /*
+       * The client stops beating while its tab is hidden. The tab was hidden
+       * at minute 4 and came back at minute 40; its first beat must not turn
+       * those 36 minutes into active time. Before, `heartbeat` refreshed
+       * `last_heartbeat_at` without looking at it, and the gap vanished.
+       */
+      const session = await startSession(ctx.db, { ...actor(START), problemId });
+      await heartbeat(ctx.db, { ...actor(at(4)), sessionId: session.id });
+
+      const back = await heartbeat(ctx.db, { ...actor(at(40)), sessionId: session.id });
+
+      expect(back.status).toBe('paused');
+      expect(back.activeDurationSeconds).toBe(4 * MINUTE);
+      expect(await eventTypes(session.id)).toEqual(['session_started', 'idle_autopause']);
+
+      const [event] = await ctx.sql`
+        SELECT occurred_at FROM session_events
+        WHERE session_id = ${session.id} AND type = 'idle_autopause'
+      `;
+      expect(new Date(String(event!.occurred_at)).toISOString()).toBe(at(4).toISOString());
+    });
+
+    it('a heartbeat inside the idle threshold keeps the sitting active', async () => {
+      // A short trip to another tab: under five minutes, nothing is paused.
+      const session = await startSession(ctx.db, { ...actor(START), problemId });
+      await heartbeat(ctx.db, { ...actor(at(4)), sessionId: session.id });
+
+      const back = await heartbeat(ctx.db, { ...actor(at(8)), sessionId: session.id });
+
+      expect(back.status).toBe('active');
+      expect(back.activeDurationSeconds).toBe(8 * MINUTE);
+      expect(await eventTypes(session.id)).toEqual(['session_started']);
+    });
+
+    it('a heartbeat after six silent hours finds the sitting abandoned', async () => {
+      const session = await startSession(ctx.db, { ...actor(START), problemId });
+      const sevenHours = new Date(START.getTime() + 7 * 60 * 60 * 1000);
+
+      const back = await heartbeat(ctx.db, { ...actor(sevenHours), sessionId: session.id });
+
+      expect(back.status).toBe('abandoned');
+    });
   });
 
   describe('the six-hour sweep', () => {
@@ -364,7 +408,15 @@ suite('F1.4 · solve-session lifecycle', () => {
       const session = await startSession(ctx.db, { ...actor(START), problemId });
       const sevenHours = new Date(START.getTime() + 7 * 60 * 60 * 1000);
 
-      // Still here, five minutes ago.
+      /*
+       * Beating all along, every four minutes — under the idle threshold — and
+       * last a minute ago. One lone beat at 6h59m used to stand in for this,
+       * but a beat after hours of silence now finds the sitting idle, which is
+       * the honest answer for a client that really was silent that long.
+       */
+      for (let minute = 4; minute < 7 * 60; minute += 4) {
+        await heartbeat(ctx.db, { ...actor(at(minute)), sessionId: session.id });
+      }
       await heartbeat(ctx.db, {
         ...actor(new Date(sevenHours.getTime() - 60_000)),
         sessionId: session.id,
