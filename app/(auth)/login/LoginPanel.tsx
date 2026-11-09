@@ -40,7 +40,7 @@ export function LoginPanel({
   returnTo?: string;
   /** GITHUB_ID and GITHUB_SECRET are both set. */
   github: boolean;
-  /** RESEND_API_KEY and EMAIL_FROM are both set. */
+  /** Resend or Gmail SMTP is configured — see server/services/auth/email-delivery.ts. */
   email: boolean;
   /** FEATURE_PHONE_OTP is on. */
   phone: boolean;

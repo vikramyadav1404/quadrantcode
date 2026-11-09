@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { getServerEnv } from '@/server/env';
 import { RATE_LIMITS, createRateLimiter } from '@/server/lib/ratelimit';
 import { signIn, signOut } from '@/server/services/auth/config';
+import { EMAIL_PROVIDER_ID, resolveEmailDelivery } from '@/server/services/auth/email-delivery';
 import { validateReturnTo } from '@/lib/auth/return-to';
 import { maskEmail } from '@/lib/auth/mask-email';
 
@@ -39,7 +40,8 @@ export async function sendMagicLinkAction(formData: unknown): Promise<SendLinkRe
 
   const { email, returnTo } = parsed.data;
   const env = getServerEnv();
-  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+  const delivery = resolveEmailDelivery(env);
+  if (!delivery) {
     return { ok: false, message: 'Email sign-in is temporarily unavailable.' };
   }
 
@@ -71,7 +73,7 @@ export async function sendMagicLinkAction(formData: unknown): Promise<SendLinkRe
   const safeReturnTo = validateReturnTo(returnTo, env.NEXT_PUBLIC_APP_URL) ?? '/dashboard';
 
   try {
-    await signIn('resend', {
+    await signIn(EMAIL_PROVIDER_ID[delivery], {
       email,
       redirect: false,
       redirectTo: safeReturnTo,
