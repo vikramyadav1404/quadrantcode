@@ -1,4 +1,5 @@
 import type { ServerEnv } from '@/server/env';
+import { resolveEmailDelivery } from '@/server/services/auth/email-delivery';
 
 function enabled(value: string | undefined): boolean {
   return value === 'true' || value === '1';
@@ -21,7 +22,7 @@ export function readinessConfigIssues(
     issues.push('distributed_rate_limit');
   }
 
-  const email = Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
+  const email = resolveEmailDelivery(env) !== null;
   const github = Boolean(env.GITHUB_ID && env.GITHUB_SECRET);
   if (!email && !github) issues.push('sign_in_provider');
 
