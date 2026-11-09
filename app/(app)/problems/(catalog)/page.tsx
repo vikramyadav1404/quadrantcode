@@ -13,7 +13,8 @@ import { DifficultyPill } from '@/components/solve/DifficultyPill';
 import { StatusMark } from '@/components/solve/StatusMark';
 import { TopicChips } from '@/components/solve/TopicChips';
 import { getDb } from '@/server/db';
-import { listProblems, parseFilters } from '@/server/services/problems';
+import { listCatalogPlatforms, listProblems, parseFilters } from '@/server/services/problems';
+import { platformLabel } from '@/lib/problems/platforms';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { timed } from '@/server/lib/observability/logger';
 
@@ -38,7 +39,7 @@ export default async function ProblemsPage({
    * redacts unconditionally and logs on failure too, which matters because a
    * span that only reports success hides exactly the slow paths worth finding.
    */
-  const { rows, nextCursor } = await timed('problems.page', async () => {
+  const { rows, nextCursor, platforms } = await timed('problems.page', async () => {
     const signedIn = await getCurrentUser();
 
     const filters = parseFilters({
@@ -51,11 +52,15 @@ export default async function ProblemsPage({
       limit: 25,
     });
 
-    const page = await timed('problems.list', () =>
-      listProblems({ db: getDb(), filters, userId: signedIn?.id ?? null }),
-    );
+    // Independent reads, so they run together rather than one after the other.
+    const [page, platforms] = await Promise.all([
+      timed('problems.list', () =>
+        listProblems({ db: getDb(), filters, userId: signedIn?.id ?? null }),
+      ),
+      listCatalogPlatforms(getDb()),
+    ]);
 
-    return page;
+    return { ...page, platforms };
   });
 
   const query = new URLSearchParams(
@@ -106,6 +111,28 @@ export default async function ProblemsPage({
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
+        {/*
+          Options come from the data (listCatalogPlatforms), so every choice
+          has at least one problem behind it. A platform in the URL that is no
+          longer offered still filters; it simply is not preselected.
+        */}
+        <select
+          aria-label="Filter by platform"
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+          defaultValue={
+            typeof params.platform === 'string' && platforms.includes(params.platform)
+              ? params.platform
+              : ''
+          }
+          name="platform"
+        >
+          <option value="">Any platform</option>
+          {platforms.map((platform) => (
+            <option key={platform} value={platform}>
+              {platformLabel(platform)}
+            </option>
+          ))}
+        </select>
         <button
           className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)]"
           type="submit"
@@ -117,7 +144,7 @@ export default async function ProblemsPage({
       {rows.length === 0 ? (
         <EmptyState
           title="No problems match those filters"
-          description="Try clearing the search or widening the difficulty."
+          description="Try clearing the search or widening the difficulty or platform."
         />
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
@@ -182,7 +209,11 @@ export default async function ProblemsPage({
                     the title.
                   */}
                   <td className="whitespace-nowrap px-3 py-2.5 text-[var(--text-muted)]">
-                    {problem.sourceType === 'original' ? 'Original' : (problem.platform ?? '—')}
+                    {problem.sourceType === 'original'
+                      ? 'Original'
+                      : problem.platform
+                        ? platformLabel(problem.platform)
+                        : '—'}
                   </td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-[var(--text-muted)]">
                     {problem.estimatedMinutes}m

@@ -7,6 +7,7 @@ export {
   searchProblems,
   getProblemBySlug,
   parseFilters,
+  listCatalogPlatforms,
   type ProblemListItem,
   type ProblemPage,
   type ProblemDetail,
