@@ -4,7 +4,19 @@
  * Every filter is applied in SQL. Nothing is fetched and filtered in JS — that
  * would both scale badly and leak rows the caller should not see into memory.
  */
-import { type SQL, and, asc, desc, eq, exists, isNull, lt, or, sql } from 'drizzle-orm';
+import {
+  type SQL,
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { problemTags, problems, userProblems } from '@/server/db/schema';
 import { type Cursor, decodeCursor, encodeCursor } from './cursor';
@@ -356,6 +368,24 @@ export async function getProblemBySlug(
     userStatus: history[0]?.status ?? null,
     history,
   };
+}
+
+/**
+ * The platforms the catalog's platform filter offers: every platform with at
+ * least one published problem, sorted.
+ *
+ * Read from the data rather than hard-coded, so the filter never offers a
+ * platform that would return an empty page, and a newly imported platform
+ * appears without a code change. Originals carry no platform and never appear
+ * here — "original" is a source, not a platform.
+ */
+export async function listCatalogPlatforms(db: Database): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ platform: problems.platform })
+    .from(problems)
+    .where(and(eq(problems.status, 'published'), isNotNull(problems.platform)))
+    .orderBy(asc(problems.platform));
+  return rows.flatMap((row) => (row.platform ? [row.platform] : []));
 }
 
 /** Parses raw input (search params, JSON body) into validated filters. */
