@@ -96,6 +96,9 @@ const optionalServerSchema = z.object({
   TRUST_PROXY: optionalString,
   RESEND_API_KEY: optionalString,
   EMAIL_FROM: optionalString,
+  /** Gmail SMTP fallback for sign-in links. See server/services/auth/email-delivery.ts. */
+  GMAIL_USER: optionalString,
+  GMAIL_APP_PASSWORD: optionalString,
   MSG91_AUTH_KEY: optionalString,
   MSG91_TEMPLATE_ID: optionalString,
   /**
@@ -147,7 +150,16 @@ const serverEnvSchema = requiredServerSchema
   .and(publicEnvSchema)
   .superRefine((value, context) => {
     addPairIssue(value, context, 'GITHUB_ID', 'GITHUB_SECRET');
-    addPairIssue(value, context, 'RESEND_API_KEY', 'EMAIL_FROM');
+    // One-directional: Resend needs EMAIL_FROM, but EMAIL_FROM alone is valid —
+    // the Gmail transport uses it as the display name.
+    if (value.RESEND_API_KEY && !value.EMAIL_FROM) {
+      context.addIssue({
+        code: 'custom',
+        path: ['EMAIL_FROM'],
+        message: 'RESEND_API_KEY and EMAIL_FROM must be set together',
+      });
+    }
+    addPairIssue(value, context, 'GMAIL_USER', 'GMAIL_APP_PASSWORD');
     addPairIssue(value, context, 'MSG91_AUTH_KEY', 'MSG91_TEMPLATE_ID');
     addPairIssue(value, context, 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN');
 

@@ -15,6 +15,13 @@ import Resend from 'next-auth/providers/resend';
 import { getDb } from '@/server/db';
 import { getAuthSecret, getServerEnv } from '@/server/env';
 import { createQuadrantcodeAdapter } from './adapter';
+import {
+  EMAIL_PROVIDER_ID,
+  gmailFrom,
+  normaliseAppPassword,
+  resolveEmailDelivery,
+} from './email-delivery';
+import { sendViaSmtp, signInEmail } from './gmail-smtp';
 
 /**
  * The session cookie's name and options, declared ONCE.
@@ -56,6 +63,15 @@ const env = () => getServerEnv();
 
 export const { handlers, signIn, signOut, auth } = NextAuth(() => {
   const config = env();
+  const emailDelivery = resolveEmailDelivery(config);
+  const gmailUser = config.GMAIL_USER?.trim();
+  const gmailPassword = config.GMAIL_APP_PASSWORD
+    ? normaliseAppPassword(config.GMAIL_APP_PASSWORD)
+    : undefined;
+  // Browser tests exercise the full token/database flow without contacting or
+  // spending against a real provider.
+  const captureEmail =
+    process.env.E2E_EMAIL_CAPTURE === '1' ? { async sendVerificationRequest() {} } : {};
 
   return {
     adapter: createQuadrantcodeAdapter(getDb()),
@@ -133,18 +149,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
           ]
         : []),
 
-      ...(config.RESEND_API_KEY && config.EMAIL_FROM
+      ...(emailDelivery === 'resend' && config.RESEND_API_KEY && config.EMAIL_FROM
         ? [
             Resend({
               apiKey: config.RESEND_API_KEY,
               from: config.EMAIL_FROM,
-              ...(process.env.E2E_EMAIL_CAPTURE === '1'
-                ? {
-                    // Browser tests exercise the full token/database flow
-                    // without contacting or spending against a real provider.
-                    async sendVerificationRequest() {},
-                  }
-                : {}),
+              ...captureEmail,
               /*
                * 15 minutes — a DELIBERATE OVERRIDE of Auth.js's 24-hour default
                * (verified in @auth/core/providers/resend.js: `maxAge: 24 * 60 * 60`).
@@ -161,6 +171,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth(() => {
                */
               maxAge: MAGIC_LINK_TTL_SECONDS,
             }),
+          ]
+        : []),
+
+      /*
+       * Gmail SMTP — the free fallback when Resend is not configured. Same
+       * magic link, same 15-minute TTL (see D13 above), same inbox-ownership
+       * argument for the GitHub linking flag. Only the transport differs, and
+       * it is ours: see gmail-smtp.ts for why it is not nodemailer.
+       */
+      ...(emailDelivery === 'gmail' && gmailUser && gmailPassword
+        ? [
+            {
+              id: EMAIL_PROVIDER_ID.gmail,
+              type: 'email' as const,
+              name: 'Email',
+              from: gmailFrom(config),
+              maxAge: MAGIC_LINK_TTL_SECONDS,
+              async sendVerificationRequest({
+                identifier,
+                url,
+              }: {
+                identifier: string;
+                url: string;
+              }) {
+                await sendViaSmtp(
+                  { user: gmailUser, pass: gmailPassword },
+                  { from: gmailFrom(config), to: identifier, ...signInEmail(url) },
+                );
+              },
+              ...captureEmail,
+            },
           ]
         : []),
     ],

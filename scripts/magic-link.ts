@@ -103,11 +103,11 @@ process.stdout.write(`secret      fingerprint ${fingerprint}\n`);
 process.stdout.write(`email       ${email}\n\n`);
 
 /*
- * Pre-flight: is the resend provider even registered there?
+ * Pre-flight: is an email provider even registered there?
  *
- * `server/services/auth/config.ts` registers it only when RESEND_API_KEY and
- * EMAIL_FROM are both set. Without them `/api/auth/callback/resend` does not
- * exist, and minting a token first would leave an orphan row in production and
+ * `server/services/auth/config.ts` registers one only when Resend or Gmail SMTP
+ * is configured (email-delivery.ts). Without one, no `/api/auth/callback/<id>`
+ * exists, and minting a token first would leave an orphan row in production and
  * a confusing error in the browser. Auth.js publishes the registered providers
  * at a public endpoint, so this is answerable before writing anything.
  */
@@ -130,12 +130,15 @@ process.stdout.write(
   `providers   ${registered.length > 0 ? registered.join(', ') : '(none)'}\n\n`,
 );
 
-if (!registered.includes('resend')) {
+// Either email transport registers an email provider; see email-delivery.ts.
+const emailProviderId = ['resend', 'gmail'].find((id) => registered.includes(id));
+if (!emailProviderId) {
   process.stdout.write(
-    'REFUSING: the `resend` provider is not registered on that deployment.\n\n' +
-      'config.ts registers it only when RESEND_API_KEY and EMAIL_FROM are both\n' +
-      'set, so /api/auth/callback/resend does not exist and this link could not\n' +
-      'be consumed. Set both in the deployment environment and redeploy.\n\n' +
+    'REFUSING: no email provider (`resend` or `gmail`) is registered on that deployment.\n\n' +
+      'config.ts registers one only when Resend (RESEND_API_KEY + EMAIL_FROM) or\n' +
+      'Gmail SMTP (GMAIL_USER + GMAIL_APP_PASSWORD) is configured, so no email\n' +
+      'callback exists and this link could not be consumed. Configure one in the\n' +
+      'deployment environment and redeploy.\n\n' +
       'Nothing has been written.\n',
   );
   process.exit(1);
@@ -174,7 +177,9 @@ try {
   process.stdout.write(
     `Valid until ${expires.toISOString()} — fifteen minutes, single use.\n\n`,
   );
-  process.stdout.write(`${baseUrl}/api/auth/callback/resend?${params.toString()}\n`);
+  process.stdout.write(
+    `${baseUrl}/api/auth/callback/${emailProviderId}?${params.toString()}\n`,
+  );
 } finally {
   await sql.end();
 }
