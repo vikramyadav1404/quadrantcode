@@ -10,7 +10,10 @@
       entry D30 left open was split on 2026-10-05.)_
 - [x] Backups are enabled and a restore drill has succeeded. _(see
       `docs/restore-drill.md`, performed 2026-09-18)_
-- [ ] All Production/Preview Vercel variables pass `npm run deploy:check`.
+- [x] All Production/Preview Vercel variables pass `npm run deploy:check`.
+      _(2026-11-09: `vercel.json` runs it before every build. The Production
+      deploy of `3ac8260` and the Preview builds of PRs #61–#65 all reached
+      Ready, so both environments passed it.)_
 - [ ] GitHub callback is exact and wildcard matching is disabled.
 - [ ] Resend SPF/DKIM pass and DMARC is published. _(2026-11-09: not set up —
       no Resend records exist on the domain. Sign-in mail goes through Gmail SMTP
@@ -24,14 +27,22 @@
       exactly `exportPerUser` (20/hour).)_
 - [ ] Sentry receives a symbolicated preview error and an alert reaches a person.
 - [ ] Support mailbox is monitored.
-- [ ] Optional phone, execution and avatar features stay off until their real
-      provider tests pass.
+- [x] Optional phone, execution and avatar features stay off until their real
+      provider tests pass. _(2026-11-09: execution is on and passed — Judge0
+      reference validation for 10 problems × 5 languages, and a native Submit
+      7/7. Phone is off: no `FEATURE_PHONE_OTP` in Vercel. Avatar is off:
+      `/api/health/ready` reports avatar storage unavailable.)_
 - [ ] Migrations 0020–0024 are applied and `npm run native:import` reports
-      exactly 100 problems and 20 papers.
+      exactly 100 problems and 20 papers. _(Obsolete as worded: D27 retired the
+      generated 100-problem library and the 20 papers. The live native library
+      is 26 problems; `npm run native:validate` checks it.)_
 - [ ] `sandbox/toolchain-lock.json` records verified immutable base, Node and
-      VCR image digests; its SBOM and vulnerability scan are archived.
+      VCR image digests; its SBOM and vulnerability scan are archived. _(Not
+      applicable while `EXECUTION_BACKEND=judge0`; applies if Vercel Sandbox is
+      turned on.)_
 - [ ] Preview Sandbox contracts prove TLE, MLE, PID, output, disk, network,
       secret isolation, hidden-input isolation, per-case cleanup and final stop.
+      _(Not applicable while `EXECUTION_BACKEND=judge0`.)_
 - [x] Every published native problem has a current real-provider validation; no
       imported `needs_review` item was bulk-promoted. _(2026-11-09: the 10 batch-02
       problems were validated one at a time on Judge0 — 5 languages × every test
@@ -40,18 +51,18 @@
 
 ## Release gate
 
-- [ ] `npm ci`
-- [ ] `npm run typecheck`
-- [ ] `npm run lint`
-- [ ] `npm run format:check`
+- [x] `npm ci` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
+- [x] `npm run typecheck` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
+- [x] `npm run lint` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
+- [x] `npm run format:check` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run native:validate` _(2026-11-09: 26 problems, exit 0)_
 - [x] `npm run papers:validate` _(2026-11-09: 0 active papers — papers retired)_
 - [ ] `npm run native:validate-references`
 - [ ] `npm run execution:image:verify`
 - [x] `npm run contrast` _(2026-11-09: all pairs pass)_
-- [ ] `npm test`
-- [ ] `npm run build`
-- [ ] `npm run test:e2e`
+- [x] `npm test` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
+- [x] `npm run build` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
+- [x] `npm run test:e2e` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm audit --omit=dev` has no unresolved high/critical runtime issue.
       _(2026-11-09, after #62: 0 critical, 0 high; 6 moderate, all build-time
       `glob`/`minimatch`.)_
@@ -92,6 +103,11 @@
 - [ ] Logs and Sentry contain no OTP, token, email body, or database URL.
       _(2026-11-09: **failed.** A mis-pasted `UPSTASH_REDIS_REST_TOKEN` made
       `Headers.append` throw, and its error message — which quotes the header
-      value — put the Upstash token in Vercel runtime logs. Rotate that token in
-      Upstash and replace it in Vercel to close this.)_
-- [ ] Rollback owner and rollback deployment are identified.
+      value — put the Upstash token in Vercel runtime logs. Later that day the
+      Upstash credentials were reset and the new token replaced in Vercel; the
+      over-limit test passed again (200 × 20, then 429), so the logged value is
+      dead. Sentry was not inspected, so this stays open.)_
+- [x] Rollback owner and rollback deployment are identified. _(Owner: Vikram
+      Yadav, sole maintainer. Method: Vercel → Deployments → the previous
+      Production deployment → Instant Rollback. A rollback restores code only;
+      database migrations are not reversed by it.)_
