@@ -78,11 +78,17 @@ export type ProblemPage = {
  * this scan.
  */
 function keysetPredicate(cursor: Cursor): SQL {
+  // Compared as timestamptz from the cursor's text, so the microseconds the
+  // database stored survive the round trip (see `cursor.ts`).
+  const anchor = sql`${cursor.createdAt}::timestamptz`;
   return or(
-    lt(problems.createdAt, cursor.createdAt),
-    and(eq(problems.createdAt, cursor.createdAt), lt(problems.id, cursor.id)),
+    sql`${problems.createdAt} < ${anchor}`,
+    and(sql`${problems.createdAt} = ${anchor}`, lt(problems.id, cursor.id)),
   )!;
 }
+
+/** `created_at` as UTC ISO-8601 with all six fractional digits: the cursor anchor. */
+const CURSOR_AT = sql<string>`to_char(${problems.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
 /** Restricts to a tag without a JOIN, so the row count cannot be multiplied. */
 function hasTag(tagType: 'topic' | 'pattern' | 'company_style', tagValue: string): SQL {
@@ -179,6 +185,7 @@ export async function listProblems({
       isPremium: problems.isPremium,
       status: problems.status,
       createdAt: problems.createdAt,
+      cursorAt: CURSOR_AT,
     })
     .from(problems)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -199,13 +206,17 @@ export async function listProblems({
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
-  const decorated = await attachTagsAndStatus(db, page, userId ?? null);
+  const decorated = await attachTagsAndStatus(
+    db,
+    page.map(({ cursorAt: _cursorAt, ...row }) => row),
+    userId ?? null,
+  );
 
   const last = page.at(-1);
   return {
     rows: decorated,
     nextCursor:
-      hasMore && last ? encodeCursor({ createdAt: last.createdAt, id: last.id }) : null,
+      hasMore && last ? encodeCursor({ createdAt: last.cursorAt, id: last.id }) : null,
   };
 }
 
