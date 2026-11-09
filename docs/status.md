@@ -1,5 +1,28 @@
 # Quadrantcode status
 
+## State on 9 November 2026
+
+What was checked, and how — the sections below this one are the 13 September
+write-up and are kept as history.
+
+- **Live** at `https://quadrantcode.vikramyadav.me` (Vercel, region `sin1`).
+  `/api/health/live` and `/api/health/ready` both return 200; ready reports
+  postgres and configuration up, execution and monitoring configured, avatar
+  storage unavailable.
+- **Execution:** Judge0 v1.13.1 on the Azure VM, reached over HTTPS with token
+  auth.
+- **Catalog:** 100 entries — 10 native originals (`data/native-problems/batch-02.json`)
+  and 90 external-link problems, all `published`. Each native problem was sent to
+  review, validated on Judge0 (5 languages × every test, ~60s each) and published
+  one at a time; none were bulk-promoted. The generated D27 library is not in
+  this catalog.
+- **Vercel Functions:** Fluid Compute enabled on 9 Nov. Before that the project
+  default was a 10s function limit, and "Validate on Judge0" died with a 504 at
+  10.1s.
+- **Still open:** see `docs/launch-checklist.md` for the unticked items.
+
+---
+
 _Updated 13 September 2026 on `main`, after the first real deployment: Neon
 migrated and seeded, GitHub sign-in working, and a `/problems` diagnosis that
 found the filter bug recorded below. Previous revisions: 11 September
