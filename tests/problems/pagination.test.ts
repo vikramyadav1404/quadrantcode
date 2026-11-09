@@ -29,15 +29,22 @@ import {
 const suite = hasTestDatabase ? describe : describe.skip;
 
 describe('F1.1 · cursor encoding (pure)', () => {
-  it('round-trips', () => {
+  it('round-trips, microseconds included', () => {
     const cursor = {
-      createdAt: new Date('2026-08-13T10:11:12.345Z'),
+      createdAt: '2026-08-13T10:11:12.345678Z',
       id: '3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
     };
     const decoded = decodeCursor(encodeCursor(cursor));
 
     expect(decoded.id).toBe(cursor.id);
-    expect(decoded.createdAt.toISOString()).toBe(cursor.createdAt.toISOString());
+    expect(decoded.createdAt).toBe(cursor.createdAt);
+  });
+
+  it('still accepts a token issued with millisecond precision', () => {
+    const legacy = Buffer.from(
+      '2026-08-13T10:11:12.345Z|3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
+    ).toString('base64url');
+    expect(decodeCursor(legacy).createdAt).toBe('2026-08-13T10:11:12.345Z');
   });
 
   it('rejects a tampered or malformed token with a typed error', () => {
@@ -50,11 +57,19 @@ describe('F1.1 · cursor encoding (pure)', () => {
       'base64url',
     );
     expect(() => decodeCursor(forged)).toThrow(InvalidCursorError);
+
+    // A uuid, but a timestamp that is not the shape the server issues.
+    for (const timestamp of ['2026-01-01', '2026-01-01T00:00:00.1234567Z', "now()'; --"]) {
+      const token = Buffer.from(`${timestamp}|3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90`).toString(
+        'base64url',
+      );
+      expect(() => decodeCursor(token)).toThrow(InvalidCursorError);
+    }
   });
 
   it('is opaque — the token does not read as a timestamp', () => {
     const token = encodeCursor({
-      createdAt: new Date('2026-08-13T10:11:12.345Z'),
+      createdAt: '2026-08-13T10:11:12.345678Z',
       id: '3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
     });
     expect(token).not.toContain('2026');
@@ -110,6 +125,38 @@ suite('F1.1 · listing', () => {
 
     expect(seen).toHaveLength(25);
     expect(new Set(seen).size).toBe(25); // no duplicates
+  });
+
+  it('PAGES THROUGH A GROUP STAMPED IN ONE TRANSACTION without losing its tail', async () => {
+    /*
+     * A bulk import stamps every row with the same now(), microseconds and
+     * all. The old cursor carried a millisecond Date, so the anchor never
+     * equalled the group's timestamp and everything after the first page of
+     * the group disappeared. Production lost the sixteenth batch-1 original
+     * this way on 2026-11-09.
+     */
+    await ctx.sql`
+      INSERT INTO problems (slug, title, source_type, platform, external_url, difficulty, status, created_at)
+      SELECT 'same-' || i, 'Same ' || i, 'external_link', 'leetcode',
+             'https://leetcode.com/problems/same-' || i || '/', 'easy', 'published',
+             '2026-11-09 05:58:38.141592+00'
+      FROM generate_series(1, 13) AS i
+    `;
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 10; page += 1) {
+      const result = await listProblems({
+        db: ctx.db,
+        filters: parseFilters({ limit: 5, cursor }),
+      });
+      seen.push(...result.rows.map((row) => row.slug));
+      if (!result.nextCursor) break;
+      cursor = result.nextCursor;
+    }
+
+    expect(seen).toHaveLength(13);
+    expect(new Set(seen).size).toBe(13);
   });
 
   it('STAYS STABLE when rows are inserted between page fetches', async () => {
