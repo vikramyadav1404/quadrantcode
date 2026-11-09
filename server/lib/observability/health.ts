@@ -22,6 +22,7 @@
  */
 import { sql } from 'drizzle-orm';
 import type { Database } from '@/server/db';
+import { resolveEmailDelivery } from '@/server/services/auth/email-delivery';
 
 export const DEPENDENCY_STATES = ['up', 'down', 'not_configured'] as const;
 
@@ -114,9 +115,9 @@ export async function checkHealth(
       'no Redis — rate limiting is per-process and would not limit anything on serverless (F0.3)',
     ),
     checkConfigured(
-      'resend',
-      env['RESEND_API_KEY'],
-      'no RESEND_API_KEY — magic links are never delivered, so nobody can sign in',
+      'email',
+      resolveEmailDelivery(env) ?? undefined,
+      'neither Resend nor Gmail SMTP is configured — sign-in links are never delivered',
     ),
     checkConfigured(
       'sentry',
