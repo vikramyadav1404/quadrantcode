@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
+import { connectSrc } from './lib/security/connect-src';
 
 const csp = [
   "default-src 'self'",
@@ -7,7 +8,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.ingest.sentry.io",
+  `connect-src ${connectSrc({ S3_ENDPOINT: process.env.S3_ENDPOINT })}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
