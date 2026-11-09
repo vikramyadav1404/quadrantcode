@@ -26,6 +26,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Confidence } from '@/lib/session/confidence';
 import type { StuckCategory } from '@/lib/reflection/taxonomy';
+import { heartbeatEndedActivity, shouldSendHeartbeat } from '@/lib/session/heartbeat-policy';
 import { type TimerBarState, seedElapsed } from '@/lib/session/timer-bar-state';
 
 /** Every 30 s while active. Without it the server idle-autopauses a live sitting. */
@@ -98,11 +99,18 @@ export function useSessionControls(state: TimerBarState, onComplete: CompleteSes
     return () => clearInterval(id);
   }, [status]);
 
-  // The heartbeat, and the resync that comes back with it.
+  /*
+   * The heartbeat, and the resync that comes back with it.
+   *
+   * Skipped while the tab is hidden, and sent once at once when it comes back;
+   * `lib/session/heartbeat-policy.ts` says why.
+   */
   useEffect(() => {
     if (status !== 'active') return;
 
     const send = async () => {
+      if (!shouldSendHeartbeat(document.visibilityState)) return;
+
       try {
         const response = await fetch('/api/session/heartbeat', {
           method: 'POST',
@@ -111,10 +119,12 @@ export function useSessionControls(state: TimerBarState, onComplete: CompleteSes
         });
         if (!response.ok) return;
 
-        const body: { activeDurationSeconds?: number } = await response.json();
+        const body: { status?: unknown; activeDurationSeconds?: number } =
+          await response.json();
         if (typeof body.activeDurationSeconds === 'number') {
           setElapsed(body.activeDurationSeconds);
         }
+        if (heartbeatEndedActivity(body.status)) router.refresh();
       } catch {
         /*
          * A missed heartbeat is not an error worth showing. The consequence is
@@ -124,9 +134,17 @@ export function useSessionControls(state: TimerBarState, onComplete: CompleteSes
       }
     };
 
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void send();
+    };
+
     const id = setInterval(send, HEARTBEAT_MS);
-    return () => clearInterval(id);
-  }, [sessionId, status]);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [router, sessionId, status]);
 
   const run = async (action: () => Promise<Result>) => {
     setBusy(true);

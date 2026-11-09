@@ -13,7 +13,11 @@ import { DifficultyPill } from '@/components/solve/DifficultyPill';
 import { StatusMark } from '@/components/solve/StatusMark';
 import { TopicChips } from '@/components/solve/TopicChips';
 import { getDb } from '@/server/db';
-import { listCatalogPlatforms, listProblems, parseFilters } from '@/server/services/problems';
+import {
+  listCatalogPlatforms,
+  listProblemsOriginalsFirst,
+  parseFilters,
+} from '@/server/services/problems';
 import { platformLabel } from '@/lib/problems/platforms';
 import { getCurrentUser } from '@/server/services/auth/session';
 import { timed } from '@/server/lib/observability/logger';
@@ -47,15 +51,22 @@ export default async function ProblemsPage({
       topic: params.topic,
       pattern: params.pattern,
       platform: params.platform,
+      source: params.source,
       search: params.search,
       cursor: params.cursor,
       limit: 25,
     });
 
-    // Independent reads, so they run together rather than one after the other.
+    /*
+     * Independent reads, so they run together rather than one after the other.
+     *
+     * Originals first unless a source is chosen: in a newest-first list, our
+     * own problems sat wherever their import date put them among hundreds of
+     * links out.
+     */
     const [page, platforms] = await Promise.all([
       timed('problems.list', () =>
-        listProblems({ db: getDb(), filters, userId: signedIn?.id ?? null }),
+        listProblemsOriginalsFirst({ db: getDb(), filters, userId: signedIn?.id ?? null }),
       ),
       listCatalogPlatforms(getDb()),
     ]);
@@ -111,6 +122,18 @@ export default async function ProblemsPage({
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
+        <select
+          aria-label="Filter by source"
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+          defaultValue={
+            params.source === 'original' || params.source === 'external' ? params.source : ''
+          }
+          name="source"
+        >
+          <option value="">Any source</option>
+          <option value="original">Original</option>
+          <option value="external">External link</option>
+        </select>
         {/*
           Options come from the data (listCatalogPlatforms), so every choice
           has at least one problem behind it. A platform in the URL that is no
@@ -144,7 +167,7 @@ export default async function ProblemsPage({
       {rows.length === 0 ? (
         <EmptyState
           title="No problems match those filters"
-          description="Try clearing the search or widening the difficulty or platform."
+          description="Try clearing the search or widening the difficulty, source or platform."
         />
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">

@@ -69,8 +69,8 @@ describe('F4.1 · the real library on disk', () => {
     const loaded = batches.flatMap((batch) => batch.problems.map((problem) => problem.slug));
     const retired = readSlugs(RETIRED_PATH);
 
-    // Batch 1 (16) plus the ten original problems of batch 2.
-    expect(loaded).toHaveLength(26);
+    // Batch 1 (16) plus the ten original problems each of batches 2 and 3.
+    expect(loaded).toHaveLength(36);
 
     // Not a count — a non-vacuity check. `not.toContain` over an empty list
     // passes for the wrong reason, so the loop below has to have something to

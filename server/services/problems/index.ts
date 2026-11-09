@@ -4,6 +4,7 @@ export * from '@/lib/problems/schemas';
 export { encodeCursor, decodeCursor, isValidCursor, type Cursor } from './cursor';
 export {
   listProblems,
+  listProblemsOriginalsFirst,
   searchProblems,
   getProblemBySlug,
   parseFilters,
