@@ -16,13 +16,23 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { getDb } from '@/server/db';
 import { checkHealth, recentAudit } from '@/server/lib/observability';
 
-const ABSENT_PANELS: { name: string; why: string }[] = [
-  { name: 'Queue depth and dead letters', why: 'F2.3 is cut — there is no queue' },
-  { name: 'Judge0 success rate and p95', why: 'no JUDGE0_URL — nothing has ever run' },
-  { name: 'Notification delivery rate', why: 'F2.4 is cut — nothing sends notifications' },
-  { name: 'AI spend against budget', why: 'F3.4 is cut — nothing calls a model' },
-  { name: 'Razorpay webhook failures', why: 'F4.4 is cut — there are no webhooks' },
-];
+function absentPanels(
+  env: Record<string, string | undefined>,
+): { name: string; why: string }[] {
+  return [
+    { name: 'Queue depth and dead letters', why: 'F2.3 is cut — there is no queue' },
+    {
+      name: 'Judge0 success rate and p95',
+      // Judge0 runs in production; what is missing is the aggregate, not the provider.
+      why: env['JUDGE0_URL']
+        ? 'Judge0 is configured and runs submissions; per-run success rate and p95 are not aggregated yet'
+        : 'no JUDGE0_URL — nothing has ever run',
+    },
+    { name: 'Notification delivery rate', why: 'F2.4 is cut — nothing sends notifications' },
+    { name: 'AI spend against budget', why: 'F3.4 is cut — nothing calls a model' },
+    { name: 'Razorpay webhook failures', why: 'F4.4 is cut — there are no webhooks' },
+  ];
+}
 
 const STATE_TOKEN: Record<string, string> = {
   up: 'var(--success)',
@@ -35,7 +45,8 @@ export default async function HealthPage() {
   const now = new Date();
 
   const [report, audit] = await Promise.all([
-    checkHealth(db, process.env, now),
+    // The dashboard is the one caller that pings Redis; the public endpoints do not.
+    checkHealth(db, process.env, now, { probeRedis: true }),
     recentAudit(db, 20),
   ]);
 
@@ -78,7 +89,7 @@ export default async function HealthPage() {
           shown as zero.
         </p>
         <ul className="flex flex-col gap-1 text-sm text-[var(--text-muted)]">
-          {ABSENT_PANELS.map((panel) => (
+          {absentPanels(process.env).map((panel) => (
             <li key={panel.name}>
               · {panel.name} — {panel.why}
             </li>
