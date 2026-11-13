@@ -226,8 +226,10 @@ one thing that genuinely differs per problem.
 - at least **6** test cases
 - at least **2** non-hidden (`sample` or `visible`)
 - at least **3** hidden
-- coverage must include **`minimum`**, **`maximum`** and **`adversarial`** — all
-  three, by name, or the record is rejected
+- coverage must include **`minimum`**, **`maximum`**, **`duplicates`** and
+  **`adversarial`** — all four, by name, or the record is rejected. These are the
+  same four the admin publish gate demands; `duplicates` was added here on
+  2026-11-13 after four batch-3 records imported but could not be sent to review
 
 `minimum` and `maximum` mean the constraint extremes, not small and large
 inputs. `adversarial` means input chosen to break a plausible wrong solution:
