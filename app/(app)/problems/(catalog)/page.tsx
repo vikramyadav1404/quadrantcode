@@ -8,6 +8,11 @@
  * Two views. With no filter in the URL the catalog is grouped by topic
  * (`TopicSections`); any filter, a topic's "See all", or `?view=all` shows the
  * table. Both list easiest first, then by the problem's fixed number.
+ *
+ * The "#" a reader sees is the row's position in the list in front of them —
+ * 1, 2, 3 from the top of a topic or a filtered list — not `problems.number`.
+ * That stored number still orders and pages the list; it is just never shown,
+ * because in an easiest-first list it reads as out of sequence.
  */
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -76,9 +81,23 @@ export default async function ProblemsPage({
    */
   const query = new URLSearchParams(
     Object.entries(params).flatMap(([key, value]) =>
-      typeof value === 'string' && key !== 'cursor' ? [[key, value] as [string, string]] : [],
+      typeof value === 'string' && key !== 'cursor' && key !== 'start'
+        ? [[key, value] as [string, string]]
+        : [],
     ),
   );
+
+  /*
+   * Where this page's numbering starts. Keyset pagination does not know a
+   * row's absolute position, so "Next page" carries it: page two of a list
+   * starts at 26. Display only — a tampered value mislabels the reader's own
+   * page and nothing else — and without a cursor it is always 1.
+   */
+  const startParam = typeof params.start === 'string' ? Number.parseInt(params.start, 10) : NaN;
+  const start =
+    typeof params.cursor === 'string' && Number.isSafeInteger(startParam) && startParam > 0
+      ? Math.min(startParam, 1_000_000)
+      : 1;
 
   const { page, sections, platforms, topics } = await timed('problems.page', async () => {
     const signedIn = await getCurrentUser();
@@ -329,7 +348,7 @@ export default async function ProblemsPage({
               </tr>
             </thead>
             <tbody>
-              {rows.map((problem) => (
+              {rows.map((problem, index) => (
                 <tr
                   className="border-b border-[var(--border)] transition-colors last:border-0 hover:bg-[var(--surface)]"
                   key={problem.id}
@@ -338,7 +357,7 @@ export default async function ProblemsPage({
                     <StatusMark status={problem.userStatus} />
                   </td>
                   <td className="px-3 py-2.5 tabular-nums text-[var(--text-muted)]">
-                    {problem.number}
+                    {start + index}
                   </td>
                   <td className="px-3 py-2.5">
                     <Link
@@ -387,7 +406,7 @@ export default async function ProblemsPage({
       {tableView && nextCursor ? (
         <Link
           className="mt-4 inline-block rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm"
-          href={`/problems?${query.toString()}${query.size > 0 ? '&' : ''}cursor=${encodeURIComponent(nextCursor)}`}
+          href={`/problems?${query.toString()}${query.size > 0 ? '&' : ''}cursor=${encodeURIComponent(nextCursor)}&start=${start + rows.length}`}
         >
           Next page
           <LinkPending />
