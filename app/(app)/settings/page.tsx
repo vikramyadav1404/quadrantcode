@@ -7,9 +7,11 @@
  * than worth carrying further.
  *
  * Deliberately a list of links and nothing else. This is not a feature; it is
- * the door the nav already claimed existed.
+ * the door the nav already claimed existed. The one exception is the sign-out
+ * button below the list: the app had no other way to leave a session.
  */
 import Link from 'next/link';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 const SECTIONS: { href: string; title: string; description: string }[] = [
@@ -63,6 +65,8 @@ export default function SettingsPage() {
           </li>
         ))}
       </ul>
+
+      <SignOutButton />
     </div>
   );
 }
