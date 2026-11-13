@@ -761,6 +761,14 @@
           "coverage": "maximum",
           "isPerformance": false,
           "explanation": "A long tail into a loop of three thousand and one cards, with a decoy loop nobody reaches."
+        },
+        {
+          "visibility": "hidden",
+          "input": "3 3 3 4 5 3 3 3",
+          "expectedOutput": "3",
+          "coverage": "duplicates",
+          "isPerformance": false,
+          "explanation": "Six of the eight cards send the player to card 3, so one target repeats again and again. The trail runs 0, 3, 4, 5 and back to 3: a loop of three cards."
         }
       ],
       "timeLimitMs": 2000,
@@ -813,13 +821,13 @@
       "topics": ["trees-bst", "ordered-set", "linked-list"],
       "problemType": "function",
       "shape": "int-array-to-int",
-      "version": 1,
+      "version": 2,
       "status": "needs_review",
       "estimatedMinutes": 45,
       "difficultyCalibration": 0,
-      "story": "A county archive keeps its catalogue index as a plain binary search tree. Each new accession number is filed in arrival order by the textbook rule: start at the root, go left when smaller and right when larger, and attach where the path runs out. Nobody ever rebalances it. A lookup costs one step per level, so before the next audit the archivist wants to know how deep the index has grown.",
-      "statement": "You are given the accession numbers in the order they were filed. All of them are different.\n\nInsert them one by one into an initially empty binary search tree. The first number becomes the root. Each later number starts at the root and moves to the left child when it is smaller than the current node and to the right child when it is larger, until the child it needs is missing; it is attached there.\n\nReturn the height of the finished tree: the number of nodes on its longest path from the root down to a leaf.",
-      "inputFormat": "Every number is one accession number, in the order it was filed. The numbers are all different, and there is at least one.",
+      "story": "A county archive keeps its catalogue index as a plain binary search tree. Each new accession number is filed in arrival order by the textbook rule: start at the root, go left when smaller and right otherwise, and attach where the path runs out. Re-filed items can repeat a number, and a repeat simply goes right. Nobody ever rebalances it. A lookup costs one step per level, so before the next audit the archivist wants to know how deep the index has grown.",
+      "statement": "You are given the accession numbers in the order they were filed. A number can appear more than once.\n\nInsert them one by one into an initially empty binary search tree. The first number becomes the root. Each later number starts at the root and moves to the left child when it is smaller than the current node and to the right child otherwise, that is when it is larger or equal, until the child it needs is missing; it is attached there.\n\nReturn the height of the finished tree: the number of nodes on its longest path from the root down to a leaf.",
+      "inputFormat": "Every number is one accession number, in the order it was filed. Numbers may repeat, and there is at least one.",
       "outputFormat": "Return one integer: the number of nodes on the longest root-to-leaf path of the finished tree.",
       "functionContract": {
         "functionName": "treeHeight",
@@ -827,7 +835,7 @@
           {
             "name": "keys",
             "type": "integer[]",
-            "description": "The accession numbers, all different, in filing order."
+            "description": "The accession numbers in filing order. Numbers may repeat."
           }
         ],
         "returnType": "64-bit integer"
@@ -835,7 +843,7 @@
       "constraints": [
         "1 <= keys.length <= 100000",
         "0 <= every key <= 1000000000",
-        "All keys are different",
+        "Keys may repeat; an equal key goes to the right",
         "Filing in sorted order is allowed, so the tree may be a single path"
       ],
       "examples": [
@@ -853,6 +861,11 @@
           "input": "10 20 15",
           "output": "3",
           "explanation": "20 goes right of 10, and 15 goes right of 10 and then left of 20, so the path 10, 20, 15 has three nodes."
+        },
+        {
+          "input": "5 5 5",
+          "output": "3",
+          "explanation": "Each repeat of 5 goes right of the 5 before it, so the three filings form a single path of three nodes."
         }
       ],
       "testCases": [
@@ -919,6 +932,22 @@
           "coverage": "maximum",
           "isPerformance": false,
           "explanation": "Five and a half thousand keys spread across the whole range."
+        },
+        {
+          "visibility": "visible",
+          "input": "5 5 5",
+          "expectedOutput": "3",
+          "coverage": "typical",
+          "isPerformance": false,
+          "explanation": "Repeats of one number form a rightward path."
+        },
+        {
+          "visibility": "hidden",
+          "input": "10 5 10 15 10 12",
+          "expectedOutput": "5",
+          "coverage": "duplicates",
+          "isPerformance": false,
+          "explanation": "The second 10 goes right of the root, 15 right of that, the third 10 left of 15, and 12 right of the third 10: five levels. Treating equal keys as smaller, or skipping them, gives a different height."
         }
       ],
       "timeLimitMs": 2000,
@@ -927,31 +956,32 @@
         "Simulating the insertions is correct but can cost a full path walk per key. Filing in sorted order makes every walk as long as the tree.",
         "Where does a new key end up? Think about the keys already in the tree that sit immediately below and above it in sorted order.",
         "A new key becomes the child of either its in-order predecessor or its in-order successor among the earlier keys, and its depth is one more than the deeper of the two.",
-        "Those neighbours can be found offline: sort the keys, link them in a doubly linked list, and remove keys in reverse filing order. At the moment a key is removed, its list neighbours are exactly its predecessor and successor among the keys filed before it."
+        "Those neighbours can be found offline: sort the keys, breaking ties by filing order, link them in a doubly linked list, and remove keys in reverse filing order. At the moment a key is removed, its list neighbours are exactly its predecessor and successor among the keys filed before it.",
+        "A repeat goes right of an equal key, so it behaves exactly like a slightly larger key. Breaking ties by filing position turns equal keys into distinct ones without changing the tree."
       ],
       "editorial": {
-        "overview": "The tree's shape is fully determined by the filing order, so the task is to find every node's depth without walking the tree. The key fact is that a newly filed key always hangs under its in-order predecessor or successor among the keys filed before it, whichever is deeper. Finding those neighbours for every key is a classic offline trick with a doubly linked list over the sorted order.",
+        "overview": "The tree's shape is fully determined by the filing order, so the task is to find every node's depth without walking the tree. The key fact is that a newly filed key always hangs under its in-order predecessor or successor among the keys filed before it, whichever is deeper. Finding those neighbours for every key is a classic offline trick with a doubly linked list over the sorted order. Repeated numbers need no special case: a repeat goes right, so ordering keys by value and then by filing position makes every key distinct without changing the tree.",
         "bruteForceApproach": "Insert each key by walking from the root, and track the deepest attachment. That is O(n * height), which is O(n^2) when the keys arrive sorted: five billion steps at the largest size.",
-        "optimalApproach": "Sort the keys and give each its rank. Link the ranks in a doubly linked list. Walk the filing order backwards: for the key filed at position i, its current list neighbours are its predecessor and successor among keys filed at positions before i; record them, then unlink the key. Then walk the filing order forwards, setting depth(key) = 1 + max(depth(predecessor), depth(successor)), with a missing neighbour counting as depth 0. The height is the largest depth.",
-        "correctnessProof": "Let p and s be the nearest smaller and larger keys among those filed before k; either may be missing. No earlier key lies strictly between them, so one is an ancestor of the other: the lowest common ancestor of two keys in a binary search tree lies between them in value, and here it can only be p or s itself. Call the deeper of the two q. Every comparison on the search path for k comes out the same as it would for any value strictly between p and s, so the search reaches q. And q has no child on k's side, because that child would hold a key strictly between p and s. So k is attached directly under q, and its depth is one more than the larger of the two depths; with one neighbour missing the same argument uses the other, and with both missing k is the root. The backward pass finds p and s correctly because, when the key filed at position i is unlinked, the list holds exactly the keys filed at positions 0 to i, so its list neighbours are its neighbours among earlier keys.",
+        "optimalApproach": "Sort the keys by value, breaking ties by filing position, and give each its rank. Link the ranks in a doubly linked list. Walk the filing order backwards: for the key filed at position i, its current list neighbours are its predecessor and successor among keys filed at positions before i; record them, then unlink the key. Then walk the filing order forwards, setting depth(key) = 1 + max(depth(predecessor), depth(successor)), with a missing neighbour counting as depth 0. The height is the largest depth.",
+        "correctnessProof": "Compare keys by value and then by filing position. A repeat goes right of an equal node, exactly as a slightly larger key would, so the tree is a binary search tree over these distinct pairs and the argument below applies to it unchanged. Let p and s be the nearest smaller and larger keys among those filed before k; either may be missing. No earlier key lies strictly between them, so one is an ancestor of the other: the lowest common ancestor of two keys in a binary search tree lies between them in value, and here it can only be p or s itself. Call the deeper of the two q. Every comparison on the search path for k comes out the same as it would for any value strictly between p and s, so the search reaches q. And q has no child on k's side, because that child would hold a key strictly between p and s. So k is attached directly under q, and its depth is one more than the larger of the two depths; with one neighbour missing the same argument uses the other, and with both missing k is the root. The backward pass finds p and s correctly because, when the key filed at position i is unlinked, the list holds exactly the keys filed at positions 0 to i, so its list neighbours are its neighbours among earlier keys.",
         "timeComplexity": "O(n log n) for the sort; both passes are linear.",
         "spaceComplexity": "O(n)."
       },
       "languages": {
         "c11": {
-          "referenceSolution": "typedef struct { long long key; int index; } DepthKey;\nstatic int depthCompare(const void *a, const void *b) {\n  const DepthKey *x = (const DepthKey *)a, *y = (const DepthKey *)b;\n  return (x->key > y->key) - (x->key < y->key);\n}\nlong long treeHeight(const long long *keys, int n) {\n  if (n == 0) return 0;\n  DepthKey *sorted = (DepthKey *)malloc(sizeof(DepthKey) * (size_t)n);\n  for (int i = 0; i < n; i++) { sorted[i].key = keys[i]; sorted[i].index = i; }\n  qsort(sorted, (size_t)n, sizeof(DepthKey), depthCompare);\n  int *rank = (int *)malloc(sizeof(int) * (size_t)n);\n  int *prev = (int *)malloc(sizeof(int) * (size_t)n);\n  int *next = (int *)malloc(sizeof(int) * (size_t)n);\n  int *pred = (int *)malloc(sizeof(int) * (size_t)n);\n  int *succ = (int *)malloc(sizeof(int) * (size_t)n);\n  int *depth = (int *)malloc(sizeof(int) * (size_t)n);\n  for (int r = 0; r < n; r++) { rank[sorted[r].index] = r; prev[r] = r - 1; next[r] = r + 1; }\n  for (int i = n - 1; i >= 0; i--) {\n    int r = rank[i], p = prev[r], s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  long long best = 0;\n  for (int i = 0; i < n; i++) {\n    int d = 1;\n    if (pred[i] >= 0 && depth[pred[i]] + 1 > d) d = depth[pred[i]] + 1;\n    if (succ[i] >= 0 && depth[succ[i]] + 1 > d) d = depth[succ[i]] + 1;\n    depth[rank[i]] = d;\n    if (d > best) best = d;\n  }\n  free(sorted); free(rank); free(prev); free(next); free(pred); free(succ); free(depth);\n  return best;\n}"
+          "referenceSolution": "typedef struct { long long key; int index; } DepthKey;\nstatic int depthCompare(const void *a, const void *b) {\n  const DepthKey *x = (const DepthKey *)a, *y = (const DepthKey *)b;\n  if (x->key != y->key) return (x->key > y->key) - (x->key < y->key);\n  return (x->index > y->index) - (x->index < y->index);\n}\nlong long treeHeight(const long long *keys, int n) {\n  if (n == 0) return 0;\n  DepthKey *sorted = (DepthKey *)malloc(sizeof(DepthKey) * (size_t)n);\n  for (int i = 0; i < n; i++) { sorted[i].key = keys[i]; sorted[i].index = i; }\n  qsort(sorted, (size_t)n, sizeof(DepthKey), depthCompare);\n  int *rank = (int *)malloc(sizeof(int) * (size_t)n);\n  int *prev = (int *)malloc(sizeof(int) * (size_t)n);\n  int *next = (int *)malloc(sizeof(int) * (size_t)n);\n  int *pred = (int *)malloc(sizeof(int) * (size_t)n);\n  int *succ = (int *)malloc(sizeof(int) * (size_t)n);\n  int *depth = (int *)malloc(sizeof(int) * (size_t)n);\n  for (int r = 0; r < n; r++) { rank[sorted[r].index] = r; prev[r] = r - 1; next[r] = r + 1; }\n  for (int i = n - 1; i >= 0; i--) {\n    int r = rank[i], p = prev[r], s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  long long best = 0;\n  for (int i = 0; i < n; i++) {\n    int d = 1;\n    if (pred[i] >= 0 && depth[pred[i]] + 1 > d) d = depth[pred[i]] + 1;\n    if (succ[i] >= 0 && depth[succ[i]] + 1 > d) d = depth[succ[i]] + 1;\n    depth[rank[i]] = d;\n    if (d > best) best = d;\n  }\n  free(sorted); free(rank); free(prev); free(next); free(pred); free(succ); free(depth);\n  return best;\n}"
         },
         "cpp17": {
-          "referenceSolution": "long long treeHeight(const vector<long long>& keys) {\n  int n = (int)keys.size();\n  if (n == 0) return 0;\n  vector<int> order(n);\n  iota(order.begin(), order.end(), 0);\n  sort(order.begin(), order.end(), [&](int a, int b) { return keys[a] < keys[b]; });\n  vector<int> rank(n), prev(n), next(n), pred(n), succ(n), depth(n, 0);\n  for (int r = 0; r < n; r++) { rank[order[r]] = r; prev[r] = r - 1; next[r] = r + 1; }\n  for (int i = n - 1; i >= 0; i--) {\n    int r = rank[i], p = prev[r], s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  long long best = 0;\n  for (int i = 0; i < n; i++) {\n    int d = 1;\n    if (pred[i] >= 0) d = max(d, depth[pred[i]] + 1);\n    if (succ[i] >= 0) d = max(d, depth[succ[i]] + 1);\n    depth[rank[i]] = d;\n    best = max(best, (long long)d);\n  }\n  return best;\n}"
+          "referenceSolution": "long long treeHeight(const vector<long long>& keys) {\n  int n = (int)keys.size();\n  if (n == 0) return 0;\n  vector<int> order(n);\n  iota(order.begin(), order.end(), 0);\n  sort(order.begin(), order.end(), [&](int a, int b) { return keys[a] < keys[b] || (keys[a] == keys[b] && a < b); });\n  vector<int> rank(n), prev(n), next(n), pred(n), succ(n), depth(n, 0);\n  for (int r = 0; r < n; r++) { rank[order[r]] = r; prev[r] = r - 1; next[r] = r + 1; }\n  for (int i = n - 1; i >= 0; i--) {\n    int r = rank[i], p = prev[r], s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  long long best = 0;\n  for (int i = 0; i < n; i++) {\n    int d = 1;\n    if (pred[i] >= 0) d = max(d, depth[pred[i]] + 1);\n    if (succ[i] >= 0) d = max(d, depth[succ[i]] + 1);\n    depth[rank[i]] = d;\n    best = max(best, (long long)d);\n  }\n  return best;\n}"
         },
         "java": {
-          "referenceSolution": "static long treeHeight(long[] keys) {\n  int n = keys.length;\n  if (n == 0) return 0;\n  Integer[] order = new Integer[n];\n  for (int i = 0; i < n; i++) order[i] = i;\n  Arrays.sort(order, (a, b) -> Long.compare(keys[a], keys[b]));\n  int[] rank = new int[n], prev = new int[n], next = new int[n];\n  int[] pred = new int[n], succ = new int[n], depth = new int[n];\n  for (int r = 0; r < n; r++) { rank[order[r]] = r; prev[r] = r - 1; next[r] = r + 1; }\n  for (int i = n - 1; i >= 0; i--) {\n    int r = rank[i], p = prev[r], s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  long best = 0;\n  for (int i = 0; i < n; i++) {\n    int d = 1;\n    if (pred[i] >= 0) d = Math.max(d, depth[pred[i]] + 1);\n    if (succ[i] >= 0) d = Math.max(d, depth[succ[i]] + 1);\n    depth[rank[i]] = d;\n    best = Math.max(best, d);\n  }\n  return best;\n}"
+          "referenceSolution": "static long treeHeight(long[] keys) {\n  int n = keys.length;\n  if (n == 0) return 0;\n  Integer[] order = new Integer[n];\n  for (int i = 0; i < n; i++) order[i] = i;\n  Arrays.sort(order, (a, b) -> keys[a] != keys[b] ? Long.compare(keys[a], keys[b]) : Integer.compare(a, b));\n  int[] rank = new int[n], prev = new int[n], next = new int[n];\n  int[] pred = new int[n], succ = new int[n], depth = new int[n];\n  for (int r = 0; r < n; r++) { rank[order[r]] = r; prev[r] = r - 1; next[r] = r + 1; }\n  for (int i = n - 1; i >= 0; i--) {\n    int r = rank[i], p = prev[r], s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  long best = 0;\n  for (int i = 0; i < n; i++) {\n    int d = 1;\n    if (pred[i] >= 0) d = Math.max(d, depth[pred[i]] + 1);\n    if (succ[i] >= 0) d = Math.max(d, depth[succ[i]] + 1);\n    depth[rank[i]] = d;\n    best = Math.max(best, d);\n  }\n  return best;\n}"
         },
         "python3": {
-          "referenceSolution": "def treeHeight(keys: list[int]) -> int:\n    n = len(keys)\n    if n == 0:\n        return 0\n    order = sorted(range(n), key=lambda i: keys[i])\n    rank = [0] * n\n    for r, i in enumerate(order):\n        rank[i] = r\n    prev = list(range(-1, n - 1))\n    nxt = list(range(1, n + 1))\n    pred = [-1] * n\n    succ = [-1] * n\n    for i in range(n - 1, -1, -1):\n        r = rank[i]\n        p, s = prev[r], nxt[r]\n        pred[i] = p\n        succ[i] = s if s < n else -1\n        if p >= 0:\n            nxt[p] = s\n        if s < n:\n            prev[s] = p\n    depth = [0] * n\n    best = 0\n    for i in range(n):\n        d = 1\n        if pred[i] >= 0:\n            d = max(d, depth[pred[i]] + 1)\n        if succ[i] >= 0:\n            d = max(d, depth[succ[i]] + 1)\n        depth[rank[i]] = d\n        best = max(best, d)\n    return best"
+          "referenceSolution": "def treeHeight(keys: list[int]) -> int:\n    n = len(keys)\n    if n == 0:\n        return 0\n    order = sorted(range(n), key=lambda i: (keys[i], i))\n    rank = [0] * n\n    for r, i in enumerate(order):\n        rank[i] = r\n    prev = list(range(-1, n - 1))\n    nxt = list(range(1, n + 1))\n    pred = [-1] * n\n    succ = [-1] * n\n    for i in range(n - 1, -1, -1):\n        r = rank[i]\n        p, s = prev[r], nxt[r]\n        pred[i] = p\n        succ[i] = s if s < n else -1\n        if p >= 0:\n            nxt[p] = s\n        if s < n:\n            prev[s] = p\n    depth = [0] * n\n    best = 0\n    for i in range(n):\n        d = 1\n        if pred[i] >= 0:\n            d = max(d, depth[pred[i]] + 1)\n        if succ[i] >= 0:\n            d = max(d, depth[succ[i]] + 1)\n        depth[rank[i]] = d\n        best = max(best, d)\n    return best"
         },
         "javascript": {
-          "referenceSolution": "function treeHeight(keys) {\n  const n = keys.length;\n  if (n === 0) return 0;\n  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => keys[a] - keys[b]);\n  const rank = new Array(n);\n  const prev = new Array(n);\n  const next = new Array(n);\n  const pred = new Array(n);\n  const succ = new Array(n);\n  const depth = new Array(n).fill(0);\n  for (let r = 0; r < n; r++) {\n    rank[order[r]] = r;\n    prev[r] = r - 1;\n    next[r] = r + 1;\n  }\n  for (let i = n - 1; i >= 0; i--) {\n    const r = rank[i];\n    const p = prev[r];\n    const s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  let best = 0;\n  for (let i = 0; i < n; i++) {\n    let d = 1;\n    if (pred[i] >= 0) d = Math.max(d, depth[pred[i]] + 1);\n    if (succ[i] >= 0) d = Math.max(d, depth[succ[i]] + 1);\n    depth[rank[i]] = d;\n    best = Math.max(best, d);\n  }\n  return best;\n}"
+          "referenceSolution": "function treeHeight(keys) {\n  const n = keys.length;\n  if (n === 0) return 0;\n  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => keys[a] - keys[b] || a - b);\n  const rank = new Array(n);\n  const prev = new Array(n);\n  const next = new Array(n);\n  const pred = new Array(n);\n  const succ = new Array(n);\n  const depth = new Array(n).fill(0);\n  for (let r = 0; r < n; r++) {\n    rank[order[r]] = r;\n    prev[r] = r - 1;\n    next[r] = r + 1;\n  }\n  for (let i = n - 1; i >= 0; i--) {\n    const r = rank[i];\n    const p = prev[r];\n    const s = next[r];\n    pred[i] = p;\n    succ[i] = s < n ? s : -1;\n    if (p >= 0) next[p] = s;\n    if (s < n) prev[s] = p;\n  }\n  let best = 0;\n  for (let i = 0; i < n; i++) {\n    let d = 1;\n    if (pred[i] >= 0) d = Math.max(d, depth[pred[i]] + 1);\n    if (succ[i] >= 0) d = Math.max(d, depth[succ[i]] + 1);\n    depth[rank[i]] = d;\n    best = Math.max(best, d);\n  }\n  return best;\n}"
         }
       },
       "provenance": {
@@ -1226,6 +1256,14 @@
           "coverage": "maximum",
           "isPerformance": false,
           "explanation": "Five thousand tiles: half with unique colours, half from fifty colours."
+        },
+        {
+          "visibility": "hidden",
+          "input": "2 5 2 5 2 5 2 5 9 5",
+          "expectedOutput": "2",
+          "coverage": "duplicates",
+          "isPerformance": false,
+          "explanation": "Two colours alternate along the corridor, each on many tiles. One step to tile 1, which shares colour 5 with the exit, then one portal: two moves."
         }
       ],
       "timeLimitMs": 2000,
@@ -1383,6 +1421,14 @@
           "coverage": "performance",
           "isPerformance": true,
           "explanation": "Over five thousand tiles with pattern numbers across the whole range."
+        },
+        {
+          "visibility": "hidden",
+          "input": "9 9 4 4 1000000000 1000000000 0 0 17 6 6",
+          "expectedOutput": "17",
+          "coverage": "duplicates",
+          "isPerformance": false,
+          "explanation": "Every pair sits side by side, including 0 0 and the largest pattern number. Only 17 has no twin."
         }
       ],
       "timeLimitMs": 2000,
