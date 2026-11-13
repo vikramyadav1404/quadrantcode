@@ -65,11 +65,15 @@ export function TopicSections({ sections }: { sections: TopicSection[] }) {
               </div>
 
               <ol className="mt-3 divide-y divide-[var(--border)]">
-                {section.problems.map((problem) => (
+                {section.problems.map((problem, index) => (
                   <li className="flex items-center gap-3 py-2 text-sm" key={problem.id}>
                     <StatusMark status={problem.userStatus} />
-                    <span className="w-14 shrink-0 tabular-nums text-[var(--text-muted)]">
-                      #{problem.number}
+                    {/* Position within this topic, 1 to n: see the catalog page header. */}
+                    <span
+                      aria-hidden="true"
+                      className="w-8 shrink-0 tabular-nums text-[var(--text-muted)]"
+                    >
+                      {index + 1}.
                     </span>
                     <Link
                       className="min-w-0 flex-1 truncate rounded-sm font-medium text-[var(--text-primary)] transition-colors hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
