@@ -53,3 +53,12 @@ be8931d7605d18940d03f63b80c5c7b25a527635:server/services/execution/provider.ts:g
 # argued. Both must keep firing on anything new.
 e6e7a245218142f95b4af40003801c99cb4d9956:.gitleaksignore:generic-api-key:10
 e6e7a245218142f95b4af40003801c99cb4d9956:docs/security-audit.md:generic-api-key:47
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Same three findings after main's history was rewritten on 2026-11-13 (commit
+# messages only, no file changed), which gave every commit a new SHA. The lines
+# above stay because the old commits still exist on other branches, and the
+# scan reads every ref (--log-opts="--all").
+ac63d42eb6df5730f5846cf293cc8173567121de:server/services/execution/provider.ts:generic-api-key:150
+3589f2789ba3648fb587926d083f08aa0b3e058e:.gitleaksignore:generic-api-key:10
+3589f2789ba3648fb587926d083f08aa0b3e058e:docs/security-audit.md:generic-api-key:47
