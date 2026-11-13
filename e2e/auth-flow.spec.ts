@@ -176,3 +176,37 @@ test('a stale session cookie gets 401, not a 500', async ({ context, page, baseU
   const response = await page.goto('/dashboard');
   expect(response?.status()).toBe(401);
 });
+
+test('signing out from settings ends the session in this browser', async ({
+  context,
+  page,
+  baseURL,
+}) => {
+  const email = 'signout@e2e.test';
+  const userId = await signInAs(context, sql, { email, baseUrl: baseURL! });
+
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/login/);
+
+  // The row is what makes the cookie worthless; a cleared cookie alone is not proof.
+  const sessions = await sql`SELECT 1 FROM auth_sessions WHERE user_id = ${userId}`;
+  expect(sessions).toHaveLength(0);
+  const cookies = await context.cookies();
+  expect(cookies.find((cookie) => cookie.name === SESSION_COOKIE)).toBeUndefined();
+
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Fdashboard/);
+});
+
+test('the profile page offers sign-out, for viewports without the sidebar', async ({
+  context,
+  page,
+  baseURL,
+}) => {
+  await signInAs(context, sql, { email: 'signout-profile@e2e.test', baseUrl: baseURL! });
+
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto('/settings/profile');
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+});
