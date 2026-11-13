@@ -4,19 +4,7 @@
  * Every filter is applied in SQL. Nothing is fetched and filtered in JS — that
  * would both scale badly and leak rows the caller should not see into memory.
  */
-import {
-  type SQL,
-  and,
-  asc,
-  desc,
-  eq,
-  exists,
-  isNotNull,
-  isNull,
-  lt,
-  or,
-  sql,
-} from 'drizzle-orm';
+import { type SQL, and, asc, desc, eq, exists, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { problemTags, problems, userProblems } from '@/server/db/schema';
 import { type Cursor, decodeCursor, encodeCursor } from './cursor';
@@ -50,6 +38,8 @@ const EXTERNAL_ONLY: SQL = eq(problems.sourceType, 'external_link');
 
 export type ProblemListItem = {
   id: string;
+  /** The fixed public number, shown as "#123". */
+  number: number;
   slug: string;
   title: string;
   sourceType: 'external_link' | 'original';
@@ -70,25 +60,17 @@ export type ProblemPage = {
 };
 
 /**
- * Keyset predicate for `(created_at DESC, id DESC)`.
+ * Keyset predicate for `(difficulty, number)` ascending.
  *
- * Strictly "less than" the anchor in that composite order, which is what makes
- * the page boundary exact: a row equal to the anchor was already returned, and
- * a row inserted after the anchor sorts above it and is never seen again by
- * this scan.
+ * Strictly "greater than" the anchor in that composite order, which is what
+ * makes the page boundary exact: the anchor row was already returned, and
+ * `number` is unique, so no other row can tie with it. A row row-compares on
+ * the enum's declared order (easy < medium < hard), the same order the index
+ * and the ORDER BY use.
  */
 function keysetPredicate(cursor: Cursor): SQL {
-  // Compared as timestamptz from the cursor's text, so the microseconds the
-  // database stored survive the round trip (see `cursor.ts`).
-  const anchor = sql`${cursor.createdAt}::timestamptz`;
-  return or(
-    sql`${problems.createdAt} < ${anchor}`,
-    and(sql`${problems.createdAt} = ${anchor}`, lt(problems.id, cursor.id)),
-  )!;
+  return sql`(${problems.difficulty}, ${problems.number}) > (${cursor.difficulty}::difficulty, ${cursor.number})`;
 }
-
-/** `created_at` as UTC ISO-8601 with all six fractional digits: the cursor anchor. */
-const CURSOR_AT = sql<string>`to_char(${problems.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
 /** Restricts to a tag without a JOIN, so the row count cannot be multiplied. */
 function hasTag(tagType: 'topic' | 'pattern' | 'company_style', tagValue: string): SQL {
@@ -175,6 +157,7 @@ export async function listProblems({
   const rows = await db
     .select({
       id: problems.id,
+      number: problems.number,
       slug: problems.slug,
       title: problems.title,
       sourceType: problems.sourceType,
@@ -185,38 +168,31 @@ export async function listProblems({
       isPremium: problems.isPremium,
       status: problems.status,
       createdAt: problems.createdAt,
-      cursorAt: CURSOR_AT,
     })
     .from(problems)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     /*
-     * `NULLS LAST` is REQUIRED, not cosmetic.
-     *
-     * Drizzle emits index columns as `DESC NULLS LAST`, but Postgres defaults a
-     * bare `ORDER BY x DESC` to `NULLS FIRST`. The two sort orders do not
-     * match, so the planner refuses the index and falls back to a sequential
-     * scan plus a top-N sort. Both columns are NOT NULL, so this changes no
-     * result — only whether the index is usable.
-     *
-     * Measured at 20k rows: 27.98ms (seq scan) vs 0.27ms (index scan).
+     * Easiest first, then by number: the order a reader works through a list
+     * in, and the one `problems_status_difficulty_number_idx` is built for.
+     * Both ascending, so Postgres's default `NULLS LAST` already matches the
+     * index — the `DESC NULLS FIRST` trap the old `created_at DESC` order had
+     * does not arise. `tests/problems/plans.test.ts` pins the plan.
      */
-    .orderBy(sql`${problems.createdAt} DESC NULLS LAST`, sql`${problems.id} DESC NULLS LAST`)
+    .orderBy(asc(problems.difficulty), asc(problems.number))
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
-  const decorated = await attachTagsAndStatus(
-    db,
-    page.map(({ cursorAt: _cursorAt, ...row }) => row),
-    userId ?? null,
-  );
+  const decorated = await attachTagsAndStatus(db, page, userId ?? null);
 
   const last = page.at(-1);
   return {
     rows: decorated,
     nextCursor:
-      hasMore && last ? encodeCursor({ createdAt: last.cursorAt, id: last.id }) : null,
+      hasMore && last
+        ? encodeCursor({ difficulty: last.difficulty, number: last.number })
+        : null,
   };
 }
 
@@ -426,6 +402,7 @@ export async function getProblemBySlug(
 
   return {
     id: row.id,
+    number: row.number,
     slug: row.slug,
     title: row.title,
     sourceType: row.sourceType,
