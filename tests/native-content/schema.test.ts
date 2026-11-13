@@ -301,6 +301,24 @@ describe('native problem content schema', () => {
       }),
     ).toThrow('COMPANY_PATTERN');
   });
+
+  it('rejects a record without duplicates coverage, which the publish gate requires', () => {
+    const problem = libraryFixture()[0]!.problems[0]!;
+    const parse = (testCases: typeof problem.testCases) =>
+      nativeProblemBatchSchema.parse({
+        schemaVersion: 1,
+        batch: 1,
+        reviewStatus: 'needs_review',
+        problems: [{ ...problem, testCases }],
+      });
+
+    expect(() => parse(problem.testCases)).not.toThrow();
+    // Same tests, same count; only the duplicates label is gone.
+    const relabelled = problem.testCases.map((test) =>
+      test.coverage === 'duplicates' ? { ...test, coverage: 'typical' as const } : test,
+    );
+    expect(() => parse(relabelled)).toThrow('Missing duplicates coverage');
+  });
 });
 
 /*
