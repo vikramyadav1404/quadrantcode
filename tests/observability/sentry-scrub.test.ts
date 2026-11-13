@@ -2,10 +2,13 @@
  * Credentials never reach Sentry: the shape that leaked on 2026-11-14 is
  * scrubbed, and the parts worth keeping survive.
  */
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { type ScrubbableEvent, scrubSentryEvent, scrubUrl } from '@/lib/monitoring/scrub';
 
-const TOKEN = '3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90';
+// Same shape as a session token (36 characters), made at run time: a literal
+// here is what the secret scan flags, and nothing below depends on its value.
+const TOKEN = randomUUID();
 
 describe('scrubSentryEvent', () => {
   it('drops the session cookie that leaked, in the shape it leaked', () => {
