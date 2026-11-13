@@ -15,6 +15,7 @@ import {
   testCases,
 } from '@/server/db/schema';
 import { recordAudit } from '@/server/lib/observability/audit';
+import { normalizeFormNewlines } from '@/server/services/admin/form-text';
 import { outputsMatch, wrapUserSource } from '@/server/services/execution/native';
 import { EXECUTION_LIMITS, type ExecutionProvider } from '@/server/services/execution/provider';
 
@@ -152,7 +153,7 @@ export async function updateNativeProblemCore(
   actorId: string,
   rawInput: unknown,
 ): Promise<void> {
-  const input = updateCoreSchema.parse(rawInput);
+  const input = updateCoreSchema.parse(normalizeFormNewlines(rawInput));
   if (input.constraints.length < 3 || input.hints.length < 2) {
     throw new Error('At least three constraints and two hints are required.');
   }
@@ -211,7 +212,7 @@ export async function updateNativeLanguageTemplate(
   actorId: string,
   rawInput: unknown,
 ): Promise<void> {
-  const input = templateSchema.parse(rawInput);
+  const input = templateSchema.parse(normalizeFormNewlines(rawInput));
   await db.transaction(async (tx) => {
     const current = await currentVersion(tx, input.problemId);
     assertEditable(current.status);
@@ -252,7 +253,7 @@ export async function updateNativeTestCase(
   actorId: string,
   rawInput: unknown,
 ): Promise<void> {
-  const input = testCaseSchema.parse(rawInput);
+  const input = testCaseSchema.parse(normalizeFormNewlines(rawInput));
   await db.transaction(async (tx) => {
     const current = await currentVersion(tx, input.problemId);
     assertEditable(current.status);
@@ -289,7 +290,7 @@ export async function updateNativeExample(
   actorId: string,
   rawInput: unknown,
 ): Promise<void> {
-  const input = exampleSchema.parse(rawInput);
+  const input = exampleSchema.parse(normalizeFormNewlines(rawInput));
   await db.transaction(async (tx) => {
     const current = await currentVersion(tx, input.problemId);
     assertEditable(current.status);
@@ -325,7 +326,7 @@ export async function updateNativeEditorial(
   actorId: string,
   rawInput: unknown,
 ): Promise<void> {
-  const input = editorialSchema.parse(rawInput);
+  const input = editorialSchema.parse(normalizeFormNewlines(rawInput));
   await db.transaction(async (tx) => {
     const current = await currentVersion(tx, input.problemId);
     assertEditable(current.status);
