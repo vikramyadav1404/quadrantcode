@@ -1,5 +1,9 @@
 # Launch checklist
 
+_Commit IDs quoted before 2026-11-13 (`3ac8260`, `2b2c598`) are from `main` as it was before
+that day's message-only history rewrite. The same commits now carry new IDs; the code is
+unchanged._
+
 ## Accounts and configuration
 
 - [x] Final domain and DNS are active over HTTPS. _(quadrantcode.vikramyadav.me,
@@ -14,7 +18,11 @@
       _(2026-11-09: `vercel.json` runs it before every build. The Production
       deploy of `3ac8260` and the Preview builds of PRs #61–#65 all reached
       Ready, so both environments passed it.)_
-- [ ] GitHub callback is exact and wildcard matching is disabled.
+- [x] GitHub callback is exact and wildcard matching is disabled. _(checked 2026-11-13: both
+      OAuth apps use strict matching. Production allows
+      `https://quadrantcode.vikramyadav.me/api/auth/callback/github` and the older
+      `https://quadrantcode.vercel.app/api/auth/callback/github`; the preview app allows only
+      its own `quadrantcode-git-preview-…vercel.app` callback.)_
 - [ ] Resend SPF/DKIM pass and DMARC is published. _(2026-11-09: not set up —
       no Resend records exist on the domain. Sign-in mail goes through Gmail SMTP
       instead (#64, `GMAIL_USER` + `GMAIL_APP_PASSWORD`, Production only), which
@@ -32,7 +40,9 @@
       CSP allowed only `*.ingest.sentry.io`, and the browser DSN is
       `o….ingest.us.sentry.io`, so browser events were refused — fixed on branch
       `auto-pause-hidden-tab` (`lib/security/connect-src.ts`). No alert rule
-      exists yet.)_
+      exists yet. 2026-11-13: browser errors now arrive (QUADRANTCODE-7/8 came from
+      the solve page), and an email rule for high-priority issues exists and fired.
+      Source maps still wait on `SENTRY_AUTH_TOKEN`.)_
 - [ ] Support mailbox is monitored.
 - [x] Optional phone, execution and avatar features stay off until their real
       provider tests pass. _(2026-11-09: execution is on and passed — Judge0
@@ -45,7 +55,7 @@
 - [ ] Migrations 0020–0024 are applied and `npm run native:import` reports
       exactly 100 problems and 20 papers. _(Obsolete as worded: D27 retired the
       generated 100-problem library and the 20 papers. The live native library
-      is 26 problems; `npm run native:validate` checks it.)_
+      is 36 problems as of 2026-11-13; `npm run native:validate` checks it.)_
 - [ ] `sandbox/toolchain-lock.json` records verified immutable base, Node and
       VCR image digests; its SBOM and vulnerability scan are archived. _(Not
       applicable while `EXECUTION_BACKEND=judge0`; applies if Vercel Sandbox is
@@ -57,7 +67,9 @@
       imported `needs_review` item was bulk-promoted. _(2026-11-09: the 10 batch-02
       problems were validated one at a time on Judge0 — 5 languages × every test
       — then published individually. The 16 batch-01 problems were already
-      published through the same gate. All 26 native problems are `published`.)_
+      published through the same gate. All 26 native problems are `published`.
+      2026-11-13: the ten batch-03 problems went through the same gate one at a time; all
+      36 are `published`.)_
 
 ## Release gate
 
@@ -65,9 +77,10 @@
 - [x] `npm run typecheck` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run lint` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run format:check` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
-- [x] `npm run native:validate` _(2026-11-09: 26 problems, exit 0)_
+- [x] `npm run native:validate` _(2026-11-13: 36 problems, exit 0)_
 - [x] `npm run papers:validate` _(2026-11-09: 0 active papers — papers retired)_
-- [ ] `npm run native:validate-references`
+- [x] `npm run native:validate-references` _(2026-11-13, `--no-cache`: 36 problems × 5
+      languages, 1,315 runs, all reference outputs match)_
 - [ ] `npm run execution:image:verify`
 - [x] `npm run contrast` _(2026-11-09: all pairs pass)_
 - [x] `npm test` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
@@ -116,7 +129,9 @@
       value — put the Upstash token in Vercel runtime logs. Later that day the
       Upstash credentials were reset and the new token replaced in Vercel; the
       over-limit test passed again (200 × 20, then 429), so the logged value is
-      dead. Sentry was not inspected, so this stays open.)_
+      dead. Sentry was not inspected, so this stays open. 2026-11-13: Sentry inspected —
+      the title of issue QUADRANTCODE-5 quotes that same dead token, so this stays open
+      until that issue is deleted.)_
 - [x] Rollback owner and rollback deployment are identified. _(Owner: Vikram
       Yadav, sole maintainer. Method: Vercel → Deployments → the previous
       Production deployment → Instant Rollback. A rollback restores code only;
