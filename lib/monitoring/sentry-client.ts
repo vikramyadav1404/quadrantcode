@@ -16,6 +16,7 @@
  */
 // Type-only: erased at build time, so it adds nothing to the bundle.
 import type * as SentryNamespace from '@sentry/nextjs';
+import { scrubSentryEvent } from './scrub';
 
 type SentryModule = typeof SentryNamespace;
 
@@ -29,6 +30,9 @@ export function loadSentry(): Promise<SentryModule> {
       enabled: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
       environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
       sendDefaultPii: false,
+      // See lib/monitoring/scrub.ts: credentials are dropped before anything is sent.
+      beforeSend: (event) => scrubSentryEvent(event),
+      beforeSendTransaction: (event) => scrubSentryEvent(event),
       tracesSampleRate: 0.1,
     });
     loaded = Sentry;
