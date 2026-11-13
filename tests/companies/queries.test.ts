@@ -83,6 +83,75 @@ suite('company preparation filters', () => {
     });
   });
 
+  it('counts topics and offers filters from published problems only', async () => {
+    const [company] = await ctx.db
+      .insert(companies)
+      .values({
+        slug: 'sidebar-company',
+        name: 'Sidebar Company',
+        overview: 'A descriptive test-company overview that is long enough for this fixture.',
+      })
+      .returning();
+    const [graphs, heaps] = await ctx.db
+      .insert(topics)
+      .values([
+        { slug: 'graphs', name: 'Graphs' },
+        { slug: 'heap-greedy', name: 'Heap Greedy' },
+      ])
+      .returning();
+    // One live problem, and one retired the way F4.1 retired them: archived,
+    // with its topic and company evidence left in place.
+    const [live, retired] = await ctx.db
+      .insert(problems)
+      .values([
+        {
+          slug: 'sidebar-live',
+          title: 'Sidebar Live',
+          sourceType: 'original',
+          difficulty: 'easy',
+          status: 'published',
+          statement: 'An independently authored sidebar fixture that is published.',
+        },
+        {
+          slug: 'sidebar-retired',
+          title: 'Sidebar Retired',
+          sourceType: 'original',
+          difficulty: 'medium',
+          status: 'archived',
+          statement: 'An independently authored sidebar fixture that was retired.',
+        },
+      ])
+      .returning();
+    await ctx.db.insert(problemTopics).values([
+      { problemId: live!.id, topicId: graphs!.id, isPrimary: true },
+      { problemId: retired!.id, topicId: heaps!.id, isPrimary: true },
+    ]);
+    await ctx.db.insert(problemCompanyEvidence).values([
+      {
+        problemId: live!.id,
+        companyId: company!.id,
+        role: 'SDE',
+        round: 'Online assessment',
+        evidenceType: 'company_pattern',
+        verificationStatus: 'unverified',
+      },
+      {
+        problemId: retired!.id,
+        companyId: company!.id,
+        role: 'Retired role',
+        round: 'Retired round',
+        evidenceType: 'company_pattern',
+        verificationStatus: 'unverified',
+      },
+    ]);
+
+    const result = await getCompanyPageData(ctx.db, company!.slug, {});
+    expect(result?.problems.map((problem) => problem.slug)).toEqual(['sidebar-live']);
+    expect(result?.topicInsights).toEqual([{ topic: 'Graphs', count: 1 }]);
+    expect(result?.filterOptions.roles).toEqual(['SDE']);
+    expect(result?.filterOptions.rounds).toEqual(['Online assessment']);
+  });
+
   it('does not expose unpublished papers on company pages', async () => {
     const [company] = await ctx.db
       .insert(companies)
