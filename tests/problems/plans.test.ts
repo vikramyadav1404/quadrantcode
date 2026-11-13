@@ -1,13 +1,16 @@
 /**
  * F1.1 · the catalog list must use an index, not a sequential scan.
  *
- * This exists because the first implementation silently did not. Drizzle emits
- * index columns as `DESC NULLS LAST`, while a bare `ORDER BY x DESC` in
- * Postgres means `NULLS FIRST` — the sort orders differ, so the planner
- * discards the index and falls back to a seq scan plus a top-N sort. Nothing
- * about the RESULTS changes (both columns are NOT NULL), which is exactly why
- * only an EXPLAIN assertion catches it. Measured at 20k rows: 27.98ms vs
- * 0.27ms.
+ * This exists because the first implementation silently did not: under the
+ * old `created_at DESC` order, Drizzle's `DESC NULLS LAST` index columns did
+ * not match Postgres's default `DESC NULLS FIRST`, so the planner discarded
+ * the index and fell back to a seq scan plus a top-N sort (27.98ms vs 0.27ms at
+ * 20k rows). Nothing about the RESULTS changed, which is exactly why only an
+ * EXPLAIN assertion catches it.
+ *
+ * The catalog now reads `ORDER BY difficulty, number` (migration 0028). The
+ * guard is the same: the service's query shape must walk
+ * `problems_status_difficulty_number_idx`.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { listProblems, parseFilters } from '@/server/services/problems';
@@ -47,19 +50,34 @@ suite('F1.1 · query plans', () => {
   it('the unfiltered first page uses an index, not a seq scan', async () => {
     const nodes = await plan(`
       SELECT id, slug, title FROM problems WHERE status = 'published'
-      ORDER BY created_at DESC NULLS LAST, id DESC NULLS LAST LIMIT 25
+      ORDER BY difficulty, number LIMIT 26
     `);
 
-    expect(nodes.some((n) => n['Index Name'] === 'problems_status_recent_idx')).toBe(true);
+    expect(nodes.some((n) => n['Index Name'] === 'problems_status_difficulty_number_idx')).toBe(
+      true,
+    );
     expect(nodes.filter((n) => n['Node Type'] === 'Seq Scan')).toHaveLength(0);
   });
 
-  it('POSITIVE CONTROL — the same query WITHOUT nulls-last does seq scan', async () => {
-    // Proves the assertion above is sensitive to the thing it claims to guard.
-    // If this ever starts using the index, the guard has become vacuous.
+  it('a later page, behind the keyset predicate, uses the same index', async () => {
+    const nodes = await plan(`
+      SELECT id, slug, title FROM problems
+      WHERE status = 'published' AND (difficulty, number) > ('medium'::difficulty, 5000)
+      ORDER BY difficulty, number LIMIT 26
+    `);
+
+    expect(nodes.some((n) => n['Index Name'] === 'problems_status_difficulty_number_idx')).toBe(
+      true,
+    );
+    expect(nodes.filter((n) => n['Node Type'] === 'Seq Scan')).toHaveLength(0);
+  });
+
+  it('POSITIVE CONTROL — an order no index serves does seq scan', async () => {
+    // Proves the assertions above are sensitive to the thing they claim to
+    // guard. If this ever stops seq scanning, the guard has become vacuous.
     const nodes = await plan(`
       SELECT id, slug, title FROM problems WHERE status = 'published'
-      ORDER BY created_at DESC, id DESC LIMIT 25
+      ORDER BY estimated_minutes, title LIMIT 26
     `);
 
     expect(nodes.some((n) => n['Node Type'] === 'Seq Scan')).toBe(true);

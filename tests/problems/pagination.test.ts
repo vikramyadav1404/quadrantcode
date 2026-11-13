@@ -29,22 +29,18 @@ import {
 const suite = hasTestDatabase ? describe : describe.skip;
 
 describe('F1.1 · cursor encoding (pure)', () => {
-  it('round-trips, microseconds included', () => {
-    const cursor = {
-      createdAt: '2026-08-13T10:11:12.345678Z',
-      id: '3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
-    };
-    const decoded = decodeCursor(encodeCursor(cursor));
-
-    expect(decoded.id).toBe(cursor.id);
-    expect(decoded.createdAt).toBe(cursor.createdAt);
+  it('round-trips', () => {
+    const cursor = { difficulty: 'medium' as const, number: 4217 };
+    expect(decodeCursor(encodeCursor(cursor))).toEqual(cursor);
   });
 
-  it('still accepts a token issued with millisecond precision', () => {
+  it('rejects a token issued before problem numbers existed', () => {
+    // `created_at|id` was the key until migration 0028. The catalog page turns
+    // this error into "start from the first page".
     const legacy = Buffer.from(
-      '2026-08-13T10:11:12.345Z|3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
+      '2026-08-13T10:11:12.345678Z|3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
     ).toString('base64url');
-    expect(decodeCursor(legacy).createdAt).toBe('2026-08-13T10:11:12.345Z');
+    expect(() => decodeCursor(legacy)).toThrow(InvalidCursorError);
   });
 
   it('rejects a tampered or malformed token with a typed error', () => {
@@ -52,27 +48,24 @@ describe('F1.1 · cursor encoding (pure)', () => {
       expect(() => decodeCursor(bad)).toThrow(InvalidCursorError);
     }
 
-    // Valid base64, valid shape, but the id is not a uuid — a forged token.
-    const forged = Buffer.from('2026-01-01T00:00:00.000Z|../../etc/passwd').toString(
-      'base64url',
-    );
-    expect(() => decodeCursor(forged)).toThrow(InvalidCursorError);
-
-    // A uuid, but a timestamp that is not the shape the server issues.
-    for (const timestamp of ['2026-01-01', '2026-01-01T00:00:00.1234567Z', "now()'; --"]) {
-      const token = Buffer.from(`${timestamp}|3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90`).toString(
-        'base64url',
+    for (const forged of [
+      'trivial|12', // not a difficulty
+      'easy|1; DROP TABLE problems', // not a number
+      'easy|0', // numbers start at 1
+      'easy|-3',
+      'hard|12.5',
+      'hard|9999999999', // past Postgres integer
+    ]) {
+      expect(() => decodeCursor(Buffer.from(forged).toString('base64url'))).toThrow(
+        InvalidCursorError,
       );
-      expect(() => decodeCursor(token)).toThrow(InvalidCursorError);
     }
   });
 
-  it('is opaque — the token does not read as a timestamp', () => {
-    const token = encodeCursor({
-      createdAt: '2026-08-13T10:11:12.345678Z',
-      id: '3f1c2b7a-9d4e-4c8b-8a1f-2e5d6c7b8a90',
-    });
-    expect(token).not.toContain('2026');
+  it('is opaque — the token does not read as its key', () => {
+    const token = encodeCursor({ difficulty: 'medium', number: 4217 });
+    expect(token).not.toContain('medium');
+    expect(token).not.toContain('4217');
   });
 });
 
@@ -130,10 +123,10 @@ suite('F1.1 · listing', () => {
   it('PAGES THROUGH A GROUP STAMPED IN ONE TRANSACTION without losing its tail', async () => {
     /*
      * A bulk import stamps every row with the same now(), microseconds and
-     * all. The old cursor carried a millisecond Date, so the anchor never
-     * equalled the group's timestamp and everything after the first page of
-     * the group disappeared. Production lost the sixteenth batch-1 original
-     * this way on 2026-11-09.
+     * all. Under the old `created_at` key a millisecond anchor skipped the
+     * rest of such a group; production lost the sixteenth batch-1 original
+     * this way on 2026-11-09. The key no longer involves the timestamp, and
+     * this stays as the regression test for that loss.
      */
     await ctx.sql`
       INSERT INTO problems (slug, title, source_type, platform, external_url, difficulty, status, created_at)
@@ -190,9 +183,25 @@ suite('F1.1 · listing', () => {
     expect(new Set(originals).size).toBe(20); // every original seen
     expect(originals).toHaveLength(20); // and none twice
 
-    // The rows inserted mid-scan sort above the cursor and are correctly not
-    // re-surfaced by the continuing scan.
-    expect(seen.filter((slug) => slug.startsWith('intruder-'))).toHaveLength(0);
+    // The intruders are easy and take the next numbers, so they sort after the
+    // first page's anchor and the continuing scan reaches each of them once.
+    // Nothing already shown moved, which is what OFFSET would have got wrong.
+    const intruders = seen.filter((slug) => slug.startsWith('intruder-'));
+    expect(intruders).toHaveLength(5);
+    expect(new Set(intruders).size).toBe(5);
+  });
+
+  it('lists easiest first, then by number', async () => {
+    await seed(9);
+
+    const result = await listProblems({ db: ctx.db, filters: parseFilters({ limit: 50 }) });
+    const rank = { easy: 0, medium: 1, hard: 2 } as const;
+    const keys = result.rows.map((row) => [rank[row.difficulty], row.number] as const);
+    const sorted = [...keys].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+    expect(keys).toEqual(sorted);
+    expect(result.rows[0]?.difficulty).toBe('easy');
+    expect(result.rows.at(-1)?.difficulty).toBe('hard');
   });
 
   it('returns a stable order when created_at ties', async () => {
