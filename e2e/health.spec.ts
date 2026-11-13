@@ -112,6 +112,11 @@ test('AN ADMIN SEES LIVE NUMBERS, not placeholders', async ({ page, context, bas
   await expect(list.getByText(/postgres/)).toBeVisible();
   await expect(list.getByText(/\d+ ms/)).toBeVisible();
 
+  // The execution queue, each number beside its limit.
+  const queue = page.getByRole('list', { name: 'Execution queue' });
+  await expect(queue.getByText('Running jobs with an expired lease')).toBeVisible();
+  await expect(queue.getByText(/within limit|over limit/).first()).toBeVisible();
+
   // And the panels that cannot exist are listed as absent, with the reason.
-  await expect(page.getByText(/there is no queue/)).toBeVisible();
+  await expect(page.getByText(/there is no general job queue/)).toBeVisible();
 });
