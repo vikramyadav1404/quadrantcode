@@ -1,3 +1,4 @@
+import { SignOutButton } from '@/components/auth/SignOutButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { getDb } from '@/server/db';
 import { getProfile } from '@/server/services/profile';
@@ -33,6 +34,9 @@ export default async function ProfileSettingsPage() {
           avatarUrl: profile.avatarUrl,
         }}
       />
+      <div className="mt-8">
+        <SignOutButton />
+      </div>
     </>
   );
 }

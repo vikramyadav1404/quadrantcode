@@ -143,3 +143,20 @@ export async function signOutAndContinueWithGitHubAction(returnTo?: string): Pro
   await signOut({ redirect: false });
   await signInWithGitHubAction(returnTo);
 }
+
+/**
+ * Plain sign-out, for `SignOutButton`.
+ *
+ * Before this existed the app had no way out of a session: the button above
+ * renders only on /login's signed-in and account-mismatch states, which a
+ * signed-in user never reaches, so leaving meant typing Auth.js's bare
+ * /api/auth/signout page into the address bar.
+ *
+ * `signOut` deletes this browser's `auth_sessions` row and clears the cookie;
+ * other devices stay signed in. `redirectTo` makes it throw the redirect a
+ * server action navigates with, so it must not be caught. The destination is a
+ * fixed path, not caller input, so there is no `returnTo` to validate.
+ */
+export async function signOutAction(): Promise<void> {
+  await signOut({ redirectTo: '/login' });
+}
