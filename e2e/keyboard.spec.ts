@@ -240,13 +240,17 @@ test('/problems traverses in order, with no trap and a ring at every stop', asyn
     ON CONFLICT (slug) DO NOTHING
   `;
 
-  await page.goto('/problems');
+  // The table, narrowed to these fixtures. The topic view lists only tagged
+  // problems, and the table now reads easiest first by number, so without the
+  // search other specs' rows could sort ahead of these and past the walk.
+  await page.goto('/problems?search=Keyboard');
   await expect(page.getByRole('heading', { name: 'Problems' })).toBeVisible();
   await resetFocus(page);
 
-  // 18, not 16: the source filter added a stop to the form, and the first row
-  // has to be inside the walk for the reachability check to mean anything.
-  const stops = await walk(page, 18);
+  // 21, not 16: the source filter, the topic filter and the two view links
+  // each added a stop before the table, and the first row has to be inside the
+  // walk for the reachability check to mean anything.
+  const stops = await walk(page, 21);
 
   // ORDER: the skip link precedes the navigation, which precedes the content.
   expect(stops[0]?.element, 'skip link should be first').toContain('a');
