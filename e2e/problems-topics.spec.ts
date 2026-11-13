@@ -55,7 +55,11 @@ test('/problems opens on the topic view, with counts and numbered rows', async (
   const rows = section.getByRole('listitem');
   await expect(rows).toHaveCount(5);
   await expect(rows.first().getByText('Easy')).toBeVisible();
-  await expect(rows.first()).toContainText(/#\d+/);
+  // Numbered by position in the topic, 1 to 5, not by the stored number.
+  const positions = await rows.evaluateAll((items) =>
+    items.map((item) => item.querySelector('.tabular-nums')?.textContent?.trim()),
+  );
+  expect(positions).toEqual(['1.', '2.', '3.', '4.', '5.']);
 
   await expect(page.getByRole('link', { name: 'By topic' })).toHaveAttribute(
     'aria-current',
@@ -83,6 +87,14 @@ test('"See all" lists the whole topic, easiest first', async ({ page }) => {
   const rank: Record<string, number> = { Easy: 0, Medium: 1, Hard: 2 };
   const ranks = difficulties.map((label) => rank[label ?? ''] ?? 99);
   expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+
+  // The # column counts down the list: 1 to 7, in sequence.
+  const positions = await table
+    .locator('tbody tr')
+    .evaluateAll((rows) =>
+      rows.map((row) => row.querySelectorAll('td')[1]?.textContent?.trim()),
+    );
+  expect(positions).toEqual(['1', '2', '3', '4', '5', '6', '7']);
 });
 
 test('All problems shows the table, and Apply keeps the reader on it', async ({ page }) => {
@@ -95,4 +107,29 @@ test('All problems shows the table, and Apply keeps the reader on it', async ({ 
 
   await page.getByRole('button', { name: 'Apply' }).click();
   await expect(page.getByRole('table')).toBeVisible();
+});
+
+test('page two of a list carries on counting from 26', async ({ page }) => {
+  await sql`
+    INSERT INTO problems (slug, title, source_type, platform, external_url, difficulty, status)
+    SELECT 'topv-page-' || i, 'Paging ' || i, 'external_link', 'leetcode',
+           'https://leetcode.com/problems/topv-page-' || i || '/', 'medium', 'published'
+    FROM generate_series(1, 27) AS i
+  `;
+  await sql`
+    INSERT INTO problem_tags (problem_id, tag_type, tag_value)
+    SELECT id, 'topic'::problem_tag_type, 'e2e-topic-paging' FROM problems WHERE slug LIKE 'topv-page-%'
+  `;
+
+  await page.goto('/problems?topic=e2e-topic-paging');
+  await page.getByRole('link', { name: 'Next page' }).click();
+
+  await expect(page).toHaveURL(/start=26/);
+  const positions = await page
+    .getByRole('table')
+    .locator('tbody tr')
+    .evaluateAll((rows) =>
+      rows.map((row) => row.querySelectorAll('td')[1]?.textContent?.trim()),
+    );
+  expect(positions).toEqual(['26', '27']);
 });
