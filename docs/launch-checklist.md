@@ -23,7 +23,7 @@ unchanged._
       `https://quadrantcode.vikramyadav.me/api/auth/callback/github` and the older
       `https://quadrantcode.vercel.app/api/auth/callback/github`; the preview app allows only
       its own `quadrantcode-git-preview-…vercel.app` callback.)_
-- [ ] Resend SPF/DKIM pass and DMARC is published. _(2026-11-09: not set up —
+- [x] ~~Resend SPF/DKIM pass and DMARC is published.~~ **N/A.** _(2026-11-09: not set up —
       no Resend records exist on the domain. Sign-in mail goes through Gmail SMTP
       instead (#64, `GMAIL_USER` + `GMAIL_APP_PASSWORD`, Production only), which
       needs no DNS. This item applies again only if Resend is turned on.)_
@@ -52,24 +52,27 @@ unchanged._
       variables exist in Vercel but are empty. Turning it on also needs the
       bucket's CORS to allow `PUT` from the site, and the CSP now admits the
       `S3_ENDPOINT` origin at build time.)_
-- [ ] Migrations 0020–0024 are applied and `npm run native:import` reports
-      exactly 100 problems and 20 papers. _(Obsolete as worded: D27 retired the
-      generated 100-problem library and the 20 papers. The live native library
-      is 36 problems as of 2026-11-13; `npm run native:validate` checks it.)_
-- [ ] `sandbox/toolchain-lock.json` records verified immutable base, Node and
-      VCR image digests; its SBOM and vulnerability scan are archived. _(Not
+- [x] ~~Migrations 0020–0024 are applied and `npm run native:import` reports
+      exactly 100 problems and 20 papers.~~ **N/A as worded.** _(D27 retired the
+      generated 100-problem library and the 20 papers. 2026-11-14: migrations
+      through `0028_problem_numbers` are applied in production (migration workflow
+      run #7, on `main` after #76), and the native library is 46 problems, all
+      `published`; `npm run native:validate` checks it.)_
+- [x] ~~`sandbox/toolchain-lock.json` records verified immutable base, Node and
+      VCR image digests; its SBOM and vulnerability scan are archived.~~ **N/A.** _(Not
       applicable while `EXECUTION_BACKEND=judge0`; applies if Vercel Sandbox is
       turned on.)_
-- [ ] Preview Sandbox contracts prove TLE, MLE, PID, output, disk, network,
-      secret isolation, hidden-input isolation, per-case cleanup and final stop.
-      _(Not applicable while `EXECUTION_BACKEND=judge0`.)_
+- [x] ~~Preview Sandbox contracts prove TLE, MLE, PID, output, disk, network,
+      secret isolation, hidden-input isolation, per-case cleanup and final stop.~~
+      **N/A.** _(Not applicable while `EXECUTION_BACKEND=judge0`.)_
 - [x] Every published native problem has a current real-provider validation; no
       imported `needs_review` item was bulk-promoted. _(2026-11-09: the 10 batch-02
       problems were validated one at a time on Judge0 — 5 languages × every test
       — then published individually. The 16 batch-01 problems were already
       published through the same gate. All 26 native problems are `published`.
       2026-11-13: the ten batch-03 problems went through the same gate one at a time; all
-      36 are `published`.)_
+      36 are `published`. 2026-11-14: the ten batch-04 problems (#74) went through the
+      same gate one at a time; all 46 are `published`.)_
 
 ## Release gate
 
@@ -77,11 +80,13 @@ unchanged._
 - [x] `npm run typecheck` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run lint` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run format:check` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
-- [x] `npm run native:validate` _(2026-11-13: 36 problems, exit 0)_
+- [x] `npm run native:validate` _(2026-11-14: 46 problems, exit 0)_
 - [x] `npm run papers:validate` _(2026-11-09: 0 active papers — papers retired)_
-- [x] `npm run native:validate-references` _(2026-11-13, `--no-cache`: 36 problems × 5
-      languages, 1,315 runs, all reference outputs match)_
-- [ ] `npm run execution:image:verify`
+- [x] `npm run native:validate-references` _(2026-11-14: 46 problems × 5 languages,
+      1,810 runs, all reference outputs match)_
+- [x] ~~`npm run execution:image:verify`~~ **N/A.** _(It checks
+      `sandbox/toolchain-lock.json`, which applies only if Vercel Sandbox is turned
+      on; execution runs on Judge0.)_
 - [x] `npm run contrast` _(2026-11-09: all pairs pass)_
 - [x] `npm test` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run build` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
@@ -90,8 +95,14 @@ unchanged._
       _(2026-11-09, after #62: 0 critical, 0 high; 6 moderate, all build-time
       `glob`/`minimatch`.)_
 - [ ] Preview smoke test passes at desktop and mobile widths.
+      _(2026-11-14, partial: a local production build of `main` with the 46-problem
+      library, at 375 px and 1440 px — dashboard, problems (topic view, all problems,
+      one topic's list), companies, one company, one problem, settings — all 200 with
+      no horizontal overflow. Live at desktop width the same pages return 200. Not
+      yet run against a Preview deployment at mobile width.)_
 - [ ] Fresh backup exists immediately before production migration.
-- [ ] Manual production migration workflow succeeds.
+- [x] Manual production migration workflow succeeds. _(2026-11-14: run #7 on `main`
+      applied `0028_problem_numbers`; the live catalog shows the numbered lists.)_
 
 ## Post-deploy
 
@@ -102,7 +113,10 @@ unchanged._
 - [ ] Home, login, GitHub, email link, onboarding, dashboard and logout work.
       _(2026-11-09, partial: home and dashboard load; a Gmail sign-in link was
       requested for a real inbox, delivered, and signed in. GitHub sign-in is the
-      admin's daily path. Onboarding and logout were not exercised.)_
+      admin's daily path. Onboarding and logout were not exercised. 2026-11-14:
+      a Sign out button was added in #75 and used live — it lands on `/login`, and
+      `/dashboard` then redirects to sign-in; GitHub sign-in returns to
+      `/dashboard`. Onboarding is still not exercised live.)_
 - [x] Auth/session cookies are Secure and HTTP-only on the final domain.
       _(2026-11-09: `__Host-authjs.csrf-token` and `__Secure-authjs.callback-url`
       are `HttpOnly; Secure; SameSite=Lax`; the session cookie is set `httpOnly`
@@ -115,14 +129,25 @@ unchanged._
       _(2026-11-09, partial: signed out, `/admin/**` redirects to `/login` and
       `/api/ingest/export` returns 401. Non-admin 403 and IDOR need a second
       account. Rate limits now return 429 — see the Upstash item. Upload caps not
-      exercised: avatar storage is unavailable.)_
-- [ ] Native Run/Submit, hidden-case redaction, company evidence labels and one
+      exercised: avatar storage is unavailable. 2026-11-14: non-admin 403 confirmed
+      live with a second, non-admin account. IDOR: `e2e/idor.spec.ts` passes 9/9
+      against a local production build of `main`; live, random ids on
+      `/api/execution/:id`, `/api/ingest/jobs/:id`, `/assessments/:id` and
+      `/sessions/:id` (and its timeline and reflection) all return 404. A live
+      cross-account read still needs the second account signed in.)_
+- [x] Native Run/Submit, hidden-case redaction, company evidence labels and one
       timed mock paper passed manual QA from `docs/native-manual-qa.md`.
       _(2026-11-09, partial: Harbour Lot Echo in C++ — Run accepted 2/2, Submit
       accepted 7/7, hidden cases show the verdict only. Company evidence labels
-      not checked; no mock paper exists to time — papers are retired.)_
+      not checked; no mock paper exists to time — papers are retired. 2026-11-14:
+      company evidence labels checked live. Company pages and problem pages show only
+      `Company pattern` and "…-style · pattern practice", with the not-affiliated
+      disclaimer, and nothing claims a PYQ. The mock-paper part is N/A. The Topic
+      frequency sidebar counted archived problems; fixed in #81.)_
 - [ ] Queue age, retry count, expired leases, cleanup-pending jobs and UTC-day
-      admission count are visible and within their limits.
+      admission count are visible and within their limits. _(2026-11-14: #79 adds an
+      Execution queue panel to `/admin/health` with all six numbers and their limits.
+      Tick once it is merged and read live.)_
 - [ ] Logs and Sentry contain no OTP, token, email body, or database URL.
       _(2026-11-09: **failed.** A mis-pasted `UPSTASH_REDIS_REST_TOKEN` made
       `Headers.append` throw, and its error message — which quotes the header
@@ -131,7 +156,12 @@ unchanged._
       over-limit test passed again (200 × 20, then 429), so the logged value is
       dead. Sentry was not inspected, so this stays open. 2026-11-13: Sentry inspected —
       the title of issue QUADRANTCODE-5 quotes that same dead token, so this stays open
-      until that issue is deleted.)_
+      until that issue is deleted. 2026-11-14: Vercel runtime logs for the last hour
+      (Hobby keeps about one hour): 70 info, 0 errors, no secret. Sentry: four issues
+      (QUADRANTCODE-3, -4, -6, -A) hold a raw `__Secure-quadrantcode.session` cookie
+      in their request data. #80 strips cookies and credential headers and query
+      parameters in `beforeSend`. Stays open until #80 is merged, those four issues
+      and QUADRANTCODE-5 are deleted, and the exposed sessions are revoked.)_
 - [x] Rollback owner and rollback deployment are identified. _(Owner: Vikram
       Yadav, sole maintainer. Method: Vercel → Deployments → the previous
       Production deployment → Instant Rollback. A rollback restores code only;
