@@ -9,45 +9,38 @@
  *     another is shown twice. Keyset pagination anchors on the last row's sort
  *     key, so inserts elsewhere cannot move the window.
  *
- * The sort key is `(created_at DESC, id DESC)`. `created_at` alone is not
- * unique — a bulk import stamps many rows in the same millisecond — and a
- * non-unique keyset loses or repeats rows at the tie boundary. `id` breaks the
- * tie and makes the ordering total.
+ * The sort key is `(difficulty, number)`: easiest first, then by the
+ * problem's public number. `number` is unique (migration 0028), so the order
+ * is total without a tiebreak, and both columns are exact integers or enum
+ * labels — none of the precision trouble the old `(created_at, id)` key had
+ * with microsecond timestamps.
  *
  * The cursor is base64 of that pair. It is opaque to the client but NOT
  * trusted: `decodeCursor` validates the shape and rejects anything else, so a
  * tampered token produces a typed error rather than a malformed query.
  *
- * ## The timestamp keeps its microseconds
- *
- * `created_at` is a Postgres `timestamptz`, stored to the microsecond. The
- * cursor used to carry a JavaScript `Date`, which holds milliseconds, so the
- * anchor was the row's time truncated. Every row stamped in one transaction
- * shares the same `now()`, microseconds included, and for those rows the
- * truncated anchor was neither equal to nor greater than their timestamp: the
- * id tie-break never ran and the rest of the group was skipped. Found on
- * 2026-11-09 when the catalog's originals-first view put a page boundary inside
- * batch 1's sixteen problems and the sixteenth vanished. The anchor is now the
- * database's own text form with all six fractional digits
- * (`listProblems` selects it), compared back as `timestamptz`.
- *
- * Older tokens, with three fractional digits, still decode; they page the way
- * they always did.
+ * Tokens issued before 0028 carried `created_at|id` and no longer decode. The
+ * catalog page answers one by starting from the first page rather than
+ * failing.
  */
 import { InvalidCursorError } from './errors';
 
+export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
 export type Cursor = {
-  /** ISO-8601 UTC, `Z`-suffixed, with one to six fractional digits. */
-  createdAt: string;
-  id: string;
+  difficulty: Difficulty;
+  /** The last row's `problems.number`. */
+  number: number;
 };
 
-const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
+/** Postgres `integer`: a number outside it cannot be a row's. */
+const MAX_NUMBER = 2_147_483_647;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NUMBER = /^[1-9]\d{0,9}$/;
 
 export function encodeCursor(cursor: Cursor): string {
-  return Buffer.from(`${cursor.createdAt}|${cursor.id}`, 'utf8').toString('base64url');
+  return Buffer.from(`${cursor.difficulty}|${cursor.number}`, 'utf8').toString('base64url');
 }
 
 export function decodeCursor(token: string): Cursor {
@@ -58,19 +51,19 @@ export function decodeCursor(token: string): Cursor {
     throw new InvalidCursorError();
   }
 
-  const separator = decoded.lastIndexOf('|');
+  const separator = decoded.indexOf('|');
   if (separator === -1) throw new InvalidCursorError();
 
-  const timestamp = decoded.slice(0, separator);
-  const id = decoded.slice(separator + 1);
+  const difficulty = decoded.slice(0, separator);
+  const digits = decoded.slice(separator + 1);
 
-  if (!UUID.test(id)) throw new InvalidCursorError();
+  if (!(DIFFICULTIES as readonly string[]).includes(difficulty)) throw new InvalidCursorError();
+  if (!NUMBER.test(digits)) throw new InvalidCursorError();
 
-  if (!TIMESTAMP.test(timestamp) || Number.isNaN(new Date(timestamp).getTime())) {
-    throw new InvalidCursorError();
-  }
+  const number = Number(digits);
+  if (number > MAX_NUMBER) throw new InvalidCursorError();
 
-  return { createdAt: timestamp, id };
+  return { difficulty: difficulty as Difficulty, number };
 }
 
 /** Round-trips a cursor. Exported for tests and for callers that echo a page token. */

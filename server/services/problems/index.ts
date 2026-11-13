@@ -14,6 +14,12 @@ export {
   type ProblemDetail,
 } from './queries';
 export {
+  listTopicSections,
+  listCatalogTopics,
+  type TopicSection,
+  type TopicProblem,
+} from './topics';
+export {
   createProblem,
   updateProblem,
   archiveProblem,

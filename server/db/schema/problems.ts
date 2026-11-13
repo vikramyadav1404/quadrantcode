@@ -52,6 +52,23 @@ export const problems = pgTable(
   'problems',
   {
     id: uuid().primaryKey().defaultRandom(),
+
+    /**
+     * The problem's public number, shown as "#123" in the catalog.
+     *
+     * Fixed for the life of the row: filtering, sorting or archiving never
+     * renumbers anything, so a number a reader wrote down still finds the same
+     * problem. New rows take the next value from the identity sequence.
+     * Migration 0028 backfilled existing rows with published originals first,
+     * then published external links, then everything else, each group by
+     * `created_at` then `slug`.
+     *
+     * Not dense. `INSERT ... ON CONFLICT DO UPDATE` draws a value before it
+     * knows the row exists, so the native importer's upserts skip numbers.
+     * Readers only ever need it to be unique and stable, not gap-free.
+     */
+    number: integer().notNull().generatedByDefaultAsIdentity(),
+
     slug: text().notNull(),
     title: text().notNull(),
 
@@ -122,6 +139,23 @@ export const problems = pgTable(
   },
   (table) => [
     uniqueIndex('problems_slug_key').on(table.slug),
+    uniqueIndex('problems_number_key').on(table.number),
+
+    /**
+     * Serves: every catalog listing, which reads easiest first and then by
+     * number —
+     *   SELECT ... FROM problems
+     *   WHERE status = 'published' [AND difficulty = $1]
+     *   ORDER BY difficulty, number LIMIT 26
+     * and the same shape with the keyset predicate `(difficulty, number) > ($2, $3)`.
+     * All three columns are NOT NULL and sort ascending, so the default
+     * `NULLS LAST` matches the index and the planner walks it in order.
+     */
+    index('problems_status_difficulty_number_idx').on(
+      table.status,
+      table.difficulty,
+      table.number,
+    ),
 
     /**
      * Serves: F1.2 import deduplication, the lookup every imported row does —
