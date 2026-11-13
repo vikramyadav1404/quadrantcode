@@ -160,8 +160,12 @@ unchanged._
       (Hobby keeps about one hour): 70 info, 0 errors, no secret. Sentry: four issues
       (QUADRANTCODE-3, -4, -6, -A) hold a raw `__Secure-quadrantcode.session` cookie
       in their request data. #80 strips cookies and credential headers and query
-      parameters in `beforeSend`. Stays open until #80 is merged, those four issues
-      and QUADRANTCODE-5 are deleted, and the exposed sessions are revoked.)_
+      parameters in `beforeSend`. Later that day #80 was merged and is live (the
+      production client bundle carries the scrubber), and QUADRANTCODE-5 no longer
+      exists. No event has arrived since, so the fix is not yet seen on a real event.
+      The four issues hold two distinct session tokens, last seen 2026-11-09 and
+      2026-11-13. Stays open until those four issues are deleted and both sessions
+      are revoked.)_
 - [x] Rollback owner and rollback deployment are identified. _(Owner: Vikram
       Yadav, sole maintainer. Method: Vercel → Deployments → the previous
       Production deployment → Instant Rollback. A rollback restores code only;
