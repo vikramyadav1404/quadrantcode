@@ -312,7 +312,13 @@ export const nativeProblemSchema = z
       });
     }
 
-    for (const required of ['minimum', 'maximum', 'adversarial'] as const) {
+    /*
+     * The same four the publish gate demands (`assertPublicationShape` in
+     * server/services/admin/native-review.ts). `duplicates` was missing here, so
+     * four batch-3 records passed `native:validate`, imported, and then could not
+     * be sent to review. Keep the two lists identical.
+     */
+    for (const required of ['minimum', 'maximum', 'duplicates', 'adversarial'] as const) {
       if (!problem.testCases.some((test) => test.coverage === required)) {
         context.addIssue({
           code: 'custom',
