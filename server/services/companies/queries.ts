@@ -41,6 +41,28 @@ export const companyProblemFiltersSchema = z.object({
 
 export type CompanyProblemFilters = z.infer<typeof companyProblemFiltersSchema>;
 
+/**
+ * Reads the filters from a query string, one field at a time, dropping any
+ * that are blank or invalid.
+ *
+ * The filter form submits every select, so "All" arrives as `role=&year=&…`.
+ * Parsing the object whole turned those blanks into a ZodError and a 500 on
+ * the company page (Sentry QUADRANTCODE-B, `/companies/google` after Apply).
+ * A hand-edited `difficulty=foo` is the same case: an unusable filter is no
+ * filter, not an error page.
+ */
+export function parseCompanyFilters(raw: unknown): CompanyProblemFilters {
+  const input = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const filters: Record<string, unknown> = {};
+  for (const [key, schema] of Object.entries(companyProblemFiltersSchema.shape)) {
+    const value = input[key];
+    if (value === undefined || (typeof value === 'string' && value.trim() === '')) continue;
+    const parsed = schema.safeParse(value);
+    if (parsed.success && parsed.data !== undefined) filters[key] = parsed.data;
+  }
+  return filters as CompanyProblemFilters;
+}
+
 export async function listCompanies(db: Database) {
   return db
     .select({
@@ -48,11 +70,17 @@ export async function listCompanies(db: Database) {
       slug: companies.slug,
       name: companies.name,
       overview: companies.overview,
-      problemCount: countDistinct(problemCompanyEvidence.problemId),
+      // Published problems only, like the company page itself: evidence rows
+      // on the problems archived in F4.1 are still in the table.
+      problemCount: countDistinct(problems.id),
       paperCount: countDistinct(assessmentPapers.id),
     })
     .from(companies)
     .leftJoin(problemCompanyEvidence, eq(problemCompanyEvidence.companyId, companies.id))
+    .leftJoin(
+      problems,
+      and(eq(problems.id, problemCompanyEvidence.problemId), eq(problems.status, 'published')),
+    )
     .leftJoin(assessmentPapers, eq(assessmentPapers.companyId, companies.id))
     .where(eq(companies.isActive, true))
     .groupBy(companies.id)
@@ -60,7 +88,7 @@ export async function listCompanies(db: Database) {
 }
 
 export async function getCompanyPageData(db: Database, slug: string, rawFilters: unknown) {
-  const filters = companyProblemFiltersSchema.parse(rawFilters ?? {});
+  const filters = parseCompanyFilters(rawFilters);
   const [company] = await db
     .select()
     .from(companies)
