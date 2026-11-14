@@ -15,12 +15,16 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { getDb } from '@/server/db';
 import { checkHealth, recentAudit } from '@/server/lib/observability';
+import { executionQueueHealth } from '@/server/services/execution';
 
 function absentPanels(
   env: Record<string, string | undefined>,
 ): { name: string; why: string }[] {
   return [
-    { name: 'Queue depth and dead letters', why: 'F2.3 is cut — there is no queue' },
+    {
+      name: 'Dead letters for background jobs',
+      why: 'F2.3 is cut — there is no general job queue; the execution queue is measured above',
+    },
     {
       name: 'Judge0 success rate and p95',
       // Judge0 runs in production; what is missing is the aggregate, not the provider.
@@ -44,10 +48,11 @@ export default async function HealthPage() {
   const db = getDb();
   const now = new Date();
 
-  const [report, audit] = await Promise.all([
+  const [report, audit, queue] = await Promise.all([
     // The dashboard is the one caller that pings Redis; the public endpoints do not.
     checkHealth(db, process.env, now, { probeRedis: true }),
     recentAudit(db, 20),
+    executionQueueHealth(db, now),
   ]);
 
   return (
@@ -77,6 +82,32 @@ export default async function HealthPage() {
               </div>
               {/* Never a bare state. Why it is absent is the useful half. */}
               <p className="mt-0.5 text-sm text-[var(--text-muted)]">{entry.detail}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-medium">Execution queue</h2>
+        <ul aria-label="Execution queue" className="flex flex-col gap-2">
+          {queue.map((metric) => (
+            <li
+              className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3"
+              key={metric.name}
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-medium">{metric.name}</span>
+                {/* The word, not only the colour: "within limit" / "over limit". */}
+                <span
+                  className="text-sm font-medium tabular-nums"
+                  style={{ color: metric.ok ? 'var(--success)' : 'var(--danger)' }}
+                >
+                  {metric.value} · {metric.ok ? 'within limit' : 'over limit'}
+                </span>
+              </div>
+              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                Limit: {metric.limitLabel}
+              </p>
             </li>
           ))}
         </ul>

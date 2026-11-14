@@ -7,6 +7,7 @@
  */
 export * from './limits';
 export * from './claim';
+export * from './health';
 export * from './consumer';
 export * from './native';
 export * from './pipeline';
