@@ -166,12 +166,23 @@ export async function getCompanyPageData(db: Database, slug: string, rawFilters:
       )
       .groupBy(assessmentPapers.id)
       .orderBy(asc(assessmentPapers.title)),
+    /*
+     * The sidebar and the filter options count published problems only, like
+     * the list beside them. Evidence rows outlive their problem's publication:
+     * the 84 problems retired in F4.1 are archived with their company rows
+     * intact, and counting those put topics on a company page that no listed
+     * problem has (Amazon showed "Heap Greedy 2" beside four problems, none of
+     * them heap-greedy) and offered filter values that match nothing.
+     */
     db
       .select({ topic: topics.name, count: countDistinct(problemCompanyEvidence.id) })
       .from(problemCompanyEvidence)
+      .innerJoin(problems, eq(problems.id, problemCompanyEvidence.problemId))
       .innerJoin(problemTopics, eq(problemTopics.problemId, problemCompanyEvidence.problemId))
       .innerJoin(topics, eq(topics.id, problemTopics.topicId))
-      .where(eq(problemCompanyEvidence.companyId, company.id))
+      .where(
+        and(eq(problemCompanyEvidence.companyId, company.id), eq(problems.status, 'published')),
+      )
       .groupBy(topics.id)
       .orderBy(desc(countDistinct(problemCompanyEvidence.id)), asc(topics.name)),
     db
@@ -181,7 +192,10 @@ export async function getCompanyPageData(db: Database, slug: string, rawFilters:
         yearFrom: problemCompanyEvidence.yearFrom,
       })
       .from(problemCompanyEvidence)
-      .where(eq(problemCompanyEvidence.companyId, company.id)),
+      .innerJoin(problems, eq(problems.id, problemCompanyEvidence.problemId))
+      .where(
+        and(eq(problemCompanyEvidence.companyId, company.id), eq(problems.status, 'published')),
+      ),
   ]);
 
   const problemIds = problemRows.map((problem) => problem.id);
