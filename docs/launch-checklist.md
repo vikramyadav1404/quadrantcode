@@ -144,11 +144,12 @@ unchanged._
       `Company pattern` and "…-style · pattern practice", with the not-affiliated
       disclaimer, and nothing claims a PYQ. The mock-paper part is N/A. The Topic
       frequency sidebar counted archived problems; fixed in #81.)_
-- [ ] Queue age, retry count, expired leases, cleanup-pending jobs and UTC-day
+- [x] Queue age, retry count, expired leases, cleanup-pending jobs and UTC-day
       admission count are visible and within their limits. _(2026-11-14: #79 adds an
       Execution queue panel to `/admin/health` with all six numbers and their limits.
-      Tick once it is merged and read live.)_
-- [ ] Logs and Sentry contain no OTP, token, email body, or database URL.
+      2026-11-15: merged and read live — oldest queued 0 s, queued 0, highest attempt 0,
+      expired leases 0, cleanup pending 0, admitted today 0 of 20; all within limit.)_
+- [x] Logs and Sentry contain no OTP, token, email body, or database URL.
       _(2026-11-09: **failed.** A mis-pasted `UPSTASH_REDIS_REST_TOKEN` made
       `Headers.append` throw, and its error message — which quotes the header
       value — put the Upstash token in Vercel runtime logs. Later that day the
@@ -164,8 +165,14 @@ unchanged._
       production client bundle carries the scrubber), and QUADRANTCODE-5 no longer
       exists. No event has arrived since, so the fix is not yet seen on a real event.
       The four issues hold two distinct session tokens, last seen 2026-11-09 and
-      2026-11-13. Stays open until those four issues are deleted and both sessions
-      are revoked.)_
+      2026-11-13. 2026-11-15: those four issues were deleted; every row in
+      `auth_sessions` was deleted in production, so every session, leaked or not, is
+      gone (users sign in again; no other data touched); and the Sentry project now
+      also scrubs fields named `cookie`, `quadrantcode.session` and `authjs`. A new
+      event (QUADRANTCODE-B, 2026-11-14 09:35) arrived after #80 went live with no
+      cookies and no cookie header, so the fix is seen working. The four remaining
+      issues (-7, -8, -9, -B) were scanned for session tokens, bearer tokens, OTP or
+      token query values, email addresses and database URLs: none found.)_
 - [x] Rollback owner and rollback deployment are identified. _(Owner: Vikram
       Yadav, sole maintainer. Method: Vercel → Deployments → the previous
       Production deployment → Instant Rollback. A rollback restores code only;
