@@ -183,4 +183,45 @@ suite('native library importer', () => {
       ),
     ).toBe(true);
   }, 120_000);
+
+  it('a re-import never unpublishes, and a changed statement rolls everything back', async () => {
+    const [batches, companies] = await Promise.all([
+      loadNativeProblemBatches(),
+      readFile('data/companies.json', 'utf8').then((source) =>
+        companiesSchema.parse(JSON.parse(source)),
+      ),
+    ]);
+    const [first, second] = batches.flatMap((batch) => batch.problems);
+    expect(first && second).toBeTruthy();
+
+    await importNativeProblemLibrary(ctx.db, batches, companies);
+
+    // Publishing is the admin flow's job; the importer must leave it alone.
+    await ctx.sql`UPDATE problems SET status = 'published' WHERE slug = ${first!.slug}`;
+    await importNativeProblemLibrary(ctx.db, batches, companies);
+    const [kept] = await ctx.sql<{ status: string }[]>`
+      SELECT status FROM problems WHERE slug = ${first!.slug}
+    `;
+    expect(kept!.status).toBe('published');
+
+    /*
+     * A stored statement that no longer matches is refused. The batched
+     * importer upserts every problem row before it compares versions, so this
+     * also proves the refusal rolls those upserts back: the marker title set
+     * below must survive the failed import.
+     */
+    await ctx.sql`
+      UPDATE problem_versions SET statement = statement || ' (edited)'
+      WHERE problem_id = (SELECT id FROM problems WHERE slug = ${second!.slug})
+    `;
+    await ctx.sql`UPDATE problems SET title = 'Marker Title' WHERE slug = ${first!.slug}`;
+
+    await expect(importNativeProblemLibrary(ctx.db, batches, companies)).rejects.toThrow(
+      `${second!.slug} version ${second!.version} changed`,
+    );
+    const [marker] = await ctx.sql<{ title: string }[]>`
+      SELECT title FROM problems WHERE slug = ${first!.slug}
+    `;
+    expect(marker!.title).toBe('Marker Title');
+  }, 120_000);
 });
