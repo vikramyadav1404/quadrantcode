@@ -27,8 +27,36 @@ export const HOURLY_LIMIT = 20;
 /** Executions a user may have in flight at once. */
 export const CONCURRENT_LIMIT = 5;
 
-/** Conservative shared Hobby allowance guard, reset at UTC midnight. */
-export const GLOBAL_DAILY_LIMIT = 20;
+/**
+ * Executions the whole site may admit per UTC day, unless
+ * `EXECUTION_GLOBAL_DAILY_LIMIT` says otherwise.
+ *
+ * Twenty was set as a conservative guard for Vercel Sandbox's Hobby allowance.
+ * Production now runs on a self-hosted Judge0, where the right number depends
+ * on that server, not on a platform quota — so it is a setting, changed in
+ * Vercel and picked up on the next deploy, with no code change.
+ */
+export const DEFAULT_GLOBAL_DAILY_LIMIT = 20;
+
+/** Ceiling on the setting, so a slipped extra zero cannot open the gate wide. */
+export const MAX_GLOBAL_DAILY_LIMIT = 100_000;
+
+/**
+ * The shared daily allowance in force.
+ *
+ * Unset, blank or unusable falls back to the default rather than throwing:
+ * this runs on every Submit, and a bad value is caught earlier and louder by
+ * `server/env.ts`, which refuses it in `npm run deploy:check` before a build
+ * can ship it.
+ */
+export function globalDailyLimit(
+  source: Record<string, string | undefined> = process.env,
+): number {
+  const raw = source.EXECUTION_GLOBAL_DAILY_LIMIT?.trim();
+  if (!raw || !/^\d+$/.test(raw)) return DEFAULT_GLOBAL_DAILY_LIMIT;
+  const value = Number(raw);
+  return value >= 1 && value <= MAX_GLOBAL_DAILY_LIMIT ? value : DEFAULT_GLOBAL_DAILY_LIMIT;
+}
 
 /** Database-enforced ceiling below Vercel's platform concurrency quota. */
 export const GLOBAL_SANDBOX_CONCURRENCY = 8;
@@ -117,7 +145,7 @@ export async function checkExecutionLimits(
     };
   }
 
-  if (globalToday.length >= GLOBAL_DAILY_LIMIT) {
+  if (globalToday.length >= globalDailyLimit()) {
     return {
       allowed: false,
       reason: 'global_daily',

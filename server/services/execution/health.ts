@@ -11,7 +11,7 @@
 import { sql } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import { MAX_EXECUTION_ATTEMPTS, EXECUTION_LEASE_SECONDS } from './claim';
-import { GLOBAL_DAILY_LIMIT } from './limits';
+import { globalDailyLimit } from './limits';
 
 /**
  * How old the oldest queued job may be before it counts as stuck: one lease
@@ -34,6 +34,7 @@ export async function executionQueueHealth(db: Database, now: Date): Promise<Que
   );
   const at = now.toISOString();
   const dayStart = utcDayStart.toISOString();
+  const dailyLimit = globalDailyLimit();
 
   const [row] = await db.execute<{
     queued: number;
@@ -92,8 +93,8 @@ export async function executionQueueHealth(db: Database, now: Date): Promise<Que
     metric(
       'Jobs admitted today (UTC)',
       value(row?.admitted_today),
-      GLOBAL_DAILY_LIMIT,
-      `shared daily allowance of ${GLOBAL_DAILY_LIMIT}`,
+      dailyLimit,
+      `shared daily allowance of ${dailyLimit}`,
     ),
   ];
 }
