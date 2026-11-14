@@ -115,6 +115,19 @@ const optionalServerSchema = z.object({
     z.enum(['vercel_sandbox', 'judge0', 'fake']).optional(),
   ),
   EXECUTION_SANDBOX_IMAGE: optionalString,
+  // Same rule as `globalDailyLimit()` in server/services/execution/limits.ts:
+  // a whole number from 1 to 100000. Refused here so a typo fails deploy:check.
+  EXECUTION_GLOBAL_DAILY_LIMIT: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .trim()
+      .regex(/^\d+$/, 'EXECUTION_GLOBAL_DAILY_LIMIT must be a whole number')
+      .refine((value) => Number(value) >= 1 && Number(value) <= 100_000, {
+        message: 'EXECUTION_GLOBAL_DAILY_LIMIT must be between 1 and 100000',
+      })
+      .optional(),
+  ),
   CRON_SECRET: optionalSecret('CRON_SECRET'),
   SENTRY_DSN: optionalUrl,
   SENTRY_ENVIRONMENT: optionalString,
