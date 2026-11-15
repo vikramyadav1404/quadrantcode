@@ -9,7 +9,7 @@
  * is exactly why the seam exists: everything except the execution itself can be
  * exercised today.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { executionJobs, problems, runAttempts } from '@/server/db/schema';
 import {
   CONCURRENT_LIMIT,
@@ -361,6 +361,28 @@ suite('F3.1 · the execution pipeline', () => {
         ok: false,
         limit: { reason: 'global_daily', retryAt: expect.any(Date) },
       });
+    });
+
+    it('takes the shared daily limit from EXECUTION_GLOBAL_DAILY_LIMIT', async () => {
+      const other = await createUser(ctx.db, { email: 'daily-cap-env@example.com' });
+      for (let index = 0; index < 20; index += 1) {
+        await ctx.db.insert(executionJobs).values({
+          userId: other.id,
+          problemId: externalProblemId,
+          language: 'python3',
+          source: `print(${index})`,
+          status: 'completed',
+          finishedAt: NOW,
+          createdAt: NOW,
+        });
+      }
+      vi.stubEnv('EXECUTION_GLOBAL_DAILY_LIMIT', '21');
+      try {
+        // Twenty admitted today: refused at the default, allowed at 21.
+        expect((await submit()).ok).toBe(true);
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
   });
 
