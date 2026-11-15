@@ -10,7 +10,8 @@ write-up and are kept as history.
   postgres and configuration up, execution and monitoring configured, avatar
   storage unavailable.
 - **Execution:** Judge0 v1.13.1 on the Azure VM, reached over HTTPS with token
-  auth.
+  auth. _(15 Nov: now through a Cloudflare Tunnel; the VM has no public IP and
+  no inbound ports. See `docs/judge0-provisioning.md`.)_
 - **Catalog:** the public `/problems` list pages through 403 published entries,
   26 of them native originals — 16 from `batch-01.json`, published earlier, and
   the 10 from `batch-02.json`, each sent to review, validated on Judge0
