@@ -72,7 +72,10 @@ unchanged._
       published through the same gate. All 26 native problems are `published`.
       2026-11-13: the ten batch-03 problems went through the same gate one at a time; all
       36 are `published`. 2026-11-14: the ten batch-04 problems (#74) went through the
-      same gate one at a time; all 46 are `published`.)_
+      same gate one at a time; all 46 are `published`. 2026-11-15: the ten batch-05
+      problems (#86) went through the same gate one at a time, through the Judge0
+      tunnel; two validations timed out waiting on Judge0 and passed on a second
+      run. All 56 are `published`.)_
 
 ## Release gate
 
@@ -80,10 +83,10 @@ unchanged._
 - [x] `npm run typecheck` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run lint` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
 - [x] `npm run format:check` _(CI #268 on `main`, `3ac8260`, 2026-11-09)_
-- [x] `npm run native:validate` _(2026-11-14: 46 problems, exit 0)_
+- [x] `npm run native:validate` _(2026-11-15: 56 problems, exit 0)_
 - [x] `npm run papers:validate` _(2026-11-09: 0 active papers — papers retired)_
-- [x] `npm run native:validate-references` _(2026-11-14: 46 problems × 5 languages,
-      1,810 runs, all reference outputs match)_
+- [x] `npm run native:validate-references` _(2026-11-15: 56 problems × 5 languages,
+      2,335 runs, none cached, all reference outputs match)_
 - [x] ~~`npm run execution:image:verify`~~ **N/A.** _(It checks
       `sandbox/toolchain-lock.json`, which applies only if Vercel Sandbox is turned
       on; execution runs on Judge0.)_

@@ -28,6 +28,10 @@ write-up and are kept as history.
   default was a 10s function limit, and "Validate on Judge0" died with a 504 at
   10.1s.
 - **Still open:** see `docs/launch-checklist.md` for the unticked items.
+- **15 November:** 56 native originals are published (batches 3, 4 and 5 added
+  ten each since the note above). Reference validation now waits 45s per Judge0
+  submission instead of 15s, and `.github/workflows/uptime.yml` checks the site,
+  the Judge0 tunnel and SiteScope every 30 minutes.
 
 ---
 
