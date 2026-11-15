@@ -1,0 +1,55 @@
+name: Uptime
+
+# Every 30 minutes: is the site up, is Judge0 reachable through its tunnel, and
+# is SiteScope (same VM budget, same owner) up. A failed run emails the person
+# who last changed this schedule, which is the alert.
+#
+# GitHub turns scheduled workflows off after 60 days without repository
+# activity; re-enable it from the Actions tab if that happens.
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check each service
+        run: |
+          set -u
+          failed=0
+          # check <name> <url> <expected status>
+          check() {
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 --retry 3 --retry-delay 10 --retry-all-errors "$2" || true)
+            if [ "$code" = "$3" ]; then
+              echo "ok    $1 ($code)"
+            else
+              echo "::error::$1 answered $code, expected $3 ($2)"
+              failed=1
+            fi
+          }
+
+          check "Quadrantcode" https://quadrantcode.vikramyadav.me/api/health/live 200
+          # 401 is the healthy answer: the tunnel and Judge0 are up and the
+          # token check is on. Anything else means one of the three is not.
+          check "Judge0 through the tunnel" https://judge0.vikramyadav.me/about 401
+          check "SiteScope" https://vikramyadav.me/health 200
+
+          # /ready wakes the database, which costs compute hours on the free
+          # plan, so it runs four times a day rather than on every check.
+          hour=$(date -u +%H)
+          minute=$(date -u +%M)
+          if [ "$minute" -lt 30 ] && [ $((10#$hour % 6)) -eq 0 ]; then
+            check "Quadrantcode with its database" https://quadrantcode.vikramyadav.me/api/health/ready 200
+          fi
+
+          exit "$failed"
