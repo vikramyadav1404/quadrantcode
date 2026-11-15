@@ -1,10 +1,10 @@
 # Judge0 provisioning and first real run
 
-`Judge0Provider` has never run against a Judge0 instance. This is the procedure
-for standing one up and proving it works — written for someone who has not
-deployed Judge0 before.
+This is the procedure for standing up a Judge0 instance and proving it works —
+written for someone who has not deployed Judge0 before.
 
-**Nothing in this document is provisioned yet.** It is a checklist, not a record.
+**Provisioned.** Production runs on an instance built with this procedure; how
+it is reached today is in [The live instance](#the-live-instance) at the end.
 
 ---
 
@@ -48,9 +48,11 @@ host booted with cgroup v2 only, which is the single most common first failure.
 2. Size: 2 vCPU / 4 GB is enough for one user (`Standard_B2s`). Judge0 runs a
    PostgreSQL, a Redis, a server and workers.
 3. Authentication: **SSH public key**. Not a password.
-4. Inbound ports: **SSH (22) only.** Do not open 2358 here — step 4 does it
-   deliberately and narrowly.
-5. Note the public IP.
+4. Inbound ports: **none** if you use the tunnel in step 4 (manage the VM with
+   Run Command), otherwise **SSH (22) only.** Do not open 2358 here — step 4
+   decides how Judge0 is reached.
+5. Public IP: not needed with the tunnel. Azure bills a Standard public IP for
+   every hour it exists, and the free tier does not cover it.
 
 ## 2 · Enable cgroup v1
 
@@ -119,9 +121,30 @@ migrates on boot and needs the database already accepting connections.
 
 Judge0 listens on **2358**. Do not expose it to the internet.
 
-**Preferred** — no public exposure at all. Put Judge0 behind Azure's private
-network and reach it only from Vercel via a tunnel or a VPN. This is more setup
-than a portfolio deployment usually justifies.
+**Preferred** — no public exposure at all: a Cloudflare Tunnel. `cloudflared`
+on the VM opens outbound connections to Cloudflare and forwards one hostname to
+Judge0 on loopback, so the VM needs no public IP and no inbound port. It is a
+few commands, on a domain whose DNS is on Cloudflare:
+
+```bash
+# Judge0's server port bound to loopback only (docker-compose.yml: "127.0.0.1:2358:2358")
+cloudflared tunnel login
+cloudflared tunnel create judge0
+# /etc/cloudflared/config.yml:
+#   tunnel: <tunnel id>
+#   credentials-file: /etc/cloudflared/<tunnel id>.json
+#   ingress:
+#     - hostname: judge0.<your domain>
+#       service: http://127.0.0.1:2358
+#     - service: http_status:404
+sudo cloudflared --config /etc/cloudflared/config.yml service install
+cloudflared tunnel route dns judge0 judge0.<your domain>
+```
+
+`AUTHN_TOKEN` still applies to every request; the tunnel removes the open port,
+not the need for the token. If the machine running `tunnel route dns` already
+has another tunnel in its own config, pass `--config` with a file that names
+this tunnel, or the DNS record points at the wrong one.
 
 **Acceptable** — expose 2358, but only with `AUTHN_TOKEN` set (step 3) and with
 an NSG rule restricted as narrowly as you can. Vercel's egress IPs are not
@@ -171,12 +194,12 @@ did not take and you are running the advisory's configuration.
 
 Vercel → Project → Settings → Environment Variables. **Production** scope.
 
-| Variable            | Value                 | Why                                                                                                                            |
-| ------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `JUDGE0_URL`        | `https://<host>:2358` | **No trailing slash** — the provider concatenates paths directly, so a slash yields `//submissions`                            |
-| `JUDGE0_API_KEY`    | your `AUTHN_TOKEN`    | Sent as `X-Auth-Token`                                                                                                         |
-| `EXECUTION_BACKEND` | `judge0`              | Explicit. Without it, `JUDGE0_URL` alone also infers judge0, but relying on inference is how backends get selected by accident |
-| `FEATURE_EXECUTION` | `true`                | Otherwise both solve and assessment actions throw before reaching the provider                                                 |
+| Variable            | Value              | Why                                                                                                                            |
+| ------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `JUDGE0_URL`        | `https://<host>`   | **No trailing slash** — the provider concatenates paths directly, so a slash yields `//submissions`                            |
+| `JUDGE0_API_KEY`    | your `AUTHN_TOKEN` | Sent as `X-Auth-Token`                                                                                                         |
+| `EXECUTION_BACKEND` | `judge0`           | Explicit. Without it, `JUDGE0_URL` alone also infers judge0, but relying on inference is how backends get selected by accident |
+| `FEATURE_EXECUTION` | `true`             | Otherwise both solve and assessment actions throw before reaching the provider                                                 |
 
 Redeploy. Environment variables are read at build and boot; setting them without
 a redeploy changes nothing.
@@ -234,3 +257,24 @@ Passing step 7 proves one language, one program, one path. It does not prove:
   `languageIds` override for instances with non-standard runtime names, but
   `resolveProvider` never passes it and no environment variable feeds it. If
   name matching fails on your instance, it needs a code change, not a setting.
+
+---
+
+## The live instance
+
+As of 15 November 2026:
+
+- **VM:** `judge0-vm`, Azure Central India, `Standard_B2ats_v2` (covered by the
+  Azure for Students free hours), Judge0 1.13.1.
+- **Reached through a Cloudflare Tunnel** at a hostname on the project domain;
+  `JUDGE0_URL` in Vercel (Production and Preview) is that hostname over HTTPS.
+  Judge0's server listens on `127.0.0.1:2358` only.
+- **No public IP and no inbound rules.** The public IP and the Caddy TLS proxy
+  used before were removed on 15 November; the NSG has no allow rules. The VM
+  reaches Cloudflare through Azure's default outbound access, which works
+  because its subnet is not marked private. A rebuild in a new virtual network
+  (private by default) needs a NAT gateway or that setting turned off.
+- **Checked after the switch:** without the token `/about` returns 401; with
+  it, the five languages each ran a program through the tunnel, and a run from
+  the live site's editor went through it as well (the tunnel's request counter
+  rose with it).
