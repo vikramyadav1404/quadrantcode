@@ -296,6 +296,16 @@ test('company and mock-paper routes show honest labels', async ({ page }) => {
   await expect(
     page.getByRole('link', { name: /Native Signal Count.*Company pattern/i }),
   ).toBeVisible();
+
+  // Apply with every select on "All" submits blanks (`role=&year=&…`). That
+  // was a 500 in production (Sentry QUADRANTCODE-B); it must be the same list.
+  await page.getByRole('button', { name: 'Apply filters' }).click();
+  await expect(page).toHaveURL(/role=&/);
+  await expect(page.getByRole('heading', { name: 'E2E Native Company' })).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: /Native Signal Count.*Company pattern/i }),
+  ).toBeVisible();
+
   await page.goto(`/companies/${COMPANY_SLUG}/papers/${PAPER_SLUG}`);
   await expect(page.getByRole('heading', { name: 'E2E Original Pattern Mock' })).toBeVisible();
   await expect(page.getByText(/pattern-based mock/i).first()).toBeVisible();

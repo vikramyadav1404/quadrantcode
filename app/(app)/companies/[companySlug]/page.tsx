@@ -119,10 +119,17 @@ export default async function CompanyPage({
             </Link>
           </div>
           {data.problems.length === 0 ? (
-            <EmptyState
-              description="Try clearing one or more filters."
-              title="No matching labelled problems"
-            />
+            Object.keys(data.filters).length > 0 ? (
+              <EmptyState
+                description="Try clearing one or more filters."
+                title="No matching labelled problems"
+              />
+            ) : (
+              <EmptyState
+                description="No practice problems are labelled for this track yet."
+                title="Nothing here yet"
+              />
+            )
           ) : (
             <div className="divide-y divide-[var(--border)] rounded-[var(--radius-lg)] border border-[var(--border)]">
               {data.problems.map((problem) => (

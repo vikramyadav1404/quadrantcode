@@ -8,7 +8,11 @@ import {
   problems,
   topics,
 } from '@/server/db/schema';
-import { getCompanyPageData } from '@/server/services/companies';
+import {
+  getCompanyPageData,
+  listCompanies,
+  parseCompanyFilters,
+} from '@/server/services/companies';
 import { type TestContext, hasTestDatabase, setupTestDb, truncateAll } from '../helpers/db';
 
 const suite = hasTestDatabase ? describe : describe.skip;
@@ -150,6 +154,95 @@ suite('company preparation filters', () => {
     expect(result?.topicInsights).toEqual([{ topic: 'Graphs', count: 1 }]);
     expect(result?.filterOptions.roles).toEqual(['SDE']);
     expect(result?.filterOptions.rounds).toEqual(['Online assessment']);
+  });
+
+  it('treats the form\'s blank "All" values as no filter, not an error', async () => {
+    // Exactly what Apply submits with every select on "All" (QUADRANTCODE-B).
+    const [company] = await ctx.db
+      .insert(companies)
+      .values({
+        slug: 'blank-filter-company',
+        name: 'Blank Filter Company',
+        overview: 'A descriptive test-company overview that is long enough for this fixture.',
+      })
+      .returning();
+    const [problem] = await ctx.db
+      .insert(problems)
+      .values({
+        slug: 'blank-filter-problem',
+        title: 'Blank Filter Problem',
+        sourceType: 'original',
+        difficulty: 'easy',
+        status: 'published',
+        statement: 'An independently authored blank-filter fixture.',
+      })
+      .returning();
+    await ctx.db.insert(problemCompanyEvidence).values({
+      problemId: problem!.id,
+      companyId: company!.id,
+      evidenceType: 'company_pattern',
+      verificationStatus: 'unverified',
+    });
+
+    const result = await getCompanyPageData(ctx.db, company!.slug, {
+      role: '',
+      round: '',
+      year: '',
+      difficulty: '',
+      evidence: '',
+    });
+    expect(result?.problems.map((row) => row.slug)).toEqual(['blank-filter-problem']);
+    expect(result?.filters).toEqual({});
+  });
+
+  it('drops an invalid filter and keeps the valid ones', () => {
+    expect(
+      parseCompanyFilters({
+        difficulty: 'impossible',
+        year: '1066',
+        evidence: 'company_pattern',
+      }),
+    ).toEqual({ evidence: 'company_pattern' });
+    expect(parseCompanyFilters({ year: '2025', role: '  SDE  ' })).toEqual({
+      year: 2025,
+      role: 'SDE',
+    });
+    expect(parseCompanyFilters(undefined)).toEqual({});
+  });
+
+  it('counts only published problems in the company directory', async () => {
+    const [company] = await ctx.db
+      .insert(companies)
+      .values({
+        slug: 'directory-company',
+        name: 'Directory Company',
+        overview: 'A descriptive test-company overview that is long enough for this fixture.',
+      })
+      .returning();
+    const rows = await ctx.db
+      .insert(problems)
+      .values(
+        (['published', 'archived', 'archived'] as const).map((status, index) => ({
+          slug: `directory-${index}`,
+          title: `Directory ${index}`,
+          sourceType: 'original' as const,
+          difficulty: 'easy' as const,
+          status,
+          statement: 'An independently authored directory-count fixture.',
+        })),
+      )
+      .returning();
+    await ctx.db.insert(problemCompanyEvidence).values(
+      rows.map((row) => ({
+        problemId: row.id,
+        companyId: company!.id,
+        evidenceType: 'company_pattern' as const,
+        verificationStatus: 'unverified' as const,
+      })),
+    );
+
+    const listed = await listCompanies(ctx.db);
+    expect(listed.find((row) => row.slug === 'directory-company')?.problemCount).toBe(1);
   });
 
   it('does not expose unpublished papers on company pages', async () => {
