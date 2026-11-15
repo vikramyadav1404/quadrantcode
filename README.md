@@ -45,7 +45,8 @@ history that makes practice compound.
 
 ## ⚠️ Honest status
 
-This is a portfolio build. It is **live and usable; sign-in is GitHub-only**.
+This is a portfolio build. It is **live and usable; sign-in is by GitHub or an
+emailed link**.
 Specifically:
 
 - **Every `FEATURE_*` flag defaults to off in `.env.example`** — all seven.
@@ -58,16 +59,20 @@ Specifically:
   and how strictly they are enforced depends on how the instance is configured.
 - **Problems from other platforms link out.** For those, the database stores
   metadata and a link, never the statement — enforced by a `CHECK`, not by
-  convention. Separately, 16 original problems written for this project carry
+  convention. Separately, 56 original problems written for this project carry
   their own statements, test cases and editorials.
-- **The original library is small and published:** 16 problems, 107 test cases
-  (75 hidden) and 16 editorials, each published only after its reference
-  solutions passed on Judge0. An earlier 100-record library turned out to be 16
-  problems under 100 names; the 84 duplicates are archived, not deleted. The
-  catalog also links to 30 problems hosted on LeetCode.
-- **Email delivery is not provisioned**, so magic-link sign-in is unavailable
-  and sign-in is GitHub-only. Phone OTP exists behind `FEATURE_PHONE_OTP` and
-  needs MSG91 credentials; it is not advertised as available.
+- **The original library is small and published:** 56 problems, 467 test cases
+  (354 hidden) and 56 editorials, each published only after its reference
+  solutions passed on Judge0. They were drafted with AI assistance and checked
+  by code: every expected output comes from a separate brute force, and all
+  five reference solutions must match every test. The techniques are standard
+  ones; the stories, statements, examples and tests are this project's. An
+  earlier 100-record library turned out to be 16 problems under 100 names; the
+  84 duplicates are archived, not deleted. The rest of the catalog is links to
+  problems hosted on Codeforces and LeetCode.
+- **Sign-in is by GitHub or an emailed link** sent through Gmail SMTP. Phone
+  OTP exists behind `FEATURE_PHONE_OTP` and needs MSG91 credentials; it is not
+  advertised as available.
 - **There is no billing at all**: subscriptions were cut from scope rather than
   stubbed, so there is no payment code to be unprovisioned.
 

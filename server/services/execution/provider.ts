@@ -119,6 +119,23 @@ export type ExecutionProviderEnv = {
 };
 
 /**
+ * How long reference validation waits for one Judge0 submission.
+ *
+ * Validation sends all five languages at once, so on a small instance a
+ * submission can sit in Judge0's queue behind the other four. With the default
+ * 15s, two of the ten batch-5 validations on 15 Nov 2026 gave up with "timed
+ * out waiting for a result" and passed unchanged on a second try. The admin
+ * action runs under a 300s function limit, so it can afford to wait; a user's
+ * run goes through the queue consumer (60s limit) and keeps the default.
+ */
+export const VALIDATION_POLL_TIMEOUT_MS = 45_000;
+
+export type ResolveProviderOptions = {
+  /** Judge0 only: how long to poll one submission before giving up. */
+  pollTimeoutMs?: number;
+};
+
+/**
  * Resolve one explicit backend. Judge0 is never an automatic fallback from a
  * configured Sandbox backend. The legacy inference exists only for local and
  * pre-migration compatibility.
@@ -224,7 +241,10 @@ export class UnavailableExecutionProvider implements ExecutionProvider {
  * Mirrors `resolveStorage` from F0.5: one place decides, and the surfaces that
  * care read `executes` rather than checking an env var themselves.
  */
-export function resolveProvider(env: ExecutionProviderEnv): ExecutionProvider {
+export function resolveProvider(
+  env: ExecutionProviderEnv,
+  options: ResolveProviderOptions = {},
+): ExecutionProvider {
   let backend: ConfiguredExecutionBackend;
   try {
     backend = resolveExecutionBackend(env);
@@ -239,6 +259,7 @@ export function resolveProvider(env: ExecutionProviderEnv): ExecutionProvider {
   return new Judge0Provider({
     baseUrl: env.JUDGE0_URL,
     ...(env.JUDGE0_API_KEY ? { apiKey: env.JUDGE0_API_KEY } : {}),
+    ...(options.pollTimeoutMs ? { pollTimeoutMs: options.pollTimeoutMs } : {}),
     // See JUDGE0_PINNED_LANGUAGE_IDS: "highest id" is not "newest runtime".
     languageIds: JUDGE0_PINNED_LANGUAGE_IDS,
   });

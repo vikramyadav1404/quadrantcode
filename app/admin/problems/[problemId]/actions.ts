@@ -14,7 +14,10 @@ import {
   validateNativeProblemReferences,
 } from '@/server/services/admin';
 import { requireCurrentUser } from '@/server/services/auth/session';
-import { resolveProvider } from '@/server/services/execution/provider';
+import {
+  resolveProvider,
+  VALIDATION_POLL_TIMEOUT_MS,
+} from '@/server/services/execution/provider';
 
 export async function updateNativeProblemCoreAction(formData: FormData): Promise<void> {
   const admin = await requireCurrentUser('admin');
@@ -63,7 +66,7 @@ export async function validateNativeProblemReferencesAction(formData: FormData):
     getDb(),
     admin.id,
     problemId,
-    resolveProvider(getServerEnv()),
+    resolveProvider(getServerEnv(), { pollTimeoutMs: VALIDATION_POLL_TIMEOUT_MS }),
   );
   refresh(problemId);
 }
