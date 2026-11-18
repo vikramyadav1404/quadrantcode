@@ -128,6 +128,13 @@ const optionalServerSchema = z.object({
       })
       .optional(),
   ),
+  /**
+   * AI hint coach (FEATURE_AI). Hints are offered only when the flag is on AND a
+   * key is set. The free tier's content may be used by Google to improve its
+   * products, which the solve screen says before the first hint.
+   */
+  GEMINI_API_KEY: optionalSecret('GEMINI_API_KEY'),
+  GEMINI_MODEL: optionalString,
   CRON_SECRET: optionalSecret('CRON_SECRET'),
   SENTRY_DSN: optionalUrl,
   SENTRY_ENVIRONMENT: optionalString,
