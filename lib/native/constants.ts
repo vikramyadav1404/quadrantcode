@@ -15,6 +15,7 @@ export const TEST_CASE_COVERAGE = [
   'typical',
 ] as const;
 export type TestCaseVisibility = (typeof TEST_CASE_VISIBILITIES)[number];
+export type TestCaseCoverage = (typeof TEST_CASE_COVERAGE)[number];
 
 export const EVIDENCE_TYPES = [
   'official_sample',
