@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { count } from 'drizzle-orm';
+import { count, isNull } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { assessmentPapers, problemVersions, problems } from '@/server/db/schema';
@@ -8,6 +8,7 @@ import {
   type AssessmentPaperLibrary,
   assessmentPaperLibrarySchema,
   importAssessmentPaperLibrary,
+  loadAssessmentPaperLibrary,
 } from '@/server/services/assessments';
 import {
   importNativeProblemLibrary,
@@ -182,6 +183,37 @@ suite('native library importer', () => {
         ),
       ),
     ).toBe(true);
+  }, 120_000);
+
+  it('imports the general mock OA library with no company, idempotently', async () => {
+    const [batches, companies, library] = await Promise.all([
+      loadNativeProblemBatches(),
+      readFile('data/companies.json', 'utf8').then((source) =>
+        companiesSchema.parse(JSON.parse(source)),
+      ),
+      loadAssessmentPaperLibrary(),
+    ]);
+    expect(library).not.toBeNull();
+    const total = library!.papers.length;
+    expect(total).toBeGreaterThan(0);
+
+    await importNativeProblemLibrary(ctx.db, batches, companies);
+    expect(await importAssessmentPaperLibrary(ctx.db, library!)).toEqual({
+      papers: total,
+      papersCreated: total,
+      papersUnchanged: 0,
+    });
+    expect(await importAssessmentPaperLibrary(ctx.db, library!)).toEqual({
+      papers: total,
+      papersCreated: 0,
+      papersUnchanged: total,
+    });
+
+    const [general] = await ctx.db
+      .select({ value: count() })
+      .from(assessmentPapers)
+      .where(isNull(assessmentPapers.companyId));
+    expect(general?.value).toBe(total);
   }, 120_000);
 
   it('a re-import never unpublishes, and a changed statement rolls everything back', async () => {
