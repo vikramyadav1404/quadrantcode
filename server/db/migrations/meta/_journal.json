@@ -211,6 +211,13 @@
       "when": 1795012044510,
       "tag": "0029_general_mock_papers",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795014858861,
+      "tag": "0030_codeforces_links",
+      "breakpoints": true
     }
   ]
 }
