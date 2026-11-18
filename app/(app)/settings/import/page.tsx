@@ -2,15 +2,21 @@
  * F1.2 · /settings/import — bring a list in, take your data out.
  */
 import type { Metadata } from 'next';
+import { getDb } from '@/server/db';
 import { requireCurrentUser } from '@/server/services/auth/session';
+import { getCodeforcesLink } from '@/server/services/ingest';
+import { CodeforcesPanel } from './CodeforcesPanel';
 import { ImportPanel } from './ImportPanel';
 
 export const metadata: Metadata = { title: 'Import & export · Quadrantcode' };
 
+// A first Codeforces sync of a long history imports hundreds of problems.
+export const maxDuration = 300;
+
 export default async function ImportPage() {
   // Inside the (app) group, so the layout has already answered "signed in?" and
   // "onboarded?". This call is for the id, not the gate.
-  await requireCurrentUser();
+  const user = await requireCurrentUser();
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -20,6 +26,8 @@ export default async function ImportPage() {
           Bring a list you already track, or take yours with you.
         </p>
       </header>
+
+      <CodeforcesPanel link={await getCodeforcesLink(getDb(), user.id)} />
 
       <ImportPanel />
 
