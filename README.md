@@ -46,20 +46,20 @@ practise next.
 
 ## Features
 
-| Area                    | What it does                                                                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Solve**               | Monaco editor, Run on visible or custom cases, Submit against the full hidden set — C, C++17, Java, Python 3, JavaScript       |
-| **Server-owned timer**  | The client sends intent, never a duration; elapsed time is derived from an append-only event log                               |
-| **Stuck points**        | Marked by you or suggested by heuristics, and weighted differently                                                             |
-| **Reflections**         | A fixed mistake taxonomy, so "what do I keep getting wrong" is a query, not a reread of notes                                  |
-| **Code snapshots**      | How the solution evolved, kept per sitting                                                                                     |
-| **Spaced revision**     | A fixed ladder (default) or **FSRS** (opt-in), ordered by a forgetting-risk score                                              |
-| **Failing-case finder** | After a failed Submit: which kinds of test failed, and a small generated input your code gets wrong — hidden tests stay hidden |
-| **Mock OA**             | 13 timed papers at `/mocks`; server clock, server-verified scoring, upsolve queue afterwards                                   |
-| **AI hint coach**       | Three levels per problem — nudge, approach, next step — never a solution (Gemini, opt-in, disclosed)                           |
-| **Codeforces sync**     | Connect a handle; accepted problems are imported and marked solved through Codeforces' official API                            |
-| **Import / export**     | CSV in and out, idempotent; LeetCode and HackerRank lists come in this way                                                     |
-| **Analytics**           | Streak, heatmap, topic strength, recurring mistakes — precomputed rollups, hand-written SVG charts                             |
+| Area                    | What it does                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Solve**               | Monaco editor, Run on visible or custom cases, Submit against the full hidden set — C, C++17, Java, Python 3, JavaScript                                           |
+| **Server-owned timer**  | The client sends intent, never a duration; elapsed time is derived from an append-only event log                                                                   |
+| **Stuck points**        | Marked by you or suggested by heuristics, and weighted differently                                                                                                 |
+| **Reflections**         | A fixed mistake taxonomy, so "what do I keep getting wrong" is a query, not a reread of notes                                                                      |
+| **Code snapshots**      | How the solution evolved, kept per sitting                                                                                                                         |
+| **Spaced revision**     | A fixed ladder (default) or **FSRS** (opt-in), ordered by a forgetting-risk score                                                                                  |
+| **Failing-case finder** | After a failed Submit: which kinds of test failed, and a small generated input your code gets wrong, one click to add it as a test case — hidden tests stay hidden |
+| **Mock OA**             | 13 timed papers at `/mocks`; server clock, server-verified scoring, upsolve queue afterwards                                                                       |
+| **AI hint coach**       | Three levels per problem — nudge, approach, next step — never a solution (Gemini, opt-in, disclosed)                                                               |
+| **Codeforces sync**     | Connect a handle; accepted problems are imported and marked solved through Codeforces' official API                                                                |
+| **Import / export**     | CSV in and out, idempotent; LeetCode and HackerRank lists come in this way                                                                                         |
+| **Analytics**           | Streak, heatmap, topic strength, recurring mistakes — precomputed rollups, hand-written SVG charts                                                                 |
 
 ---
 
@@ -77,7 +77,7 @@ flowchart LR
         R["Route handlers<br/>execution poll · health · CSV"]
     end
 
-    DB[("Neon Postgres<br/>50 tables · Drizzle ORM")]
+    DB[("Neon Postgres<br/>Drizzle ORM")]
 
     subgraph EXEC["Code execution · Azure"]
         CF["Cloudflare Tunnel"] --> J["Judge0 CE<br/>VM, no public IP"]
@@ -97,6 +97,21 @@ flowchart LR
     A --> G
     A --> CFAPI
     P --> AUTH
+
+    classDef user fill:#6366f1,stroke:#4338ca,color:#ffffff,stroke-width:2px
+    classDef app fill:#0ea5e9,stroke:#0369a1,color:#ffffff
+    classDef db fill:#10b981,stroke:#047857,color:#ffffff,stroke-width:2px
+    classDef exec fill:#f97316,stroke:#c2410c,color:#ffffff
+    classDef ext fill:#8b5cf6,stroke:#6d28d9,color:#ffffff
+    class U user
+    class P,A,R app
+    class DB db
+    class CF,J exec
+    class G,CFAPI,AUTH ext
+    style APP fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0c4a6e
+    style EXEC fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#7c2d12
+    style EXT fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#4c1d95
+    linkStyle default stroke:#64748b,stroke-width:2px
 ```
 
 ### Operations
@@ -114,6 +129,21 @@ flowchart LR
     UP -.->|"probe /about"| JT["Judge0 tunnel"]
     BK -.->|"pg_dump · restore-check"| DB[("Neon Postgres")]
     MG -.->|"drizzle migrate"| DB
+
+    classDef ci fill:#3b82f6,stroke:#1d4ed8,color:#ffffff
+    classDef up fill:#14b8a6,stroke:#0f766e,color:#ffffff
+    classDef bk fill:#10b981,stroke:#047857,color:#ffffff
+    classDef mg fill:#f59e0b,stroke:#b45309,color:#1f2937
+    classDef target fill:#0ea5e9,stroke:#0369a1,color:#ffffff
+    classDef db fill:#10b981,stroke:#047857,color:#ffffff,stroke-width:2px
+    class CI ci
+    class UP up
+    class BK bk
+    class MG mg
+    class VER,JT target
+    class DB db
+    style OPS fill:#f1f5f9,stroke:#475569,stroke-width:2px,color:#0f172a
+    linkStyle default stroke:#64748b,stroke-width:2px
 ```
 
 ### How a Submit is judged
@@ -121,19 +151,33 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     autonumber
-    participant B as Browser
-    participant S as Server action
-    participant D as Postgres
-    participant J as Judge0 (via tunnel)
+    box rgba(99,102,241,0.15) Client
+        participant B as Browser
+    end
+    box rgba(14,165,233,0.15) Vercel
+        participant S as Server action
+    end
+    box rgba(16,185,129,0.15) Neon
+        participant D as Postgres
+    end
+    box rgba(249,115,22,0.15) Azure
+        participant J as Judge0 (via tunnel)
+    end
 
     B->>S: submit(problemId, language, source)
-    S->>S: auth · feature flag · per-user and global rate limits
-    S->>D: insert execution_jobs row (queued)
-    S->>D: claim it with a fenced lease
-    S->>J: one submission per hidden test (wrapper + source)
-    J-->>S: verdicts, time, memory
-    S->>D: verdict and run attempt
-    S->>D: if accepted — mark solved, credit streak day, schedule revision
+    rect rgba(14,165,233,0.12)
+        S->>S: auth · feature flag · per-user and global rate limits
+        S->>D: insert execution_jobs row (queued)
+        S->>D: claim it with a fenced lease
+    end
+    rect rgba(249,115,22,0.12)
+        S->>J: one submission per hidden test (wrapper + source)
+        J-->>S: verdicts, time, memory
+    end
+    rect rgba(16,185,129,0.12)
+        S->>D: verdict and run attempt
+        S->>D: if accepted — mark solved, credit streak day, schedule revision
+    end
     loop every 700 ms
         B->>D: GET /api/execution/[id]
     end
@@ -154,6 +198,18 @@ flowchart LR
     OK -->|yes| E["AES-256 encrypt ·<br/>decrypt and compare"]
     E --> ART["Workflow artifact<br/>kept 35 days"]
     OK -->|no| FAIL["run fails · owner emailed"]
+
+    classDef db fill:#10b981,stroke:#047857,color:#ffffff,stroke-width:2px
+    classDef step fill:#0ea5e9,stroke:#0369a1,color:#ffffff
+    classDef check fill:#facc15,stroke:#a16207,color:#1f2937,stroke-width:2px
+    classDef good fill:#22c55e,stroke:#15803d,color:#ffffff
+    classDef bad fill:#ef4444,stroke:#b91c1c,color:#ffffff
+    class DB,T db
+    class D,E step
+    class OK check
+    class ART good
+    class FAIL bad
+    linkStyle default stroke:#64748b,stroke-width:2px
 ```
 
 Neon's free plan keeps only six hours of history, so this daily job is the copy
