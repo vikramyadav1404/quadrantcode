@@ -482,9 +482,8 @@ export const assessmentPapers = pgTable(
   'assessment_papers',
   {
     id: uuid().primaryKey().defaultRandom(),
-    companyId: uuid()
-      .notNull()
-      .references(() => companies.id, { onDelete: 'cascade' }),
+    // Null for a general mock OA that names no company (0029).
+    companyId: uuid().references(() => companies.id, { onDelete: 'cascade' }),
     slug: text().notNull(),
     title: text().notNull(),
     role: text().notNull(),
