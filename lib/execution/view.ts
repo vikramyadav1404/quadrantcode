@@ -5,7 +5,7 @@
  * every view contract before it.
  */
 import type { ExecutionLanguage, ExecutionVerdict } from './languages';
-import type { ExecutionMode } from '@/lib/native/constants';
+import type { ExecutionMode, TestCaseCoverage } from '@/lib/native/constants';
 
 export type SafeTestResultView = {
   ordinal: number;
@@ -13,6 +13,8 @@ export type SafeTestResultView = {
   verdict: ExecutionVerdict;
   runtimeMs: number | null;
   memoryKb: number | null;
+  /** The kind of case; present for stored tests, hidden ones included. */
+  coverage?: TestCaseCoverage;
   input?: string;
   expectedOutput?: string;
   actualOutput?: string | null;
