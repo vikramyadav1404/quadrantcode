@@ -17,8 +17,11 @@ import { requireCurrentUser } from '@/server/services/auth/session';
 import {
   createRequestExecutionRunner,
   resolveExecutionBackend,
+  resolveProvider,
   submitExecution,
 } from '@/server/services/execution';
+import { StressError, findSmallFailingCase } from '@/server/services/stress';
+import type { FailingCaseResult } from '@/lib/execution/failing-case';
 import { submitExecutionSchema } from '@/server/services/execution/input';
 import { captureSnapshot } from '@/server/services/timeline';
 import { snapshotCaptureEnabled } from '@/server/services/profile';
@@ -185,6 +188,35 @@ export async function requestHintAction(input: unknown): Promise<HintResult> {
     };
   } catch (error) {
     if (error instanceof HintError) return { ok: false, message: error.message };
+    throw error;
+  }
+}
+
+/**
+ * "Find a small failing case" after a failed Submit. Every check — own job,
+ * original problem, not a mock OA, the daily limit — is in the service; the
+ * button being hidden is not a gate.
+ */
+export async function findFailingCaseAction(input: unknown): Promise<FailingCaseResult> {
+  const user = await requireCurrentUser();
+  try {
+    assertFeatureEnabled('FEATURE_EXECUTION');
+  } catch {
+    return { ok: false, message: 'Code execution is currently unavailable.' };
+  }
+  const parsed = z.object({ jobId: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, message: 'That request was not valid.' };
+
+  try {
+    const outcome = await findSmallFailingCase(getDb(), {
+      userId: user.id,
+      jobId: parsed.data.jobId,
+      now: new Date(),
+      provider: resolveProvider(getServerEnv()),
+    });
+    return { ok: true, result: outcome.result, remainingToday: outcome.remainingToday };
+  } catch (error) {
+    if (error instanceof StressError) return { ok: false, message: error.message };
     throw error;
   }
 }
