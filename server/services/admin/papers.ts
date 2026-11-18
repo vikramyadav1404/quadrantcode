@@ -14,7 +14,11 @@ import { recordAudit } from '@/server/lib/observability/audit';
 const paperSchema = z
   .object({
     paperId: z.string().uuid().optional(),
-    companySlug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    // Empty means a general mock OA with no company.
+    companySlug: z
+      .union([z.literal(''), z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)])
+      .optional()
+      .transform((value) => value || null),
     slug: z
       .string()
       .min(3)
@@ -86,10 +90,10 @@ export async function listAdminPapers(db: Database) {
       attemptCount: count(assessmentAttempts.id),
     })
     .from(assessmentPapers)
-    .innerJoin(companies, eq(companies.id, assessmentPapers.companyId))
+    .leftJoin(companies, eq(companies.id, assessmentPapers.companyId))
     .leftJoin(assessmentAttempts, eq(assessmentAttempts.paperId, assessmentPapers.id))
     .groupBy(assessmentPapers.id, companies.id)
-    .orderBy(asc(companies.name), asc(assessmentPapers.title));
+    .orderBy(asc(companies.name), asc(assessmentPapers.slug));
   const questions = papers.length
     ? await db
         .select({
@@ -118,12 +122,12 @@ export async function listAdminPapers(db: Database) {
 export async function createAdminPaper(db: Database, actorId: string, rawInput: unknown) {
   const input = paperSchema.parse(rawInput);
   await db.transaction(async (tx) => {
-    const company = await findCompany(tx, input.companySlug);
+    const companyId = input.companySlug ? (await findCompany(tx, input.companySlug)).id : null;
     const license = await originalPaperLicense(tx);
     const [paper] = await tx
       .insert(assessmentPapers)
       .values({
-        companyId: company.id,
+        companyId,
         slug: input.slug,
         title: input.title,
         role: input.role,
@@ -168,11 +172,11 @@ export async function updateAdminPaper(db: Database, actorId: string, rawInput: 
       .where(eq(assessmentAttempts.paperId, paper.id));
     if ((attempts?.value ?? 0) > 0)
       throw new Error('A paper with attempts cannot have its questions replaced.');
-    const company = await findCompany(tx, input.companySlug);
+    const companyId = input.companySlug ? (await findCompany(tx, input.companySlug)).id : null;
     await tx
       .update(assessmentPapers)
       .set({
-        companyId: company.id,
+        companyId,
         slug: input.slug,
         title: input.title,
         role: input.role,
