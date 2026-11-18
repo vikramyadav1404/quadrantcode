@@ -218,6 +218,20 @@
       "when": 1795014858861,
       "tag": "0030_codeforces_links",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795017274022,
+      "tag": "0031_fsrs_opt_in",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795017510203,
+      "tag": "0032_ai_hints",
+      "breakpoints": true
     }
   ]
 }

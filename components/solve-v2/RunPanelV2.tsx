@@ -53,6 +53,8 @@ export function RunPanelV2({
   exampleInputs,
   onCompleteSession,
   draftScope,
+  onHint,
+  initialHints = [],
 }: {
   problemId: string;
   /** F2.2 · a separate draft namespace for this sitting — see `draftKey`. */
@@ -87,6 +89,20 @@ export function RunPanelV2({
     outcome: 'solved';
     confidence?: Confidence;
   }) => Promise<{ ok: boolean; message?: string }>;
+  /**
+   * AI hint coach. Absent unless the problem is original, the sitting is not
+   * blind, FEATURE_AI is on and a key is configured — decided in load-solve.
+   */
+  onHint?: (input: {
+    problemId: string;
+    language: ExecutionLanguage;
+    source: string;
+  }) => Promise<
+    | { ok: true; level: number; hint: string; remainingToday: number }
+    | { ok: false; message: string }
+  >;
+  /** Today's hints on this problem, so a reload shows them again. */
+  initialHints?: readonly { level: number; hint: string }[];
 }) {
   const router = useRouter();
   const [language, setLanguage] = useState<ExecutionLanguage>(defaultLanguage);
@@ -105,6 +121,29 @@ export function RunPanelV2({
   const [refusal, setRefusal] = useState<string | null>(null);
 
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [hints, setHints] = useState<{ level: number; hint: string }[]>([...initialHints]);
+  const [hintBusy, setHintBusy] = useState(false);
+  const [hintNote, setHintNote] = useState<string | null>(null);
+
+  async function askHint() {
+    if (!onHint || hintBusy) return;
+    setHintBusy(true);
+    setHintNote(null);
+    try {
+      const answer = await onHint({ problemId, language, source });
+      if (answer.ok) {
+        setHints((current) => [...current, { level: answer.level, hint: answer.hint }]);
+        setHintNote(`${answer.remainingToday} hints left today.`);
+      } else {
+        setHintNote(answer.message);
+      }
+    } catch {
+      setHintNote('The hint could not be fetched. Try again.');
+    } finally {
+      setHintBusy(false);
+    }
+  }
 
   /*
    * Drafts are per problem AND per language, so switching to C++ to check
@@ -336,6 +375,23 @@ export function RunPanelV2({
           Reset code
         </button>
 
+        {onHint ? (
+          <button
+            className="h-7 rounded-[var(--radius)] px-2.5 text-[0.8125rem] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
+            data-testid="hint-button"
+            title="Sends the problem statement and your current code to Google Gemini for one hint. On the free tier Google may use requests to improve its products."
+            disabled={hintBusy || hints.length >= 3}
+            onClick={askHint}
+            type="button"
+          >
+            {hintBusy
+              ? 'Thinking…'
+              : hints.length === 0
+                ? 'Hint'
+                : `Hint ${hints.length + 1}/3`}
+          </button>
+        ) : null}
+
         <button
           className="ml-auto h-7 rounded-[var(--radius)] border border-[var(--border)] px-3 text-[0.8125rem] font-medium transition-colors hover:border-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
           disabled={busy || source.trim().length === 0}
@@ -395,6 +451,33 @@ export function RunPanelV2({
       <div className="min-h-[45vh] flex-1 md:min-h-0">
         <CodeEditor language={language} onChange={setSource} value={source} />
       </div>
+
+      {onHint && (hints.length > 0 || hintNote) ? (
+        <section
+          aria-label="Hints"
+          className="max-h-48 overflow-y-auto border-t border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm"
+          data-testid="hint-panel"
+        >
+          <ol className="flex flex-col gap-2">
+            {hints.map((hint) => (
+              <li key={hint.level}>
+                <span className="mr-1 font-medium">Hint {hint.level}.</span>
+                <span className="whitespace-pre-wrap">{hint.hint}</span>
+              </li>
+            ))}
+          </ol>
+          {hintNote ? (
+            <p className="mt-2 text-[var(--text-muted)]" role="status">
+              {hintNote}
+            </p>
+          ) : null}
+          <p className="mt-2 text-[0.75rem] text-[var(--text-muted)]">
+            Written by Google Gemini from the problem statement and your current code. On the
+            free tier Google may use these requests to improve its products. Taking a hint makes
+            this problem come back for revision sooner.
+          </p>
+        </section>
+      ) : null}
 
       {refusal ? (
         <p

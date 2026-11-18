@@ -5,6 +5,7 @@ import type { ExecutionVerdict } from './types';
 import { creditSolvedDay, localDateFor, type LocalDate } from '@/server/services/streak';
 import { scheduleAfterSolveTx } from '@/server/services/revision';
 import { activeSecondsForSession, countStuckAttempts } from '@/server/services/session/signals';
+import { hintsSince } from '@/server/services/hints';
 
 export type VerifiedSubmissionEffect = {
   acceptedForFirstTime: boolean;
@@ -140,8 +141,12 @@ export async function applyVerifiedSubmissionEffectsTx(
     signals: {
       // No prompt has been shown at submit time, so this is genuinely unknown.
       confidence: null,
-      // F3.4 is cut, so nothing produces a hint; the signal is inert.
-      hintsUsed: 0,
+      // AI hints taken on this problem in the last day — the sitting, at most.
+      hintsUsed: await hintsSince(tx, {
+        userId: input.userId,
+        problemId: input.problemId,
+        since: new Date(input.now.getTime() - 24 * 60 * 60_000),
+      }),
       failedAttempts: await countStuckAttempts(tx, input.userId, input.problemId),
       activeSeconds: activeSeconds ?? estimatedSeconds,
       estimatedSeconds,

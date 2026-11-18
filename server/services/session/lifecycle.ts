@@ -20,6 +20,7 @@ import { scheduleAfterSolveTx } from '@/server/services/revision';
 import { speedTargetMet } from '@/server/services/revision/modes/target';
 import type { RevisionMode } from '@/lib/revision/modes';
 import { countStuckAttempts } from './signals';
+import { hintsSince } from '@/server/services/hints';
 import { activeDurationSeconds, isPausedAt } from './duration';
 import { ActiveSessionExistsError, SessionNotFoundError } from './errors';
 import { loadEvents, recordEvent } from './events';
@@ -375,8 +376,12 @@ export async function completeSession(
         today: endedLocalDate,
         signals: {
           confidence: confidence ?? null,
-          // F3.4 is cut, so nothing produces a hint; the signal is inert.
-          hintsUsed: 0,
+          // AI hints taken on this problem since the sitting began.
+          hintsUsed: await hintsSince(tx, {
+            userId,
+            problemId: row.problemId,
+            since: row.startedAt,
+          }),
           failedAttempts: await countStuckAttempts(tx, userId, row.problemId),
           activeSeconds: seconds,
           estimatedSeconds: await estimatedSecondsFor(tx, row.problemId),

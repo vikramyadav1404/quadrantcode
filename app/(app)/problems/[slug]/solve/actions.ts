@@ -24,6 +24,14 @@ import { captureSnapshot } from '@/server/services/timeline';
 import { snapshotCaptureEnabled } from '@/server/services/profile';
 import { recordEvent } from '@/server/services/session';
 import { assertFeatureEnabled } from '@/lib/flags';
+import { z } from 'zod';
+import { HintError, requestHint } from '@/server/services/hints';
+
+const hintInputSchema = z.object({
+  problemId: z.string().uuid(),
+  language: z.string().min(1).max(40),
+  source: z.string().max(100_000),
+});
 
 export type SubmitRunResult = { ok: true; jobId: string } | { ok: false; message: string };
 
@@ -136,4 +144,47 @@ export async function submitRunAction(input: unknown): Promise<SubmitRunResult> 
   }
 
   return { ok: true, jobId: result.jobId };
+}
+
+export type HintResult =
+  | { ok: true; level: number; hint: string; remainingToday: number }
+  | { ok: false; message: string };
+
+/**
+ * AI hint coach. The flag and the key are both checked here — the solve page
+ * hides the button without them, but hiding a control is not a gate.
+ */
+export async function requestHintAction(input: unknown): Promise<HintResult> {
+  const user = await requireCurrentUser();
+  try {
+    assertFeatureEnabled('FEATURE_AI');
+  } catch {
+    return { ok: false, message: 'Hints are turned off right now.' };
+  }
+  const env = getServerEnv();
+  if (!env.GEMINI_API_KEY) return { ok: false, message: 'Hints are not configured.' };
+
+  const parsed = hintInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: 'That hint request was not valid.' };
+
+  try {
+    const hint = await requestHint(getDb(), {
+      userId: user.id,
+      problemId: parsed.data.problemId,
+      language: parsed.data.language,
+      code: parsed.data.source,
+      now: new Date(),
+      apiKey: env.GEMINI_API_KEY,
+      ...(env.GEMINI_MODEL ? { model: env.GEMINI_MODEL } : {}),
+    });
+    return {
+      ok: true,
+      level: hint.level,
+      hint: hint.hint,
+      remainingToday: hint.remainingToday,
+    };
+  } catch (error) {
+    if (error instanceof HintError) return { ok: false, message: error.message };
+    throw error;
+  }
 }

@@ -41,7 +41,10 @@ import { getActiveSession } from '@/server/services/session';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
 import { formatDay } from '@/lib/time/format-day';
 import { completeSessionAction, startSessionAction } from '@/app/(app)/sessions/actions';
-import { submitRunAction } from '@/app/(app)/problems/[slug]/solve/actions';
+import { requestHintAction, submitRunAction } from '@/app/(app)/problems/[slug]/solve/actions';
+import { isFeatureEnabled } from '@/lib/flags';
+import { getServerEnv } from '@/server/env';
+import { hintsToday } from '@/server/services/hints';
 import { getPublicNativeProblem } from '@/server/services/native-content';
 import { sittingView } from '@/server/services/revision/modes';
 
@@ -234,6 +237,23 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
    * The run panel's props, built once, so the blind draft scope, the
    * original-only Submit and the server-resolved session are decided here.
    */
+  /*
+   * AI hints: original problems only (C1), a signed-in user, not in a blind
+   * retry, and only with the flag on AND a key configured.
+   */
+  const hintsOffered =
+    Boolean(user) &&
+    problem.sourceType === 'original' &&
+    !blind &&
+    isFeatureEnabled('FEATURE_AI') &&
+    Boolean(getServerEnv().GEMINI_API_KEY);
+  const initialHints =
+    hintsOffered && user
+      ? (
+          await hintsToday(getDb(), { userId: user.id, problemId: problem.id, now: new Date() })
+        ).map(({ level, hint }) => ({ level, hint }))
+      : [];
+
   const runPanel: React.ComponentProps<typeof RunPanelV2> = {
     defaultLanguage: 'cpp17',
     allowSubmit: problem.sourceType === 'original',
@@ -260,6 +280,7 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
     ...(problem.sourceType === 'original' ? { onCompleteSession: completeSessionAction } : {}),
     problemId: problem.id,
     sessionId,
+    ...(hintsOffered ? { onHint: requestHintAction, initialHints } : {}),
     /*
      * F2.2 · a blind sitting gets its own drafts, so the editor opens on the
      * starter rather than restoring the previous attempt's code.
