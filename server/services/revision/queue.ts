@@ -24,9 +24,10 @@ import {
   revisionSchedule,
   solveSessions,
   userProblems,
+  userProfiles,
 } from '@/server/db/schema';
 import type { MistakeCategory } from '@/lib/reflection/taxonomy';
-import { type LocalDate, daysBetween } from '@/server/services/streak';
+import { type LocalDate, daysBetween, nextLocalDate } from '@/server/services/streak';
 import { scoreTopic } from '@/server/services/analytics';
 import {
   type Confidence,
@@ -37,6 +38,15 @@ import {
   scheduleAfterSolve,
 } from './ladder';
 import { scoreRisk } from './risk';
+import {
+  type FsrsState,
+  gradeForOutcome,
+  gradeForSolve,
+  initialState,
+  intervalFor,
+  nextState,
+  stateFromLadder,
+} from './fsrs';
 /* The page's shapes live in `lib/` for the boundary rule; see `lib/revision/view.ts`. */
 import type { DueItemView, DueQueueView } from '@/lib/revision/view';
 
@@ -64,10 +74,39 @@ export async function scheduleAfterSolveTx(
   const { userId, problemId, signals, today } = input;
 
   const [existing] = await tx
-    .select({ ladderIndex: revisionSchedule.ladderIndex })
+    .select({
+      ladderIndex: revisionSchedule.ladderIndex,
+      intervalDays: revisionSchedule.intervalDays,
+      dueLocalDate: revisionSchedule.dueLocalDate,
+      lastRevisedLocalDate: revisionSchedule.lastRevisedLocalDate,
+      fsrsStability: revisionSchedule.fsrsStability,
+      fsrsDifficulty: revisionSchedule.fsrsDifficulty,
+    })
     .from(revisionSchedule)
     .where(and(eq(revisionSchedule.userId, userId), eq(revisionSchedule.problemId, problemId)))
     .limit(1);
+
+  if ((await schedulerFor(tx, userId)) === 'fsrs') {
+    const grade = gradeForSolve(signals);
+    const state = existing
+      ? nextState(stateOf(existing), grade, elapsedSince(existing, today))
+      : initialState(grade);
+    const intervalDays = intervalFor(state);
+    const values = {
+      intervalDays,
+      dueLocalDate: dueDateFor(today, intervalDays),
+      fsrsStability: state.stability,
+      fsrsDifficulty: state.difficulty,
+    };
+    await tx
+      .insert(revisionSchedule)
+      .values({ userId, problemId, ...values })
+      .onConflictDoUpdate({
+        target: [revisionSchedule.userId, revisionSchedule.problemId],
+        set: { ...values, updatedAt: new Date() },
+      });
+    return;
+  }
 
   /*
    * Solving a problem again continues from where it was, rather than starting
@@ -100,6 +139,41 @@ export async function scheduleAfterSolveTx(
     });
 }
 
+type ScheduleRow = {
+  intervalDays: number;
+  dueLocalDate: string;
+  lastRevisedLocalDate: string | null;
+  fsrsStability: number | null;
+  fsrsDifficulty: number | null;
+};
+
+/** The user's chosen scheduler; a user with no profile row is on the ladder. */
+async function schedulerFor(
+  db: Database | Transaction,
+  userId: string,
+): Promise<'ladder' | 'fsrs'> {
+  const [profile] = await db
+    .select({ scheduler: userProfiles.revisionScheduler })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+  return profile?.scheduler === 'fsrs' ? 'fsrs' : 'ladder';
+}
+
+/** FSRS state of a row, or — for a ladder row switching over — one built from its interval. */
+function stateOf(row: ScheduleRow): FsrsState {
+  return row.fsrsStability !== null && row.fsrsDifficulty !== null
+    ? { stability: row.fsrsStability, difficulty: row.fsrsDifficulty }
+    : stateFromLadder(row.intervalDays);
+}
+
+/** Days since the last review: the last revision, else the day the interval was set. */
+function elapsedSince(row: ScheduleRow, today: LocalDate): number {
+  const last =
+    row.lastRevisedLocalDate ?? nextLocalDate(row.dueLocalDate as LocalDate, -row.intervalDays);
+  return Math.max(0, daysBetween(last as LocalDate, today));
+}
+
 /**
  * Record how a revision went and move the schedule accordingly.
  *
@@ -122,12 +196,42 @@ export async function recordRevisionOutcome(
       ladderKind: revisionSchedule.ladderKind,
       ladderIndex: revisionSchedule.ladderIndex,
       revisionCount: revisionSchedule.revisionCount,
+      intervalDays: revisionSchedule.intervalDays,
+      dueLocalDate: revisionSchedule.dueLocalDate,
+      lastRevisedLocalDate: revisionSchedule.lastRevisedLocalDate,
+      fsrsStability: revisionSchedule.fsrsStability,
+      fsrsDifficulty: revisionSchedule.fsrsDifficulty,
     })
     .from(revisionSchedule)
     .where(and(eq(revisionSchedule.userId, userId), eq(revisionSchedule.problemId, problemId)))
     .limit(1);
 
   if (!current) return null;
+
+  if ((await schedulerFor(db, userId)) === 'fsrs') {
+    const state = nextState(
+      stateOf(current),
+      gradeForOutcome(outcome),
+      elapsedSince(current, today),
+    );
+    const intervalDays = intervalFor(state);
+    const dueLocalDate = dueDateFor(today, intervalDays);
+    await db
+      .update(revisionSchedule)
+      .set({
+        intervalDays,
+        dueLocalDate,
+        fsrsStability: state.stability,
+        fsrsDifficulty: state.difficulty,
+        lastRevisedLocalDate: today,
+        revisionCount: current.revisionCount + 1,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(revisionSchedule.userId, userId), eq(revisionSchedule.problemId, problemId)),
+      );
+    return { intervalDays, dueLocalDate };
+  }
 
   const next = applyOutcome({ kind: current.ladderKind, index: current.ladderIndex }, outcome);
   const dueLocalDate = dueDateFor(today, next.intervalDays);

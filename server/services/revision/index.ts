@@ -8,3 +8,4 @@
 export * from './ladder';
 export * from './queue';
 export * from './risk';
+export * from './fsrs';
