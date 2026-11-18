@@ -31,6 +31,9 @@ import {
   resumeSessionAction,
 } from '@/app/(app)/sessions/actions';
 
+/** "Find a small failing case" runs a few dozen small programs; give it room. */
+export const maxDuration = 60;
+
 export default async function SolvePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const {
