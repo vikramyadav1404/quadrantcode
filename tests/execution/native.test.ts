@@ -209,6 +209,8 @@ suite('native execution security and persistence', () => {
       verdict: 'accepted',
       runtimeMs: 4,
       memoryKb: 1_024,
+      // The category travels; the input and expected output do not.
+      coverage: 'typical',
     });
     expect(JSON.stringify(hidden)).not.toContain('[9,8,7]');
     expect(JSON.stringify(hidden)).not.toContain('expectedOutput');

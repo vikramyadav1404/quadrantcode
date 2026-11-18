@@ -515,6 +515,8 @@ function sanitizeTestResults(
           verdict: result.verdict,
           runtimeMs: result.runtimeMs,
           memoryKb: result.memoryKb,
+          // A category, never a value — see SafeTestResult.coverage.
+          ...(result.coverage ? { coverage: result.coverage } : {}),
         }
       : result,
   );

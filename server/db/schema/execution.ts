@@ -41,6 +41,7 @@ import {
   executionStatusEnum,
   executionVerdictEnum,
 } from './enums';
+import type { TestCaseCoverage } from '@/lib/native/constants';
 import { problems } from './problems';
 import { solveSessions } from './session';
 import { users } from './users';
@@ -65,6 +66,12 @@ export type SafeTestResult = {
     | 'mle';
   runtimeMs: number | null;
   memoryKb: number | null;
+  /**
+   * What kind of case it is — smallest inputs, largest, repeated values… A
+   * category, never a value, so it is kept for hidden tests too: it tells the
+   * user why they failed without telling them what the test was.
+   */
+  coverage?: TestCaseCoverage;
 } & {
   /** Never populated for hidden tests. */
   input?: string;
