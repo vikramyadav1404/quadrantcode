@@ -1,0 +1,36 @@
+name: Beta feedback
+description: Something broke, confused you, or could be better in Quadrantcode.
+title: '[beta] '
+labels: [beta-feedback]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Quadrantcode. This page is public — do not paste
+        passwords, your email address or anything private.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feedback?
+      options:
+        - Something is broken
+        - Something was confusing
+        - Idea or request
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Which page?
+      placeholder: e.g. /mocks/general-mock-oa-03 or "the solve screen"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Browser and device
+      placeholder: e.g. Chrome on Android
