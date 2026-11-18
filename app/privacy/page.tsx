@@ -23,7 +23,8 @@ export default function PrivacyPage() {
         <h2>How it is used</h2>
         <p>
           Your data powers sign-in, session history, analytics, mistake patterns, revisions,
-          abuse prevention, and support. It is not sold and is not used to train a public model.
+          abuse prevention, and support. It is not sold. The only part that can reach an AI
+          provider is an AI hint you ask for — see Service providers below.
         </p>
       </section>
       <section>
@@ -33,6 +34,13 @@ export default function PrivacyPage() {
           provider, Resend for email, GitHub for OAuth, MSG91 for SMS, Upstash for rate limits,
           S3-compatible avatar storage, Judge0 for code execution, and Sentry for error
           monitoring.
+        </p>
+        <p>
+          AI hints, when offered, use Google Gemini. Only when you press Hint, the problem
+          statement and your current code are sent to Google for that one hint. On Gemini&apos;s
+          free tier Google may use these requests to improve its products. Nothing else — not
+          your account, history or other code — is sent, and nothing is sent if you never ask
+          for a hint.
         </p>
       </section>
       <section>
