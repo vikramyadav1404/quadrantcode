@@ -205,7 +205,11 @@ export const STRESS_GENERATORS: Record<string, StressGenerator> = {
     },
   },
   'archive-index-depth': plain(1, (r) => val(r, 0, 6, [BIG])),
-  'ferry-ticket-change': plain(1, (r) => [5, 10, 20][int(r, 0, 2)]!),
+  // Mostly fives, so the queue usually gets far enough for change to matter.
+  'ferry-ticket-change': plain(1, (r) => {
+    const roll = r();
+    return roll < 0.55 ? 5 : roll < 0.8 ? 10 : 20;
+  }),
   'portal-tile-corridor': plain(1, (r) => val(r, -3, 3, PM)),
   'mosaic-odd-tile': {
     generate(rng, size) {
@@ -236,7 +240,17 @@ export const STRESS_GENERATORS: Record<string, StressGenerator> = {
   ),
   'carousel-tag-count': {
     generate(rng, size) {
-      const sorted = list(rng, 1, cap(size), () => val(rng, -5, 5, PM)).sort((a, b) => a - b);
+      // A narrow range most of the time: runs of equal tags are where the
+      // rotation point and the bounds go wrong.
+      const mode = rng();
+      const base = int(rng, -2, 2);
+      const sorted = list(rng, 1, cap(size, 10), () =>
+        mode < 0.4
+          ? base + int(rng, 0, 1)
+          : mode < 0.75
+            ? int(rng, -2, 2)
+            : val(rng, -5, 5, PM),
+      ).sort((a, b) => a - b);
       const k = int(rng, 0, sorted.length - 1);
       const target = targetFrom(rng, sorted, false, val(rng, -6, 6, PM));
       return [target, ...sorted.slice(k), ...sorted.slice(0, k)];
@@ -259,7 +273,44 @@ export const STRESS_GENERATORS: Record<string, StressGenerator> = {
       return [int(rng, 0, n - 1), ...next];
     },
   },
-  'gallery-tour-order': plain(1, (r) => val(r, -3, 3, PM)),
+  'gallery-tour-order': {
+    generate(rng, size) {
+      const narrow = rng() < 0.5;
+      const values = list(rng, 1, cap(size), () =>
+        narrow ? int(rng, 0, 2) : val(rng, -3, 3, PM),
+      );
+      if (rng() < 0.5) return values;
+      // Half the time a real tour: the preorder of a BST built from the values
+      // (equal numbers go right), so the "yes" answer is exercised too.
+      type Node = { value: number; left: Node | null; right: Node | null };
+      let root: Node | null = null;
+      for (const value of values) {
+        const node: Node = { value, left: null, right: null };
+        if (!root) root = node;
+        else {
+          let at = root;
+          for (;;) {
+            const side = value < at.value ? 'left' : 'right';
+            const next = at[side];
+            if (!next) {
+              at[side] = node;
+              break;
+            }
+            at = next;
+          }
+        }
+      }
+      const order: number[] = [];
+      const visit = (node: Node | null) => {
+        if (!node) return;
+        order.push(node.value);
+        visit(node.left);
+        visit(node.right);
+      };
+      visit(root);
+      return order;
+    },
+  },
   'scrap-press-remnant': plain(1, (r) => val(r, 1, 9, [1_000_000])),
   'workshop-build-order': {
     generate(rng, size) {
@@ -314,10 +365,13 @@ export const STRESS_GENERATORS: Record<string, StressGenerator> = {
   },
   'rehearsal-room-bookings': {
     generate(rng, size) {
-      return list(rng, 0, Math.min(5, size), () => 0).flatMap(() => {
-        if (rng() < 0.1) return [0, BIG];
-        const start = int(rng, 0, 10);
-        return [start, int(rng, start + 1, 12)];
+      // Short, close bookings half the time, so one ending exactly when another
+      // starts is common; longer ones otherwise, so several overlap at once.
+      const short = rng() < 0.5;
+      return list(rng, 0, Math.min(7, size + 1), () => 0).flatMap(() => {
+        if (rng() < 0.08) return [0, BIG];
+        const start = int(rng, 0, 6);
+        return [start, int(rng, start + 1, start + (short ? 3 : 8))];
       });
     },
   },
