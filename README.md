@@ -1,11 +1,35 @@
 # Quadrantcode
 
-**A DSA practice tracker that records _how_ you solved a problem, not that you solved it.**
+**A DSA practice platform that records _how_ you solved a problem — where you got
+stuck, what you got wrong, and what to revise next — not just that you solved it.**
 
 [![CI](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/ci.yml/badge.svg)](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/ci.yml)
+[![Uptime](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/uptime.yml/badge.svg)](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/uptime.yml)
+[![Database backup](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/db-backup.yml/badge.svg)](https://github.com/vikramyadav1404/quadrantcode/actions/workflows/db-backup.yml)
 ![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)
 
-**[quadrantcode.vikramyadav.me](https://quadrantcode.vikramyadav.me)**
+**Live:** [quadrantcode.vikramyadav.me](https://quadrantcode.vikramyadav.me) · sign in with GitHub or an emailed link
+
+|                                                       |                                                     |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| ![Solve screen](docs/screenshots/01-solve.png)        | ![Dashboard](docs/screenshots/02-dashboard.png)     |
+| **Solve** — editor, problem panel, server-owned timer | **Dashboard** — streak, daily goal, activity        |
+| ![Session timeline](docs/screenshots/03-session.png)  | ![Revision queue](docs/screenshots/04-revision.png) |
+| **Session** — run attempts, snapshots, stuck points   | **Revision** — what is due, and why                 |
+
+---
+
+## At a glance
+
+|                       |                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| **Original problems** | 56, with 467 test cases (354 hidden) and an editorial each, in 5 languages              |
+| **Mock OAs**          | 13 timed papers (easy + 2 medium + hard, 90 min), scored on server-verified submits     |
+| **Code execution**    | Self-hosted Judge0 on Azure, reachable only through a Cloudflare Tunnel                 |
+| **Tests**             | 1,774 passing (134 Vitest files, real Postgres) + 39 Playwright spec files              |
+| **Database**          | 50 tables, 33 versioned migrations, each with a hand-written down migration             |
+| **Operations**        | CI on every push, uptime check every 30 min, daily encrypted backup verified by restore |
+| **Decisions**         | 40 recorded in [`docs/decisions.md`](docs/decisions.md), with rejected alternatives     |
 
 ---
 
@@ -15,295 +39,265 @@ You grind a hundred problems, and three weeks later you cannot answer the only
 questions that matter: **where did I get stuck, what did I get wrong, and what
 should I revise first?**
 
-The platforms you solve on record an outcome — accepted, or not. They do not
-record the twenty minutes you spent on an off-by-one, or that this is the fourth
-time binary-search bounds have cost you a session.
+Judges record an outcome — accepted or not. They do not record the twenty
+minutes lost to an off-by-one, or that binary-search bounds have now cost you
+four sessions. Quadrantcode records that part, and turns it into what to
+practise next.
 
-Quadrantcode records that part. You still solve on LeetCode; this keeps the
-history that makes practice compound.
+## Features
 
-## 📸 Screenshots
+| Area                   | What it does                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Solve**              | Monaco editor, Run on visible or custom cases, Submit against the full hidden set — C, C++17, Java, Python 3, JavaScript |
+| **Server-owned timer** | The client sends intent, never a duration; elapsed time is derived from an append-only event log                         |
+| **Stuck points**       | Marked by you or suggested by heuristics, and weighted differently                                                       |
+| **Reflections**        | A fixed mistake taxonomy, so "what do I keep getting wrong" is a query, not a reread of notes                            |
+| **Code snapshots**     | How the solution evolved, kept per sitting                                                                               |
+| **Spaced revision**    | A fixed ladder (default) or **FSRS** (opt-in), ordered by a forgetting-risk score                                        |
+| **Mock OA**            | 13 timed papers at `/mocks`; server clock, server-verified scoring, upsolve queue afterwards                             |
+| **AI hint coach**      | Three levels per problem — nudge, approach, next step — never a solution (Gemini, opt-in, disclosed)                     |
+| **Codeforces sync**    | Connect a handle; accepted problems are imported and marked solved through Codeforces' official API                      |
+| **Import / export**    | CSV in and out, idempotent; LeetCode and HackerRank lists come in this way                                               |
+| **Analytics**          | Streak, heatmap, topic strength, recurring mistakes — precomputed rollups, hand-written SVG charts                       |
 
-|                                                       |                                                     |
-| ----------------------------------------------------- | --------------------------------------------------- |
-| ![Solve screen](docs/screenshots/01-solve.png)        | ![Dashboard](docs/screenshots/02-dashboard.png)     |
-| **Solve** — editor, problem panel, server-owned timer | **Dashboard** — streak, daily goal, activity        |
-| ![Session timeline](docs/screenshots/03-session.png)  | ![Revision queue](docs/screenshots/04-revision.png) |
-| **Session** — run attempts, snapshots, stuck points   | **Revision** — what is due, and why                 |
+---
 
-## 🧭 What it does
+## Architecture
 
-|                                |                                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| **Server-authoritative timer** | The client sends intent, never a duration. A closed laptop cannot inflate a session. |
-| **Run attempts**               | Every execution recorded with its verdict, kept against the session.                 |
-| **Stuck points**               | You mark them; heuristics suggest them. Which one it was decides how much it counts. |
-| **Reflections**                | A mistake taxonomy declared once in code, not free text nobody can query.            |
-| **Code snapshots**             | Diff-based history of how the solution actually evolved.                             |
-| **Spaced revision**            | A ladder plus a forgetting-risk score, over a timezone-correct day boundary.         |
-| **Mistake memory**             | Recurring categories surfaced as weak topics.                                        |
+### System overview
 
-## ⚠️ Honest status
+```mermaid
+flowchart LR
+    U(["👤 Browser"])
 
-This is a portfolio build. It is **live and usable; sign-in is by GitHub or an
-emailed link**.
-Specifically:
+    subgraph APP["Vercel · Next.js 16 App Router"]
+        P["Server Components<br/>pages"]
+        A["Server Actions<br/>Run · Submit · Hint · Sync"]
+        R["Route handlers<br/>execution poll · health · CSV"]
+    end
 
-- **Every `FEATURE_*` flag defaults to off in `.env.example`** — all seven.
-  Code execution is enabled in production.
-- **Code execution runs in production on a self-hosted Judge0 instance**,
-  selected by `EXECUTION_BACKEND=judge0` and `JUDGE0_URL` (development falls back
-  to a fake that executes nothing). Every published original problem's reference
-  solutions passed on it in five languages before publishing. Judge0 is not a
-  sandbox this project built: the time and memory limits are what gets _sent_,
-  and how strictly they are enforced depends on how the instance is configured.
-- **Problems from other platforms link out.** For those, the database stores
-  metadata and a link, never the statement — enforced by a `CHECK`, not by
-  convention. Separately, 56 original problems written for this project carry
-  their own statements, test cases and editorials.
-- **The original library is small and published:** 56 problems, 467 test cases
-  (354 hidden) and 56 editorials, each published only after its reference
-  solutions passed on Judge0. They were drafted with AI assistance and checked
-  by code: every expected output comes from a separate brute force, and all
-  five reference solutions must match every test. The techniques are standard
-  ones; the stories, statements, examples and tests are this project's. An
-  earlier 100-record library turned out to be 16 problems under 100 names; the
-  84 duplicates are archived, not deleted. The rest of the catalog is links to
-  problems hosted on Codeforces and LeetCode.
-- **Sign-in is by GitHub or an emailed link** sent through Gmail SMTP. Phone
-  OTP exists behind `FEATURE_PHONE_OTP` and needs MSG91 credentials; it is not
-  advertised as available.
-- **There is no billing at all**: subscriptions were cut from scope rather than
-  stubbed, so there is no payment code to be unprovisioned.
+    DB[("Neon Postgres<br/>50 tables · Drizzle ORM")]
 
-Nothing above is hidden in a footnote because the alternative is a reader
-discovering it themselves and distrusting everything else.
+    subgraph EXEC["Code execution · Azure"]
+        CF["Cloudflare Tunnel"] --> J["Judge0 CE<br/>VM, no public IP"]
+    end
 
-## 🏗️ Architecture
+    subgraph EXT["External services"]
+        G["Gemini API · AI hints"]
+        CFAPI["Codeforces API · sync"]
+        AUTH["GitHub OAuth · Gmail SMTP"]
+    end
 
-**The log is append-only, at the database.** `session_events` refuses `UPDATE`
-always, and refuses `DELETE` unless a session-local flag is set inside a
-transaction — which exactly one module may set. "Delete my history" is a real
-requirement and so is an unfalsifiable log; the flag is where they meet, and it
-is a deliberate statement rather than an ambient permission.
+    U -->|HTTPS| APP
+    P --> DB
+    A -->|"job queue + fenced lease"| DB
+    R --> DB
+    A -->|"one call per test"| CF
+    A --> G
+    A --> CFAPI
+    P --> AUTH
+```
 
-**The session is its events.** There is no `duration` column. Elapsed time is
-derived from the log, because a stored duration is a second source of truth that
-drifts the first time a process dies mid-session.
+### Operations
 
-**Execution is a table, a lease and a provider seam.** Jobs are rows; workers
-claim them with a fenced lease so a deploy mid-run cannot produce two verdicts
-for one attempt. The provider behind the seam is swappable; production runs it
-against a self-hosted Judge0 instance.
+```mermaid
+flowchart LR
+    subgraph OPS["GitHub Actions"]
+        CI["CI<br/>typecheck · lint · tests · e2e · gitleaks"]
+        UP["Uptime<br/>every 30 min"]
+        BK["Database backup<br/>daily · AES-256"]
+        MG["Production migration<br/>manual, after a backup"]
+    end
+    CI -->|"green ⇒ merge"| VER["Vercel deploy"]
+    UP -.->|"probe /api/health/live"| VER
+    UP -.->|"probe /about"| JT["Judge0 tunnel"]
+    BK -.->|"pg_dump · restore-check"| DB[("Neon Postgres")]
+    MG -.->|"drizzle migrate"| DB
+```
 
-**The dashboard is precomputed.** Three rollup tables, because there are three
-grains. Charts are inline SVG — the charting library in the original plan was
-never installed, and the reasoning is in the decision log.
+### How a Submit is judged
 
-## 🧱 Tech stack
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant S as Server action
+    participant D as Postgres
+    participant J as Judge0 (via tunnel)
 
-| Layer      | Choice                                                                          |
-| ---------- | ------------------------------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router, Turbopack), React 19                                    |
-| Language   | TypeScript, `strict` + `noUncheckedIndexedAccess`                               |
-| Styling    | Tailwind CSS 4, custom token layer with a contrast gate in CI                   |
-| Database   | PostgreSQL (Neon), Drizzle ORM, 28 versioned migrations with hand-written downs |
-| Auth       | Auth.js v5 — magic link and GitHub, database sessions                           |
-| Validation | Zod 4 at every API boundary                                                     |
-| Tests      | Vitest, Playwright                                                              |
+    B->>S: submit(problemId, language, source)
+    S->>S: auth · feature flag · per-user and global rate limits
+    S->>D: insert execution_jobs row (queued)
+    S->>D: claim it with a fenced lease
+    S->>J: one submission per hidden test (wrapper + source)
+    J-->>S: verdicts, time, memory
+    S->>D: verdict and run attempt
+    S->>D: if accepted — mark solved, credit streak day, schedule revision
+    loop every 700 ms
+        B->>D: GET /api/execution/[id]
+    end
+    D-->>B: verdict and per-test results (hidden inputs never leave the server)
+```
 
-Charts are hand-written SVG; **Recharts is not a dependency**.
+A lease is fenced, so a deploy mid-run cannot write two verdicts for one
+attempt; a daily cron reclaims expired leases and dispatches any job a dead
+process left behind. The submitted source is also kept as a code snapshot.
 
-## 🚀 Local setup
+### Data safety
+
+```mermaid
+flowchart LR
+    DB[("Neon production")] -->|"pg_dump (matching major version)"| D["dump"]
+    D -->|"pg_restore"| T[("throwaway Postgres<br/>on the runner")]
+    T -->|"every table's row count<br/>must match production"| OK{verified?}
+    OK -->|yes| E["AES-256 encrypt ·<br/>decrypt and compare"]
+    E --> ART["Workflow artifact<br/>kept 35 days"]
+    OK -->|no| FAIL["run fails · owner emailed"]
+```
+
+Neon's free plan keeps only six hours of history, so this daily job is the copy
+that survives a mistake found the next day. Restore steps:
+[`docs/db-backup.md`](docs/db-backup.md).
+
+---
+
+## Design principles
+
+These are enforced in code or in the database, not by convention.
+
+- **The session is its events.** There is no `duration` column — elapsed time is
+  derived from `session_events`, which refuses `UPDATE` always and `DELETE` unless
+  one module sets a transaction-local flag (the "delete my history" path).
+- **Hidden tests stay hidden.** Public reads use an explicit column allowlist;
+  hints are built from the public statement only.
+- **No statements for other platforms' problems.** External problems are a title
+  and a link — a `CHECK` constraint rejects a row that carries a statement.
+- **No false company claims.** Company tags are "-style" patterns; mock OAs name
+  no company, and the schema rejects one that does.
+- **Opt-in, never retroactive.** FSRS never moves a date already set; AI hints are
+  off unless a flag and a key are both present.
+- **Every migration can be rolled back locally,** and CI applies them up, down and
+  up again on a real database.
+
+Four decisions worth reading in full — [`docs/decisions.md`](docs/decisions.md):
+**D20** the session record is its events · **D24** execution is a table, a
+lease and a provider seam · **D25** an append-only log that can still be erased
+on request · **D28** a hash proves nothing about a schema.
+
+---
+
+## Tech stack
+
+| Layer         | Choice                                                                 |
+| ------------- | ---------------------------------------------------------------------- |
+| Framework     | Next.js 16 (App Router, Turbopack), React 19                           |
+| Language      | TypeScript — `strict` + `noUncheckedIndexedAccess`                     |
+| Styling       | Tailwind CSS 4 with a token layer and a WCAG contrast gate in CI       |
+| Database      | PostgreSQL on Neon, Drizzle ORM, 33 migrations with hand-written downs |
+| Auth          | Auth.js v5 — GitHub OAuth and email magic link, database sessions      |
+| Execution     | Judge0 CE on an Azure VM behind a Cloudflare Tunnel                    |
+| Validation    | Zod at every server boundary                                           |
+| AI (optional) | Gemini API for hints, behind `FEATURE_AI`                              |
+| Testing       | Vitest against real Postgres, Playwright for the browser               |
+| CI / Ops      | GitHub Actions — CI, uptime, daily encrypted backup, manual migrations |
+| Hosting       | Vercel                                                                 |
+
+## Repository layout
+
+```
+app/                 Next.js routes — (app) signed-in pages, (solve) editor, admin, api
+components/          UI, including the solve screen (solve-v2) and charts
+server/
+  db/                Drizzle schema, migrations (+ down/), migrate and rollback runners
+  services/          domain logic: execution, session, revision, assessments,
+                     hints, ingest (CSV + Codeforces), analytics, streak, …
+lib/                 code shared with the client: flags, env, view models
+data/                original problems (native-problems/) and mock OA papers
+scripts/             importers, generators, backup, validation
+tests/  e2e/         Vitest suites and Playwright specs
+docs/                decisions, runbooks, privacy, backup, beta testing
+```
+
+---
+
+## Running locally
+
+Requires **Node ≥ 22**.
 
 ```bash
 git clone https://github.com/vikramyadav1404/quadrantcode.git
 cd quadrantcode
 npm install
-npm run build
-```
-
-**Clone, install and build work with zero configuration** — verified 2026-09-20
-from a fresh clone with no `.env` file present at all: 731 packages, build exit
-code 0.
-
-**Running the app does not.** A successful build is not a running application;
-it needs a database and an environment.
-
-```bash
-cp .env.example .env.local
-```
-
-`.env.example` documents **47 variables**, each with a one-line comment. The
-minimum to get running is far smaller than that:
-
-| Variable              | Requirement                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`        | **The only variable with no default.** Postgres connection string; the app will not start without it.         |
-| `AUTH_SECRET`         | Needed to sign in at all, and mandatory in production at ≥ 32 chars. `openssl rand -base64 32`.               |
-| `NEXT_PUBLIC_APP_URL` | Defaults to `http://localhost:3000`. Set it for any real deployment — magic links and OG images are absolute. |
-
-Everything else gates an optional integration. Locally, some fall back to
-development stand-ins — an unset `MSG91_AUTH_KEY` prints OTPs to the server
-console.
-
-**In production those stand-ins refuse to run.** The console OTP provider throws
-rather than pretend to send an SMS, and `EXECUTION_BACKEND=fake` is rejected by
-environment validation outright. A half-configured integration is treated as
-absent rather than as working, which is the difference between a feature being
-off and a feature being quietly wrong.
-
-```bash
+cp .env.example .env.local     # 51 variables, each documented; three matter to start
+npm run test:db:start          # embedded Postgres on :55432 (or bring your own)
 npm run db:migrate
 npm run dev
 ```
 
-Requires **Node ≥ 22**.
+| Variable              | Why                                                                     |
+| --------------------- | ----------------------------------------------------------------------- |
+| `DATABASE_URL`        | The only variable with no default                                       |
+| `AUTH_SECRET`         | Needed to sign in; ≥ 32 chars in production (`openssl rand -base64 32`) |
+| `NEXT_PUBLIC_APP_URL` | Defaults to `http://localhost:3000`; magic links are absolute           |
 
-## 📥 Adding problems in bulk
+Everything else gates an optional integration. Locally some fall back to
+stand-ins (OTPs print to the console, execution uses a fake that runs nothing);
+**in production those stand-ins refuse to start**, so a half-configured feature
+is off rather than quietly wrong.
 
-An admin adds external-link problems to the public catalog from a CSV at
-**`/admin/problems/import`** (linked from the admin home and the admin problems page).
-
-- **Columns:** `title`, `url`, `difficulty` (`easy`, `medium` or `hard`), `topic`
-  (comma-separated) and optional `platform`. The page links a template,
-  `public/catalog-import-template.csv`.
-- **Limits:** up to 10,000 rows and 3 MB per file. Split bigger lists into several files.
-- **Preview first:** the page shows how many rows are new, how many are already in the
-  catalog, and each skipped row with its reason, before anything is written.
-- **Chunks:** the import runs 500 rows per request, with a progress bar. If it stops, choose
-  the same file again: links already imported are skipped, so nothing is duplicated.
-- **Existing links:** a published problem is left as it is. A user's private import of the
-  same link is published with the file's title, difficulty and platform.
-- **Links only:** no statements, per C1. Topics become kebab-case tags (`Binary Search` →
-  `binary-search`). Every chunk is recorded in the audit log.
-- **Codeforces, ready-made:** `npm run catalog:codeforces` reads Codeforces' official
-  problemset API (one request) and writes upload-ready files to `.tmp/catalog/`. The default
-  is ratings 800–2000, which is about 6,500 problems in 2 files. It bands the rating into
-  `easy` (up to 1200), `medium` (1300–1900) and `hard` (2000 and above), and maps tags onto
-  our topics. Pass `--min-rating` and `--max-rating` for another range, or `--from <file.json>`
-  to work offline. Each file is checked with the import's own parser before it is written.
-
-## 🧪 Testing
+## Testing
 
 ```bash
-npm run test:db:start   # embedded Postgres on :55432 — this process IS the database
-npm test                # TEST_DATABASE_URL defaults to that local instance
-npm run e2e:build       # next build with Upstash and Sentry blanked (#32)
-npm run test:e2e        # Playwright, against the same local test database
-npm run contrast        # WCAG token audit, non-zero on failure
-npm run schema:check    # does a database match the migration files?
+npm run test:db:start   # embedded Postgres
+npm test                # 1,774 tests across 134 files, against that database
+npm run e2e:build && npm run test:e2e   # Playwright
+npm run contrast        # WCAG token audit
 ```
 
-Outside CI, `vitest.config.ts` and `playwright.config.ts` default
-`TEST_DATABASE_URL` to the embedded instance (`lib/db/local-test-db.ts`). To use
-a different local database, put `TEST_DATABASE_URL=...` in a `.env.test` file.
-It is git-ignored like every env file, and the configs load it without
-overriding variables already set in your shell. The integration suites migrate
-the test database themselves. Before an e2e run on a fresh database, migrate it
-once:
-`DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/quadrantcode_test npm run db:migrate`.
-
-**Local test runs refuse to touch production** ([#27](https://github.com/vikramyadav1404/quadrantcode/issues/27)):
-
-- **What is checked:** the test configs, the e2e and integration helpers, and the
-  seed scripts check `TEST_DATABASE_URL`, `DATABASE_URL`, `DIRECT_DATABASE_URL`
-  and `DATABASE_URL_UNPOOLED`.
-- **How:** the check lives in `lib/db/production-guard.ts`. It matches a hash of
-  the production host, which is never printed, and it runs before any
-  connection opens.
-- **The e2e server:** it gets the test URL for all three database variables, so
-  `next start` cannot fill one from `.env.local`.
-- **Content loaders:** `seed.ts`, `seed-companies.ts` and `import-native-problems.ts`
-  can still target production, but only with `--production` typed on the
-  command line. `demo-seed.ts` never can.
-- **Other production services ([#32](https://github.com/vikramyadav1404/quadrantcode/issues/32)):**
-  vitest, the e2e server and `npm run e2e:build` set the Upstash and Sentry
-  variables to the empty string, which `.env.local` cannot override. Rate
-  limiting then uses the in-memory limiter and Sentry stays off. The list lives
-  in `lib/db/production-services.ts`.
-- **Build for e2e with `npm run e2e:build`:** a plain `npm run build` reads
-  `.env.local` in full, so it could upload source maps to Sentry and put the
-  browser Sentry DSN into the bundle the suite then runs.
-- **What is not covered:** `next dev` and a plain `npm run build` still read
-  every value in `.env.local`.
-
-| Suite              | Result                                  | Source                                                     |
-| ------------------ | --------------------------------------- | ---------------------------------------------------------- |
-| Unit + integration | **1,557 passing, 5 skipped**, 107 files | `npx vitest run` against a real Postgres, 2026-10-03       |
-| Browser            | 166 tests defined in 26 spec files      | `npx playwright test --list`, 2026-10-03 — listed, not run |
-
-The unit suite takes about **20 minutes** against a real database. The five
-skips are a live-bucket storage suite that needs `STORAGE_INTEGRATION=1`.
-
-**Postgres-backed suites skip silently without `TEST_DATABASE_URL`.** A run that reports far fewer
-tests has not passed more easily — it has tested less. Check the count, not the
-colour.
-
-CI runs typecheck, lint, format, a contrast audit, the test suite, a deployment
-contract check, the build, and a **gitleaks scan over full history**.
-
-## 🧠 Engineering decisions
-
-Twenty-eight are recorded in [`docs/decisions.md`](docs/decisions.md), with the
-alternatives that were rejected. Four worth reading:
-
-### D28 · A hash proves nothing about a schema
-
-A drift checker compared recorded migration hashes and reported the production
-database as **DRIFTED**. It was wrong, and it blocked a deploy step.
-
-Drizzle's migrator reads one row and compares **timestamps**; the `hash` column
-is written and never read for any decision. A mismatch means a file was edited
-after it ran — it says nothing about the live schema. The converse is sharper: a
-**matching** hash proves nothing either, since a hand-run `ALTER TABLE` leaves
-every hash agreeing.
-
-The real cause was line endings. Eighteen of twenty-five hashes were the CRLF
-encoding of the current file content — byte-identical migrations, recorded from
-a Windows checkout. The check now decides on observable schema and prints what
-it did _not_ compare, so a pass cannot be read as more than it is.
-
-### D24 · Execution is a table, a lock and a provider seam — never a sandbox
-
-Untrusted code execution needs isolation this project does not provide. Calling
-the provider seam a sandbox would be the single most misleading sentence
-available, so nothing here describes it as one.
-
-`EXECUTION_LIMITS` is what gets **sent** to a provider; whether anything enforces
-it depends entirely on how that provider was deployed. A container contract with
-real isolation was specified and has tests — but the image was never built, and
-an unbuilt image isolates nothing. Since no provider is provisioned either, the
-honest status is _built, tested, never run_.
-
-_Update (Oct 2026): now provisioned on a self-hosted Judge0 instance and running
-in production; see Honest status above._
-
-### D25 · An append-only log that can still be erased on request
-
-Two real requirements collide: the event log must be unfalsifiable, and a user
-must be able to delete their history. Resolved at the database — the trigger
-refuses mutation unless a transaction-local flag is set, and exactly one module
-sets it. Not enforcement by convention: without the flag, no code path, no
-migration and no `psql` session can remove a row.
-
-The cost was real. It broke ten browser tests when it landed, because every
-fixture that deleted a user cascaded into that table.
-
-### D20 · The session record is its events, not a duration column
-
-Storing elapsed time means storing a derived value that can disagree with the
-events it came from — and it will, the first time a process dies mid-session.
-Elapsed is computed from the log instead. Slightly more work on read, one fewer
-thing that can be quietly wrong.
-
-## 📄 License
-
-[PolyForm Noncommercial 1.0.0](LICENSE) — use, study and modify it for any
-purpose that is not commercial.
+- Postgres-backed suites **skip** without `TEST_DATABASE_URL` — check the count,
+  not the colour.
+- Local runs **refuse to touch production**: every test entry point checks the
+  database URLs against a hash of the production host before connecting.
+- CI runs typecheck, lint, format, contrast, the full suite, a deployment
+  contract check, the build, Playwright and a gitleaks scan over full history.
 
 ---
 
-Company-style tracks are based on common public interview patterns and original
-practice problems. **This project is not affiliated with or endorsed by any
-company or coding platform.**
+## Operations
+
+| Task               | How                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| Deploy             | Merge to `main` → Vercel                                                                              |
+| Database migration | Actions → **Production database migration** (manual, after a fresh backup)                            |
+| Backup / restore   | Daily at 02:13 IST, or Actions → **Database backup** → Run · [`docs/db-backup.md`](docs/db-backup.md) |
+| Uptime             | Every 30 min: site, Judge0 tunnel and a sibling service; a failure emails the owner                   |
+| Judge0 host        | [`docs/judge0-provisioning.md`](docs/judge0-provisioning.md)                                          |
+| Beta testers       | [`docs/beta-testing.md`](docs/beta-testing.md) · Settings → Send feedback                             |
+| Privacy            | [`docs/privacy.md`](docs/privacy.md) and `/privacy`                                                   |
+
+## Honest status
+
+- **Portfolio project, live and usable.** Few users so far; the beta feedback
+  form is how that grows.
+- **The original library is small on purpose.** 56 problems, each published only
+  after five reference solutions passed every test on Judge0. They were drafted
+  with AI assistance and checked by code: every expected output comes from a
+  separate brute force. An earlier 100-record library turned out to be 16
+  problems under 100 names; the 84 duplicates are archived, not deleted.
+- **Judge0 is not a sandbox this project built.** The limits are what gets sent;
+  enforcement depends on the instance's configuration.
+- **AI hints use Gemini's free tier**, whose requests Google may use to improve
+  its products. This is said on the button, under every hint and on `/privacy`;
+  only the public statement and the user's current code are sent.
+- **No billing.** Subscriptions were cut from scope rather than stubbed.
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE) — use, study and modify it for any
+non-commercial purpose.
+
+---
+
+Mock OAs and company-style tracks are built from original practice problems and
+common public interview patterns. **This project is not affiliated with or
+endorsed by any company or coding platform.**
