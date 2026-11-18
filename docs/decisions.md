@@ -2387,7 +2387,7 @@ hour, because the numbers move daily. The e2e spec reads each PNG's IHDR, so
 
 ### Evidence
 
-- 12 integration tests, including the privacy test with a positive control: a
+- Integration tests, including the privacy test with a positive control: a
   deliberate bio leak into the view made it fail. The format CHECK is proved by
   a direct write the service never makes (`23514`).
 - `e2e/public-profile.spec.ts` captures every payload of the page as a
@@ -2738,13 +2738,12 @@ to show a pending state on the clicked link. Not built here.
   probability ~0.1%. Before the fix: **6 of 10** starts failed on the problem
   page (CI run 37155241675). After the fix, in three CI runs (37155989997, and
   37155969561 attempts 1 and 2): **0 of 10** every time. The whole browser
-  suite went from 157 passed, 2 failed and 5 flaky to **164 passed, 0 failed,
-  0 flaky**, 5 skipped (the five-language Vercel Queue + Sandbox release gate in
+  suite went from 2 failed and 5 flaky to **0 failed, 0 flaky**, with the
+  usual skips (the five-language Vercel Queue + Sandbox release gate in
   `execution-queue.spec.ts`, which runs only with `RUN_VERCEL_SANDBOX_E2E=1`;
   corrected 2026-10-05, this first said "the storage suite", which is the unit
   suite's five skips), in all three runs. Session,
-  reflection and timeline had no failures or retries. Unit: 1,557 passed,
-  5 skipped.
+  reflection and timeline had no failures or retries. The unit suite passed.
 - A fourth run (37156941037) failed in the dashboard case, in its **setup**,
   not in the Pause/Resume loop. The helper navigated away while the start
   action's POST was still in flight, which cancels it, so no session was ever
@@ -2799,9 +2798,8 @@ can return. The criterion "every list route has a skeleton state" in
 `docs/acceptance-status.md` is marked as withdrawn, pointing here.
 
 **Verified** in three CI runs on the change (PR #37: 37241848654, and
-37241845313 attempts 1 and 2). Each had **179 passed, 0 failed, 0 flaky**,
-5 skipped in the browser suite, including all six `session-commit` cases. Unit:
-1,582 passed, 5 skipped. Locally, the guard test was shown to fail, naming the
+37241845313 attempts 1 and 2). Each had **0 failed, 0 flaky** in the browser
+suite, including all six `session-commit` cases, and the unit suite passed. Locally, the guard test was shown to fail, naming the
 file, when a throwaway `app/(app)/dashboard/loading.tsx` was added.
 
 **Revisit** exactly as above, after Next ≥ 16.2 (#29): restore the boundaries

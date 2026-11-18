@@ -22,7 +22,7 @@ deliberately not rounded up.
 | Honest company evidence and moderated reports                                   | **DONE**               | company/report services, admin moderation and browser assertions                                     |
 | ~~Exactly 20 original pattern-based mocks, two per company~~                    | **WITHDRAWN**          | Was DONE on a count. See the correction below and **D27**                                            |
 | Admin author/review/preview/publish/import/export/audit                         | **DONE**               | protected admin routes, services and security tests                                                  |
-| Responsive production UI                                                        | **DONE**               | Playwright at 375, 768 and 1440 px; suite 143 tests in 23 files (`--list`, 2026-09-20)               |
+| Responsive production UI                                                        | **DONE**               | Playwright at 375, 768 and 1440 px                                                                   |
 
 > ### ⚠️ Two criteria withdrawn, 2026-09-20
 >
@@ -62,7 +62,7 @@ The implementation and operating instructions are in
 | -------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
 | typecheck && lint && test pass clean                                 | **DONE** | CI job `typecheck · lint · test · build`, all steps green                         |
 | CI green on GitHub for a pushed branch                               | **DONE** | Run `31668483268` on `feat/F0.1-scaffold-ci`. Went red first — see the note below |
-| Importing a `server/` module from a client component fails the build | **DONE** | `tests/boundary/server-boundary.test.ts` (17 tests) + the CI `Build` step         |
+| Importing a `server/` module from a client component fails the build | **DONE** | `tests/boundary/server-boundary.test.ts` + the CI `Build` step                    |
 | Deleting a required env var causes a readable startup error          | **DONE** | `tests/smoke.test.ts`; reproduced by running the worker with no `DATABASE_URL`    |
 | `npm run worker` starts independently of `npm run dev`               | **DONE** | Runs as plain `tsx worker/index.ts`; no `--conditions` flag (asserted by a test)  |
 | Every env var in `.env.example` has a comment                        | **DONE** | `tests/boundary/env-example.test.ts` — 36 vars, 0 uncommented                     |
@@ -114,7 +114,7 @@ The implementation and operating instructions are in
 
 | Criterion                                                      | Status                    | Evidence                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every nav item reachable by keyboard with a visible focus ring | **DONE** (F0.3 amendment) | `e2e/keyboard.spec.ts` — 7 tests. Closed at the third attempt; see the note below for what it found and what it deliberately does not claim                                                                                                               |
+| Every nav item reachable by keyboard with a visible focus ring | **DONE** (F0.3 amendment) | `e2e/keyboard.spec.ts`. Closed at the third attempt; see the note below for what it found and what it deliberately does not claim                                                                                                                         |
 | Measured contrast documented in code, ≥4.5:1 body text         | **DONE**                  | `npm run contrast` (CI step) + `tests/design/tokens.test.ts`; numbers pasted into `styles/tokens.css`. `border` failed at 2.46/2.52 and was changed, not waived                                                                                           |
 | Layout intact at 375px, 768px, 1440px                          | **DONE**                  | `e2e/viewports.spec.ts` — no horizontal overflow, exactly one nav visible and the correct one per width, nothing past the right edge                                                                                                                      |
 | **Every list route has a skeleton state**                      | **DEFERRED → F1.1**       | **There are no list routes yet.** Only `/dashboard` has a `loading.tsx`. The primitives exist (`Skeleton`, `CardSkeleton`, `StatGridSkeleton`, `TableSkeleton`) but the criterion is currently **vacuous** and is recorded as deferred rather than passed |
@@ -167,9 +167,9 @@ against its background. Screen-reader announcement is not asserted at all.
 | Criterion                                                                 | Status   | Evidence                                                                                                                                                               |
 | ------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Filtered list at 1000 problems responds in <200ms server time             | **DONE** | `tests/problems/plans.test.ts` measures it at **20,000** rows, twenty times the required scale. Unfiltered page 0.127 ms, filtered keyset 0.041 ms                     |
-| Title search returns ranked results and uses the GIN index                | **DONE** | `tests/problems/search.test.ts` — 8 tests incl. ranking, stemming, and an EXPLAIN assertion on `problems_search_vector_idx`                                            |
+| Title search returns ranked results and uses the GIN index                | **DONE** | `tests/problems/search.test.ts` — ranking, stemming, and an EXPLAIN assertion on `problems_search_vector_idx`                                                          |
 | Cursor pagination is stable across inserts                                | **DONE** | `tests/problems/pagination.test.ts` inserts rows BETWEEN page fetches and asserts the pages still partition the original set; a separate test covers `created_at` ties |
-| Saving a statement onto an external-link problem returns the policy error | **DONE** | `tests/problems/policy.test.ts` — 19 tests, incl. that the gate reads `source_type` from the DATABASE so a forged `sourceType` in the payload cannot bypass it         |
+| Saving a statement onto an external-link problem returns the policy error | **DONE** | `tests/problems/policy.test.ts` — incl. that the gate reads `source_type` from the DATABASE so a forged `sourceType` in the payload cannot bypass it                   |
 | Admin form rejects the same payload on both client and server             | **DONE** | One schema in `lib/problems/schemas.ts`, parsed in `NewProblemForm` and again in `actions.ts`                                                                          |
 | Archived problems disappear from the public list but keep user history    | **DONE** | `pagination.test.ts` (hidden by default, visible with `includeHidden`) + `policy.test.ts` (archiving leaves `user_problems` untouched)                                 |
 
@@ -251,7 +251,7 @@ route before this was `/sign-in`, and `/onboarding` did not exist.
 | `returnTo` rejects off-origin and malformed input          | **DONE**    | `lib/auth/return-to.ts`, 7 steps; raw control characters checked **before** parsing because WHATWG `URL` silently strips tab/LF/CR. `e2e/onboarding.spec.ts` covers the open-redirect case end to end |
 | `/admin` as a `returnTo` is gated on role at redirect time | **DONE**    | `e2e/onboarding.spec.ts` — admin lands on `/admin`, non-admin lands on `/dashboard` with no 403                                                                                                       |
 | `/onboarding` decides completion via `hasCompletedProfile` | **DONE**    | `tests/auth/onboarding.test.ts` asserts the route wrapper and the layout predicate agree for every **storable** shape, so they cannot drift into a redirect loop                                      |
-| The onboarding gate holds against direct navigation        | **DONE**    | `e2e/onboarding.spec.ts` — 10 tests, all typing URLs rather than clicking through                                                                                                                     |
+| The onboarding gate holds against direct navigation        | **DONE**    | `e2e/onboarding.spec.ts` — every test types URLs rather than clicking through                                                                                                                         |
 | Full keyboard traversal, order + no trap + visible ring    | **DONE**    | `e2e/keyboard.spec.ts` — see "Closing the keyboard criterion" above                                                                                                                                   |
 
 ### Found while building
@@ -293,7 +293,7 @@ rules, that exact input would have bounced the user between `/onboarding` and
 | Criterion                                                                             | Status                  | Evidence                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A CSV with 3 malformed rows shows 3 row-level errors and still imports the valid rows | **DONE**                | `tests/ingest/csv.test.ts` (parse layer) + `tests/ingest/import.test.ts` (committed row count). The preview renders them before anything is written                                                                                |
-| The same URL in a different surface form is detected as a duplicate                   | **DONE**                | `tests/ingest/normalise-url.test.ts` — 47 cases — plus an integration test importing http/www/trailing-slash/`?ref=`/`/description/` variants and asserting one row                                                                |
+| The same URL in a different surface form is detected as a duplicate                   | **DONE**                | `tests/ingest/normalise-url.test.ts` — plus an integration test importing http/www/trailing-slash/`?ref=`/`/description/` variants and asserting one row                                                                           |
 | A 500-row file runs as a job with visible progress and does not block the request     | **DONE, with a caveat** | `tests/ingest/jobs.test.ts` asserts the POST returns before any row is imported, and POLLS DURING the run requiring strictly-increasing intermediate values. **The runner is in-process, not a queue** — see the row below and D17 |
 | Export → import round trip produces zero new rows                                     | **DONE**                | `tests/ingest/export.test.ts` runs the cycle **twice**; the criterion is a second-lap claim                                                                                                                                        |
 | 100-problem library, every row has a working URL and ≥1 pattern tag                   | **BLOCKED / PARTIAL**   | See below — this one is split three ways and none of them is "done"                                                                                                                                                                |
@@ -361,10 +361,9 @@ test passed because every test ran in-process.
 | Backfilling a past session correctly extends or repairs the streak | **DONE** | `tests/streak/recompute.test.ts` — a late session repairs the chain **and releases the freeze that was covering the gap**, because coverage is re-derived rather than transacted (D18)                              |
 | Heatmap renders 365 cells with correct per-day counts              | **DONE** | `tests/streak/heatmap.test.ts` — exact cell count, days with no row filled rather than skipped, per-day counts, a leap day, and no cross-user leakage                                                               |
 
-Tests: **112 passing across 7 files** in `tests/streak/` — `day`, `rules`,
+Tests: the files in `tests/streak/` — `day`, `rules`,
 `goals`, `recompute`, `heatmap`, `summary`, `timezone-change` — plus
-`e2e/goals.spec.ts` (3 browser tests). Full suite at closure: **583 passing, 5
-skipped, 45 Playwright**.
+`e2e/goals.spec.ts` (browser tests).
 
 ### A decision record was asserting something that was not true
 
@@ -460,9 +459,8 @@ explaining the first two rejections; reworded rather than loosened.
 | No heartbeat for 5 minutes produces an idle_autopause event                  | **DONE**                | `tests/session/lifecycle.test.ts`, including that the event is stamped at the last heartbeat rather than at discovery, and that it does not fire while heartbeats keep arriving                                                                                                                                 |
 | A 7-hour-old active session is auto-closed by the cleanup job                | **DONE, with a caveat** | `tests/session/lifecycle.test.ts` — closed, with `ended_at` at the last heartbeat. **There is no cleanup JOB** — see below                                                                                                                                                                                      |
 
-Tests: **97 across 5 files** in `tests/session/` — `schema`, `duration`,
-`state`, `lifecycle`, `adversarial` — plus `e2e/session.spec.ts` (5 browser
-tests). Full suite at closure: **680 passing, 5 skipped, 50 Playwright**.
+Tests: the files in `tests/session/` — `schema`, `duration`,
+`state`, `lifecycle`, `adversarial` — plus `e2e/session.spec.ts` (browser tests).
 
 ### The cleanup-job criterion, stated as what was built
 
@@ -535,9 +533,8 @@ costs nothing, a gap above it costs exactly the idle interval.
 | Reopening a solved problem shows the last attempt panel with real data                                                        | **DONE** | `tests/reflection/history.test.ts` asserts duration, outcome, confidence, markers, mistakes and approach; `e2e/reflection.spec.ts` reads them off the rendered page                                                |
 | Attempt timeline ordering is correct across a backfilled past session                                                         | **DONE** | `tests/reflection/history.test.ts` inserts a session dated a week earlier AFTER two recorded today, and asserts it becomes attempt 1 and renumbers the others                                                      |
 
-Tests: **37 across 4 files** in `tests/reflection/` — `schema`, `stuck`,
-`reflection`, `history` — plus `e2e/reflection.spec.ts` (5 browser tests). Full
-suite at closure: **718 passing, 5 skipped, 55 Playwright**.
+Tests: the files in `tests/reflection/` — `schema`, `stuck`,
+`reflection`, `history` — plus `e2e/reflection.spec.ts` (browser tests).
 
 ### Not done — the "hints used" column
 
@@ -598,9 +595,8 @@ before anything was changed.
 | Rollup job is idempotent: two runs for one day produce one row set | **DONE, with a caveat** | `tests/analytics/rollup.test.ts` — two runs, then four, byte-compared with a positive control. **There is no job** — see below                                                                                                                            |
 | Nowhere in the codebase or UI is this called AI or a prediction    | **DONE**                | Two guards at two layers: `tests/analytics/wording.test.ts` greps service, components, page and `docs/scoring.md`; `e2e/analytics.spec.ts` greps the **rendered** page. Both carry positive controls                                                      |
 
-Tests: **59 across 4 files** in `tests/analytics/` — `scoring`, `rollup`,
-`dashboard`, `wording` — plus `e2e/analytics.spec.ts` (5 browser tests). Full
-suite at closure: **777 passing, 5 skipped, 60 Playwright**.
+Tests: the files in `tests/analytics/` — `scoring`, `rollup`,
+`dashboard`, `wording` — plus `e2e/analytics.spec.ts` (browser tests).
 
 ### The "rollup job" criterion, stated as what was built
 
@@ -683,9 +679,8 @@ spec, and the keyboard test is the one that notices.
 | The risk API returns contributing factors, not just a number           | **DONE** | `tests/revision/risk.test.ts` (sorted, labelled, non-contributors omitted), and `e2e/revision.spec.ts` reads them off the rendered queue                        |
 | Weights are named constants with a comment, not inline literals        | **DONE** | `RISK_WEIGHTS` and the ladder constants, each with the reasoning for its position; prose in `docs/scoring.md`                                                   |
 
-Tests: **71 across 4 files** in `tests/revision/` — `ladder`, `risk`, `queue`,
-`simulation` — plus `e2e/revision.spec.ts` (5 browser tests). Full suite at
-closure: **848 passing, 5 skipped, 65 Playwright**.
+Tests: the files in `tests/revision/` — `ladder`, `risk`, `queue`,
+`simulation` — plus `e2e/revision.spec.ts` (browser tests).
 
 ### What the simulation actually found
 
@@ -866,7 +861,7 @@ a promise about privacy rather than on a rate limit.
 
 ### The append-only trigger has a price, and ten browser tests found it
 
-Adding the trigger broke 10 Playwright tests, and they were right to break.
+Adding the trigger broke several Playwright tests, and they were right to break.
 Deleting a user cascades into their sessions and then into `session_events`, so
 a plain `DELETE FROM users` is refused.
 
@@ -997,14 +992,14 @@ it. **DEFERRED**, not done.
 `FEATURE_STUCK_INFERENCE=false` _(flag deleted 2026-09-16 — it was never read by
 any code; recorded here as it stood at merge)_
 
-| #   | Criterion                                                            | State                          | Evidence                                                                                                |
-| --- | -------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| 1   | Every inferred stuck point renders with its evidence strings visible | **DONE**                       | `e2e/inference.spec.ts` — the sentences on screen, not the label alone                                  |
-| 2   | Confirm, adjust-range and dismiss all persist correctly              | **DONE**                       | `tests/inference/persist.test.ts` + e2e across a reload                                                 |
-| 3   | Confirmed vs inferred separable in a single SQL query                | **DONE**                       | Asserted with **raw SQL**, in the form F3.5 and F2.1 will use                                           |
-| 4   | Zero AI calls in the module                                          | **DONE**                       | Grep over 8 files **with a control that catches a real AI import**                                      |
-| 5   | No string over-claims certainty                                      | **DONE**                       | Six patterns, **each fired against a string containing it**, plus an on-page check                      |
-| 6   | Each signal has an isolated passing test                             | **DONE (4 of 5 as specified)** | `tests/inference/signals.test.ts` — 27 tests. Signal 1 is `edit_locality`, not cursor dwell — see below |
+| #   | Criterion                                                            | State                          | Evidence                                                                                     |
+| --- | -------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------- |
+| 1   | Every inferred stuck point renders with its evidence strings visible | **DONE**                       | `e2e/inference.spec.ts` — the sentences on screen, not the label alone                       |
+| 2   | Confirm, adjust-range and dismiss all persist correctly              | **DONE**                       | `tests/inference/persist.test.ts` + e2e across a reload                                      |
+| 3   | Confirmed vs inferred separable in a single SQL query                | **DONE**                       | Asserted with **raw SQL**, in the form F3.5 and F2.1 will use                                |
+| 4   | Zero AI calls in the module                                          | **DONE**                       | Grep over 8 files **with a control that catches a real AI import**                           |
+| 5   | No string over-claims certainty                                      | **DONE**                       | Six patterns, **each fired against a string containing it**, plus an on-page check           |
+| 6   | Each signal has an isolated passing test                             | **DONE (4 of 5 as specified)** | `tests/inference/signals.test.ts`. Signal 1 is `edit_locality`, not cursor dwell — see below |
 
 ### Signal 1 is `edit_locality`, not cursor dwell
 

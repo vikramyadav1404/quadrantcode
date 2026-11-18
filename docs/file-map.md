@@ -47,7 +47,7 @@ contents.
 
 ---
 
-## `app/` — routes (47 files)
+## `app/` — routes
 
 ### Authenticated shell — `app/(app)/`
 
@@ -139,7 +139,7 @@ The run action stays in `app/(app)/problems/[slug]/solve/actions.ts`, which has 
 
 ---
 
-## `components/` (21 files)
+## `components/`
 
 | File                              | Purpose                                                                              |
 | --------------------------------- | ------------------------------------------------------------------------------------ |
@@ -179,7 +179,7 @@ The run action stays in `app/(app)/problems/[slug]/solve/actions.ts`, which has 
 
 ---
 
-## `lib/` — client-safe shared code (12 files)
+## `lib/` — client-safe shared code
 
 | File                         | Purpose                                                               |
 | ---------------------------- | --------------------------------------------------------------------- |
@@ -204,7 +204,7 @@ The run action stays in `app/(app)/problems/[slug]/solve/actions.ts`, which has 
 
 ---
 
-## `server/db/` (35 files)
+## `server/db/`
 
 | File          | Purpose                                                                       |
 | ------------- | ----------------------------------------------------------------------------- |
@@ -259,7 +259,7 @@ and `meta/_journal.json`.
 
 ---
 
-## `server/` — services and runtime (62 files)
+## `server/` — services and runtime
 
 | File                 | Purpose                                                           |
 | -------------------- | ----------------------------------------------------------------- |
@@ -431,7 +431,7 @@ and `meta/_journal.json`.
 
 ---
 
-## `tests/` (41 files)
+## `tests/`
 
 | File                               | Purpose                                                           |
 | ---------------------------------- | ----------------------------------------------------------------- |
@@ -493,7 +493,7 @@ and `meta/_journal.json`.
 | `execution/pipeline.test.ts`       | F3.1 the cap under 8 parallel submits, and an outage (17)         |
 | `execution/rendering.test.ts`      | F3.1 no markup sink on the editor route, 3 controls (7)           |
 
-## `e2e/` (11 files)
+## `e2e/`
 
 | File                      | Purpose                                                              |
 | ------------------------- | -------------------------------------------------------------------- |
@@ -515,7 +515,7 @@ and `meta/_journal.json`.
 
 ---
 
-## `scripts/` (14 files)
+## `scripts/`
 
 | File                          | Purpose                                                            |
 | ----------------------------- | ------------------------------------------------------------------ |
