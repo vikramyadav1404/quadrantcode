@@ -19,7 +19,8 @@ import { getPublicNativeProblem } from '@/server/services/native-content';
 
 export const HINT_DAILY_LIMIT = 15;
 export const HINT_MAX_LEVEL = 3;
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+// A stable free-tier model (Gemini API models page, 2026-11-18). Override with GEMINI_MODEL.
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const MAX_CODE_CHARS = 8_000;
 
 const LEVEL_GUIDE: Record<number, string> = {
