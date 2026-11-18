@@ -43,6 +43,9 @@ export const FEATURE_FLAGS = [
   // Gates the mode controls, the start action, the sitting panels and the
   // comparison; with it off, /revision is exactly F2.1's page.
   'FEATURE_REVISION_MODES', // F2.2 revision-modes — enforced
+  // Re-added with the AI hint coach on 2026-11-18. Gates the Hint button and
+  // the action behind it; with it off (or no GEMINI_API_KEY) nothing shows.
+  'FEATURE_AI', // F3.4 ai hint coach — enforced
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
