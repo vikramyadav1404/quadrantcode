@@ -57,7 +57,10 @@ unchanged._
       generated 100-problem library and the 20 papers. 2026-11-14: migrations
       through `0028_problem_numbers` are applied in production (migration workflow
       run #7, on `main` after #76), and the native library is 46 problems, all
-      `published`; `npm run native:validate` checks it.)_
+      `published`; `npm run native:validate` checks it. 2026-11-18: migrations
+      through `0030_codeforces_links` are applied (workflow run #12); the native
+      library is 56 problems, all `published`, and 13 general mock OA papers (#89)
+      are imported and `published`.)_
 - [x] ~~`sandbox/toolchain-lock.json` records verified immutable base, Node and
       VCR image digests; its SBOM and vulnerability scan are archived.~~ **N/A.** _(Not
       applicable while `EXECUTION_BACKEND=judge0`; applies if Vercel Sandbox is

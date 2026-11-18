@@ -19,9 +19,16 @@ Where the two differ — and in one place they do — the difference is stated.
 | Your own reflections and stuck markers | Mistake memory, weak-topic scoring       | `reflections`, `stuck_points`            |
 | Admin actions, if you are an admin     | Accountability                           | `audit_logs`                             |
 
-**Nothing is shared with anyone. Nothing is used to train anything.** There is
-no analytics vendor, no third-party script, and no AI in this build — F3.4 is
-cut, and a test greps the inference and summariser modules to keep it that way.
+**Nothing is shared with anyone by default.** There is no analytics vendor and
+no third-party script. The inference and summariser modules contain no AI, and a
+test greps them to keep it that way.
+
+**The one exception is an AI hint you ask for** (FEATURE_AI, with
+`GEMINI_API_KEY` set). Pressing Hint on an original problem sends that
+problem's public statement and your current code to Google Gemini, once, for
+that hint; the hint text is stored in `ai_hints`. On Gemini's free tier Google
+may use the request to improve its products. The solve screen says so on the
+button and under every hint, and the public privacy page says so too.
 
 ---
 
