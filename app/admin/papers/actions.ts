@@ -38,4 +38,5 @@ export async function publishPaperAction(formData: FormData) {
 function refresh() {
   revalidatePath('/admin/papers');
   revalidatePath('/companies');
+  revalidatePath('/mocks');
 }

@@ -23,7 +23,11 @@ export const assessmentPaperContentSchema = z
   .object({
     slug: slugSchema,
     title: z.string().min(10).max(160),
-    companySlug: z.enum(INITIAL_ASSESSMENT_COMPANY_SLUGS),
+    /**
+     * Absent for a general mock OA. Such a paper names no company anywhere —
+     * see the C3 check in `assessmentPaperLibrarySchema`.
+     */
+    companySlug: z.enum(INITIAL_ASSESSMENT_COMPANY_SLUGS).optional(),
     role: z.string().min(3).max(120),
     patternPeriod: z.string().min(8).max(120),
     paperType: z.literal('pattern_based_mock'),
@@ -80,16 +84,41 @@ export const assessmentPaperContentSchema = z
     }
   });
 
+/** At most this many general papers, so each one can keep its own questions. */
+export const MAX_GENERAL_PAPERS = 20;
+
+/** The company names a general paper must not mention (C3: no company claims). */
+const COMPANY_NAME_PATTERN = new RegExp(
+  `\\b(${INITIAL_ASSESSMENT_COMPANY_SLUGS.map((slug) => slug.split('-')[0]).join('|')})\\b`,
+  'i',
+);
+
+/**
+ * Two kinds of paper share one library.
+ *
+ * - **Company papers** keep F4.5's original rule untouched: if any exist, every
+ *   initial company has exactly two, twenty in all.
+ * - **General mock OAs** (no `companySlug`) name no company in their slug,
+ *   title, role, pattern period or instructions, and no problem appears in two
+ *   of them — a general paper reusing another's question would be the same
+ *   reskinning the 2026-09-22 retirement removed.
+ */
 export const assessmentPaperLibrarySchema = z
   .object({
     schemaVersion: z.literal(1),
     reviewStatus: z.literal('needs_review'),
-    papers: z.array(assessmentPaperContentSchema).length(20),
+    papers: z
+      .array(assessmentPaperContentSchema)
+      .min(1)
+      .max(20 + MAX_GENERAL_PAPERS),
   })
   .superRefine((library, context) => {
     const slugs = new Set<string>();
     const titles = new Set<string>();
     const counts = new Map<string, number>();
+    const generalProblems = new Set<string>();
+    let companyPapers = 0;
+    let generalPapers = 0;
 
     for (const [index, paper] of library.papers.entries()) {
       if (slugs.has(paper.slug)) {
@@ -108,16 +137,57 @@ export const assessmentPaperLibrarySchema = z
       }
       slugs.add(paper.slug);
       titles.add(paper.title.toLocaleLowerCase());
-      counts.set(paper.companySlug, (counts.get(paper.companySlug) ?? 0) + 1);
-    }
 
-    for (const companySlug of INITIAL_ASSESSMENT_COMPANY_SLUGS) {
-      if (counts.get(companySlug) !== 2) {
+      if (paper.companySlug) {
+        companyPapers += 1;
+        counts.set(paper.companySlug, (counts.get(paper.companySlug) ?? 0) + 1);
+        continue;
+      }
+
+      generalPapers += 1;
+      const text = [
+        paper.slug.replaceAll('-', ' '),
+        paper.title,
+        paper.role,
+        paper.patternPeriod,
+        paper.instructions,
+      ].join(' ');
+      if (COMPANY_NAME_PATTERN.test(text)) {
         context.addIssue({
           code: 'custom',
-          path: ['papers'],
-          message: `Expected exactly two papers for ${companySlug}.`,
+          path: ['papers', index],
+          message: 'A general paper must not name a company.',
         });
+      }
+      for (const question of paper.questions) {
+        if (generalProblems.has(question.problemSlug)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['papers', index, 'questions'],
+            message: `${question.problemSlug} already appears in another general paper.`,
+          });
+        }
+        generalProblems.add(question.problemSlug);
+      }
+    }
+
+    if (generalPapers > MAX_GENERAL_PAPERS) {
+      context.addIssue({
+        code: 'custom',
+        path: ['papers'],
+        message: `At most ${MAX_GENERAL_PAPERS} general papers.`,
+      });
+    }
+
+    if (companyPapers > 0) {
+      for (const companySlug of INITIAL_ASSESSMENT_COMPANY_SLUGS) {
+        if (counts.get(companySlug) !== 2) {
+          context.addIssue({
+            code: 'custom',
+            path: ['papers'],
+            message: `Expected exactly two papers for ${companySlug}.`,
+          });
+        }
       }
     }
   });

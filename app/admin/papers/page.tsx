@@ -35,7 +35,7 @@ export default async function AdminPapersPage() {
             key={paper.id}
           >
             <summary className="cursor-pointer font-semibold">
-              {paper.companyName} · {paper.title} · {paper.status}
+              {paper.companyName ?? 'General'} · {paper.title} · {paper.status}
             </summary>
             <PaperForm action={updatePaperAction} companies={companies} paper={paper} />
             <div className="mt-4 flex flex-wrap gap-3">
@@ -91,10 +91,11 @@ function PaperForm({
       {paper ? <input name="paperId" type="hidden" value={paper.id} /> : null}
       <select
         className={field}
-        defaultValue={paper?.companySlug}
+        defaultValue={paper?.companySlug ?? ''}
         disabled={immutable}
         name="companySlug"
       >
+        <option value="">General mock OA (no company)</option>
         {companies
           .filter((company) => company.isActive)
           .map((company) => (

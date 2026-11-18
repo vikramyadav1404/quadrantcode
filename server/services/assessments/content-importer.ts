@@ -25,13 +25,18 @@ export async function importAssessmentPaperLibrary(
     let papersUnchanged = 0;
 
     for (const paper of library.papers) {
-      const [company] = await tx
-        .select({ id: companies.id })
-        .from(companies)
-        .where(eq(companies.slug, paper.companySlug))
-        .limit(1);
-      if (!company)
-        throw new Error(`Unknown company ${paper.companySlug}. Import companies first.`);
+      // A general mock OA has no company; its row keeps company_id null.
+      let companyId: string | null = null;
+      if (paper.companySlug) {
+        const [company] = await tx
+          .select({ id: companies.id })
+          .from(companies)
+          .where(eq(companies.slug, paper.companySlug))
+          .limit(1);
+        if (!company)
+          throw new Error(`Unknown company ${paper.companySlug}. Import companies first.`);
+        companyId = company.id;
+      }
 
       const [license] = await tx
         .insert(contentLicenses)
@@ -77,7 +82,7 @@ export async function importAssessmentPaperLibrary(
           existing.patternPeriod === paper.patternPeriod &&
           existing.durationMinutes === paper.durationMinutes &&
           existing.instructions === paper.instructions &&
-          existing.companyId === company.id;
+          existing.companyId === companyId;
         if (!unchanged) {
           throw new Error(
             `${paper.slug} changed after import. Create a new slug/version instead of mutating an assessment.`,
@@ -87,7 +92,7 @@ export async function importAssessmentPaperLibrary(
         const [created] = await tx
           .insert(assessmentPapers)
           .values({
-            companyId: company.id,
+            companyId,
             slug: paper.slug,
             title: paper.title,
             role: paper.role,

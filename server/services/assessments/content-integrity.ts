@@ -3,8 +3,8 @@ import type { AssessmentPaperLibrary } from './content-schema';
 /**
  * The rule tying the two content libraries together.
  *
- * A paper question names a problem by SLUG, and claims that problem belongs to
- * the paper's company. Neither half is enforced by a type or a foreign key —
+ * A paper question names a problem by SLUG, and — on a company paper — claims
+ * that problem belongs to the paper's company. Neither half is enforced by a type or a foreign key —
  * the libraries are separate JSON files — so nothing stops a paper outliving
  * the problem it points at. That is exactly what happened when 84 duplicate
  * problems were retired on 2026-09-22: 76 of 80 questions went dangling and
@@ -47,6 +47,9 @@ export function findPaperIntegrityProblems(
         });
         continue;
       }
+
+      // A general paper claims no company, so there is no association to check.
+      if (!paper.companySlug) continue;
 
       const claimed = problem.companies.some(
         (association) =>
