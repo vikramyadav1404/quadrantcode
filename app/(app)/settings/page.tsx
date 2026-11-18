@@ -14,6 +14,10 @@ import Link from 'next/link';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 
+/** The beta feedback form: a public GitHub issue template (.github/ISSUE_TEMPLATE). */
+const FEEDBACK_URL =
+  'https://github.com/vikramyadav1404/quadrantcode/issues/new?template=beta-feedback.yml';
+
 const SECTIONS: { href: string; title: string; description: string }[] = [
   {
     href: '/settings/profile',
@@ -24,6 +28,11 @@ const SECTIONS: { href: string; title: string; description: string }[] = [
     href: '/settings/goals',
     title: 'Daily goal',
     description: 'How many problems a day, and your activity heatmap.',
+  },
+  {
+    href: '/settings/revision',
+    title: 'Revision scheduler',
+    description: 'The fixed ladder, or FSRS that adapts to how well you remember.',
   },
   {
     href: '/settings/privacy',
@@ -65,6 +74,21 @@ export default function SettingsPage() {
           </li>
         ))}
       </ul>
+
+      <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
+        <a
+          className="font-medium underline"
+          href={FEEDBACK_URL}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Send feedback
+        </a>
+        <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+          Opens a public GitHub issue form. Tell us what broke or confused you — leave out
+          anything private.
+        </p>
+      </section>
 
       <SignOutButton />
     </div>
