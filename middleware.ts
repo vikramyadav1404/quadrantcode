@@ -43,6 +43,7 @@ const PROTECTED_PREFIXES = [
   '/companies',
   '/dashboard',
   '/mistakes',
+  '/mocks',
   '/problems',
   '/sessions',
   '/revision',
