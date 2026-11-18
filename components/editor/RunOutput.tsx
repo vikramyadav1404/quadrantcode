@@ -30,6 +30,7 @@ import {
   isPending,
 } from '@/lib/execution/view';
 import { VERDICT_LABELS } from '@/lib/execution/languages';
+import { COVERAGE_ADVICE, COVERAGE_LABELS, failedByCoverage } from '@/lib/execution/coverage';
 
 /** Which token a verdict borrows. Colour is never the only signal — the label is words. */
 const VERDICT_TOKEN: Record<string, string> = {
@@ -154,6 +155,33 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
         </p>
       ) : null}
 
+      {/*
+        Why it failed, by kind of test. Hidden inputs stay hidden; their
+        category does not, and the category is what says where to look.
+      */}
+      {result.testResults && failedByCoverage(result.testResults).length > 0 ? (
+        <section
+          className="rounded-[var(--radius)] border border-[var(--border)] p-2 text-xs"
+          data-testid="failed-coverage"
+        >
+          <p className="font-medium">Where it failed</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {failedByCoverage(result.testResults).map((group) => (
+              <li key={group.coverage}>
+                <span className="font-medium">
+                  {group.count} × {COVERAGE_LABELS[group.coverage]}
+                  {group.timedOut > 0 ? ` (${group.timedOut} over the time limit)` : ''}
+                </span>
+                <span className="text-[var(--text-muted)]">
+                  {' '}
+                  — {COVERAGE_ADVICE[group.coverage]}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {result.testResults?.length ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {result.testResults.map((test) => (
@@ -168,6 +196,11 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
                     : test.visibility === 'custom'
                       ? 'Custom case'
                       : `Case ${test.ordinal}`}
+                  {test.coverage && test.coverage !== 'sample' ? (
+                    <span className="ml-1 font-normal text-[var(--text-muted)]">
+                      · {COVERAGE_LABELS[test.coverage]}
+                    </span>
+                  ) : null}
                 </span>
                 <span>{VERDICT_LABELS[test.verdict]}</span>
               </div>
