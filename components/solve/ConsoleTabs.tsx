@@ -31,6 +31,7 @@
  */
 import { useState } from 'react';
 import { RunOutput } from '@/components/editor/RunOutput';
+import type { FindFailingCase } from '@/components/editor/SmallFailingCase';
 import {
   type TestCaseTab,
   addCase,
@@ -48,11 +49,13 @@ export function ConsoleTabs({
   exampleInputs,
   onStdinChange,
   result,
+  onFindFailingCase,
 }: {
   /** One per worked example, in statement order. Empty for external problems. */
   exampleInputs: readonly string[];
   onStdinChange: (next: string) => void;
   result: ExecutionResultView | null;
+  onFindFailingCase?: FindFailingCase;
 }) {
   const [tab, setTab] = useState<Tab>('testcase');
   const [cases, setCases] = useState<TestCaseTab[]>(() => initialCases(exampleInputs));
@@ -181,7 +184,7 @@ export function ConsoleTabs({
             </p>
           </div>
         ) : (
-          <RunOutput result={result} />
+          <RunOutput onFindFailingCase={onFindFailingCase} result={result} />
         )}
       </div>
     </div>

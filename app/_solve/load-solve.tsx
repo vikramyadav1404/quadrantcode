@@ -41,7 +41,12 @@ import { getActiveSession } from '@/server/services/session';
 import { formatElapsed } from '@/lib/session/timer-bar-state';
 import { formatDay } from '@/lib/time/format-day';
 import { completeSessionAction, startSessionAction } from '@/app/(app)/sessions/actions';
-import { requestHintAction, submitRunAction } from '@/app/(app)/problems/[slug]/solve/actions';
+import {
+  findFailingCaseAction,
+  requestHintAction,
+  submitRunAction,
+} from '@/app/(app)/problems/[slug]/solve/actions';
+import { STRESS_GENERATORS } from '@/server/services/stress';
 import { isFeatureEnabled } from '@/lib/flags';
 import { getServerEnv } from '@/server/env';
 import { hintsToday } from '@/server/services/hints';
@@ -281,6 +286,13 @@ export async function loadSolve(slug: string): Promise<LoadedSolve> {
     problemId: problem.id,
     sessionId,
     ...(hintsOffered ? { onHint: requestHintAction, initialHints } : {}),
+    /*
+     * "Find a small failing case": original problems that have an input
+     * generator, a signed-in user, never in a blind retry (it is help).
+     */
+    ...(user && problem.sourceType === 'original' && !blind && STRESS_GENERATORS[problem.slug]
+      ? { onFindFailingCase: findFailingCaseAction }
+      : {}),
     /*
      * F2.2 · a blind sitting gets its own drafts, so the editor opens on the
      * starter rather than restoring the previous attempt's code.

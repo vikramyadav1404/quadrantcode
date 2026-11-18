@@ -33,6 +33,7 @@ import {
 import { draftKey, isPending, type ExecutionResultView } from '@/lib/execution/view';
 import { CodeEditor } from '@/components/editor/CodeEditor';
 import { ConsoleTabs } from '@/components/solve/ConsoleTabs';
+import type { FindFailingCase } from '@/components/editor/SmallFailingCase';
 import { SolvedPrompt } from '@/components/solve/SolvedPrompt';
 import type { Confidence } from '@/lib/session/confidence';
 
@@ -55,6 +56,7 @@ export function RunPanelV2({
   draftScope,
   onHint,
   initialHints = [],
+  onFindFailingCase,
 }: {
   problemId: string;
   /** F2.2 · a separate draft namespace for this sitting — see `draftKey`. */
@@ -103,6 +105,8 @@ export function RunPanelV2({
   >;
   /** Today's hints on this problem, so a reload shows them again. */
   initialHints?: readonly { level: number; hint: string }[];
+  /** "Find a small failing case" after a failed Submit — see load-solve for when. */
+  onFindFailingCase?: FindFailingCase;
 }) {
   const router = useRouter();
   const [language, setLanguage] = useState<ExecutionLanguage>(defaultLanguage);
@@ -518,6 +522,7 @@ export function RunPanelV2({
 
       <ConsoleTabs
         exampleInputs={exampleInputs ?? []}
+        onFindFailingCase={onFindFailingCase}
         onStdinChange={setStdin}
         result={result}
       />

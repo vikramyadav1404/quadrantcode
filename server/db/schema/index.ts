@@ -27,3 +27,4 @@ export * from './mistakes';
 export * from './audit';
 export * from './native-content';
 export * from './hints';
+export * from './stress';
