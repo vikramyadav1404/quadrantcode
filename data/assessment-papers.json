@@ -1,0 +1,526 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "needs_review",
+  "papers": [
+    {
+      "slug": "general-mock-oa-01",
+      "title": "Quadrantcode Mock OA 01",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 01",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "signal-frequency-ledger",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "kiln-soak-window",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "strait-ice-floes",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "ferry-weight-rating",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-02",
+      "title": "Quadrantcode Mock OA 02",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 02",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "museum-ticket-pair-count",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "cold-store-aisle-sweep",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "audio-track-merge-cost",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "histogram-signal-block",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-03",
+      "title": "Quadrantcode Mock OA 03",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 03",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "sorted-dock-insertion",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "donation-target-subsets",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "archive-shelf-reward",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "archive-index-depth",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-04",
+      "title": "Quadrantcode Mock OA 04",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 04",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "pipeline-segment-from-end",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "orchard-cart-haul",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "warehouse-crate-sightlines",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "rising-corridor",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-05",
+      "title": "Quadrantcode Mock OA 05",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 05",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "decision-tree-levels",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "ferris-seat-lottery",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "camp-water-rations",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "coastal-beacon-spacing",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-06",
+      "title": "Quadrantcode Mock OA 06",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 06",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "one-counter-open",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "quay-ferry-hops",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "badge-gate-balance",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "festival-banner-cuts",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-07",
+      "title": "Quadrantcode Mock OA 07",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 07",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "constellation-connection-groups",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "tour-bus-cuisine-stretch",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "bakery-oven-rate",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "spice-trader-voyages",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-08",
+      "title": "Quadrantcode Mock OA 08",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 08",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "harbour-lot-echo",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "ridge-line-lows",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "clue-trail-loop",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "portal-tile-corridor",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-09",
+      "title": "Quadrantcode Mock OA 09",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 09",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "grove-path-yield",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "net-climb-stretches",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "carousel-tag-count",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "rooftop-rain-pockets",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-10",
+      "title": "Quadrantcode Mock OA 10",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 10",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "playlist-heat-segment",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "courier-route-merge",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "gallery-tour-order",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "beacon-code-contrast",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-11",
+      "title": "Quadrantcode Mock OA 11",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 11",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "ferry-ticket-change",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "workshop-build-order",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "backdrop-flat-span",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "bead-string-harvest",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-12",
+      "title": "Quadrantcode Mock OA 12",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 12",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "mosaic-odd-tile",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "busker-encore-number",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "trail-checkpoint-ramp",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "cloakroom-free-tag",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    },
+    {
+      "slug": "general-mock-oa-13",
+      "title": "Quadrantcode Mock OA 13",
+      "role": "Software Engineer",
+      "patternPeriod": "General online assessment practice — Set 13",
+      "paperType": "pattern_based_mock",
+      "durationMinutes": 90,
+      "instructions": "A timed online-assessment practice paper built entirely from original Quadrantcode problems. It is not modelled on, or endorsed by, any employer, and none of its questions is a past paper. Four questions — one easy, two medium, one hard — in 90 minutes, on a server-side clock. Run Code uses the visible or your own cases; Submit Question uses the complete protected test set. Only server-verified submissions count towards the score.",
+      "status": "needs_review",
+      "version": 1,
+      "provenance": {
+        "contentSource": "quadrantcode-original",
+        "independentlyCreated": true,
+        "licenseName": "Quadrantcode Original Practice Content License",
+        "author": "Quadrantcode editorial team",
+        "note": "Assembled from Quadrantcode-original problems as a general online-assessment practice paper; names no company."
+      },
+      "questions": [
+        {
+          "problemSlug": "solar-output-streak",
+          "ordinal": 1,
+          "marks": 20
+        },
+        {
+          "problemSlug": "cave-survey-span",
+          "ordinal": 2,
+          "marks": 25
+        },
+        {
+          "problemSlug": "rehearsal-room-bookings",
+          "ordinal": 3,
+          "marks": 25
+        },
+        {
+          "problemSlug": "courtyard-sentry-posts",
+          "ordinal": 4,
+          "marks": 30
+        }
+      ]
+    }
+  ]
+}
