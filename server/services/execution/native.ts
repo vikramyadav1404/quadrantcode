@@ -163,6 +163,7 @@ export async function executeNativeProblem(
           .select({
             ordinal: testCases.ordinal,
             visibility: testCases.visibility,
+            coverage: testCases.coverage,
             input: testCases.input,
             expectedOutput: testCases.expectedOutput,
           })
@@ -274,6 +275,7 @@ export async function executeNativeProblem(
         ordinal: test.ordinal,
         visibility: test.visibility,
         verdict: testVerdict,
+        ...('coverage' in test ? { coverage: test.coverage } : {}),
         runtimeMs: result.runtimeMs,
         memoryKb: result.memoryKb,
         input: test.input,
@@ -287,6 +289,7 @@ export async function executeNativeProblem(
         verdict: testVerdict,
         runtimeMs: result.runtimeMs,
         memoryKb: result.memoryKb,
+        ...('coverage' in test ? { coverage: test.coverage } : {}),
       });
     }
 
