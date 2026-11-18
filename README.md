@@ -26,10 +26,10 @@ stuck, what you got wrong, and what to revise next — not just that you solved 
 | **Original problems** | 56, with 467 test cases (354 hidden) and an editorial each, in 5 languages              |
 | **Mock OAs**          | 13 timed papers (easy + 2 medium + hard, 90 min), scored on server-verified submits     |
 | **Code execution**    | Self-hosted Judge0 on Azure, reachable only through a Cloudflare Tunnel                 |
-| **Tests**             | 1,774 passing (134 Vitest files, real Postgres) + 39 Playwright spec files              |
+| **Tests**             | Vitest against a real Postgres and Playwright in the browser, run in CI on every push   |
 | **Database**          | 50 tables, 33 versioned migrations, each with a hand-written down migration             |
 | **Operations**        | CI on every push, uptime check every 30 min, daily encrypted backup verified by restore |
-| **Decisions**         | 40 recorded in [`docs/decisions.md`](docs/decisions.md), with rejected alternatives     |
+| **Decisions**         | Recorded in [`docs/decisions.md`](docs/decisions.md), with the alternatives rejected    |
 
 ---
 
@@ -249,7 +249,7 @@ is off rather than quietly wrong.
 
 ```bash
 npm run test:db:start   # embedded Postgres
-npm test                # 1,774 tests across 134 files, against that database
+npm test                # Vitest suites, against that database
 npm run e2e:build && npm run test:e2e   # Playwright
 npm run contrast        # WCAG token audit
 ```
