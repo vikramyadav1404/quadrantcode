@@ -140,6 +140,7 @@ const PROTECTED_PREFIXES = [
   '/dashboard',
   '/companies',
   '/mistakes',
+  '/mocks',
   '/onboarding',
   '/problems',
   '/revision',
