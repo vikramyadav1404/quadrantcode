@@ -43,7 +43,7 @@ const SECTIONS: { href: string; title: string; description: string }[] = [
   {
     href: '/settings/import',
     title: 'Import & export',
-    description: 'Bring in a CSV of solved problems, or take yours out.',
+    description: 'Sync Codeforces, bring in a CSV of solved problems, or take yours out.',
   },
 ];
 
