@@ -96,8 +96,8 @@ export function SmallFailingCase({
             </>
           ) : (
             <p className="text-[var(--text-muted)]">
-              No small input broke your code. The failing tests are likely large — check the
-              time limit and overflow.
+              No small input broke your code in this search. The bug may need a particular
+              pattern or a large input — the failing test kinds above say where to look.
             </p>
           )}
           <p className="mt-1 text-[var(--text-muted)]">
