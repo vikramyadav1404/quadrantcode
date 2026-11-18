@@ -125,6 +125,12 @@ export const userProfiles = pgTable(
      */
     snapshotCaptureEnabled: boolean().notNull().default(true),
 
+    /**
+     * Which scheduler sets revision dates: the fixed ladder (default) or FSRS
+     * (opt-in). Changing it never rewrites a date already set.
+     */
+    revisionScheduler: text().notNull().default('ladder'),
+
     /** What the user is preparing for. Drives F4.2 track suggestions. */
     targetRole: targetRoleEnum(),
 
@@ -158,6 +164,10 @@ export const userProfiles = pgTable(
     check(
       'user_profiles_handle_format',
       sql`${table.handle} is null or ${table.handle} ~ ${sql.raw(`'${HANDLE_PATTERN_SOURCE}'`)}`,
+    ),
+    check(
+      'user_profiles_revision_scheduler',
+      sql`${table.revisionScheduler} in ('ladder', 'fsrs')`,
     ),
   ],
 );

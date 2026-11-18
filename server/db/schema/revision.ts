@@ -25,6 +25,7 @@ import {
   date,
   index,
   pgTable,
+  real,
   smallint,
   timestamp,
   uniqueIndex,
@@ -69,6 +70,13 @@ export const revisionSchedule = pgTable(
     /** How many revisions have been completed — not how many are scheduled. */
     revisionCount: smallint().notNull().default(0),
 
+    /**
+     * FSRS state, set only while the user's scheduler is FSRS (opt-in). Null on
+     * every ladder row; switching back leaves them and the ladder carries on.
+     */
+    fsrsStability: real(),
+    fsrsDifficulty: real(),
+
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
@@ -99,6 +107,14 @@ export const revisionSchedule = pgTable(
      * backstop for anything that writes here without going through it.
      */
     check('revision_schedule_interval_at_least_one_day', sql`${table.intervalDays} >= 1`),
+
+    check(
+      'revision_schedule_fsrs_state',
+      // Spelled with IS NOT NULL: a CHECK that evaluates to NULL passes.
+      sql`(${table.fsrsStability} is null and ${table.fsrsDifficulty} is null)
+          or (${table.fsrsStability} is not null and ${table.fsrsDifficulty} is not null
+              and ${table.fsrsStability} > 0 and ${table.fsrsDifficulty} between 1 and 10)`,
+    ),
 
     check(
       'revision_schedule_index_non_negative',
