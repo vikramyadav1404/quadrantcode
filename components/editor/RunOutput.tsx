@@ -48,10 +48,13 @@ const VERDICT_TOKEN: Record<string, string> = {
 export function RunOutput({
   result,
   onFindFailingCase,
+  onUseInput,
 }: {
   result: ExecutionResultView | null;
   /** Practice solve screen only; absent in a mock OA and for external problems. */
   onFindFailingCase?: FindFailingCase;
+  /** Adds a found input to the console as a new case. */
+  onUseInput?: (input: string) => void;
 }) {
   if (!result) {
     return (
@@ -196,7 +199,12 @@ export function RunOutput({
       !result.scratchpad &&
       result.verdict &&
       FAILING_CASE_VERDICTS.includes(result.verdict) ? (
-        <SmallFailingCase jobId={result.jobId} key={result.jobId} onFind={onFindFailingCase} />
+        <SmallFailingCase
+          jobId={result.jobId}
+          key={result.jobId}
+          onFind={onFindFailingCase}
+          onUseInput={onUseInput}
+        />
       ) : null}
 
       {result.testResults?.length ? (
