@@ -271,10 +271,16 @@ suite('findSmallFailingCase against a real database', () => {
   }
 
   const buggy = () => new StubProvider((stdin) => ok(String(everyPair(stdin))));
+  /*
+   * The job id seeds the search, and fixtures get random ids, so the
+   * service-level tests use a program that is wrong on every input; finding
+   * and shrinking a subtle bug is covered above with a fixed seed.
+   */
+  const alwaysWrong = () => new StubProvider(() => ok('-1'));
 
   it('finds a small case with the job wrapper and limits, and keeps it', async () => {
     const { user, job } = await fixture();
-    const provider = buggy();
+    const provider = alwaysWrong();
     const first = await findSmallFailingCase(ctx.db, {
       userId: user.id,
       jobId: job.id,
