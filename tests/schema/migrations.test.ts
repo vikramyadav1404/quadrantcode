@@ -37,6 +37,7 @@ const EXPECTED_TABLES = [
   'auth_sessions',
   'auth_verification_tokens',
   'code_snapshots', // F3.2
+  'codeforces_links', // Codeforces sync
   'companies',
   'content_licenses',
   'daily_goals',
