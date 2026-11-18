@@ -47,6 +47,20 @@ const shuffle = <T>(rng: Rng, items: T[]): T[] => {
 };
 
 const BIG = 1_000_000_000;
+
+/**
+ * A target that actually occurs: most of the time one of the items (or the sum
+ * of two), because a random target rarely hits anything and a bug in the
+ * "found it" branch then never shows. Falls back when out of range.
+ */
+const targetFrom = (rng: Rng, items: readonly number[], pairs: boolean, fallback: number) => {
+  if (items.length < (pairs ? 2 : 1) || rng() < 0.3) return fallback;
+  const i = int(rng, 0, items.length - 1);
+  let j = int(rng, 0, items.length - 2);
+  if (j >= i) j += 1;
+  const value = pairs ? items[i]! + items[j]! : items[i]!;
+  return Math.abs(value) <= BIG ? value : fallback;
+};
 const PM = [BIG, -BIG];
 
 export type StressGenerator = {
@@ -86,12 +100,12 @@ export const STRESS_GENERATORS: Record<string, StressGenerator> = {
   'museum-ticket-pair-count': plain(
     0,
     (r) => val(r, -3, 3, PM),
-    (r) => val(r, -6, 6, [0, ...PM]),
+    (r, items) => targetFrom(r, items, true, val(r, -6, 6, [0, ...PM])),
   ),
   'sorted-dock-insertion': {
     generate(rng, size) {
       const berths = list(rng, 0, cap(size), () => val(rng, -5, 5, PM)).sort((a, b) => a - b);
-      return [val(rng, -6, 6, PM), ...berths];
+      return [targetFrom(rng, berths, false, val(rng, -6, 6, PM)), ...berths];
     },
     shrink: { header: 1, minItems: 0 },
   },
@@ -224,7 +238,8 @@ export const STRESS_GENERATORS: Record<string, StressGenerator> = {
     generate(rng, size) {
       const sorted = list(rng, 1, cap(size), () => val(rng, -5, 5, PM)).sort((a, b) => a - b);
       const k = int(rng, 0, sorted.length - 1);
-      return [val(rng, -6, 6, PM), ...sorted.slice(k), ...sorted.slice(0, k)];
+      const target = targetFrom(rng, sorted, false, val(rng, -6, 6, PM));
+      return [target, ...sorted.slice(k), ...sorted.slice(0, k)];
     },
   },
   'rooftop-rain-pockets': plain(1, (r) => val(r, 0, 6, [100_000])),
