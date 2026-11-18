@@ -46,19 +46,20 @@ practise next.
 
 ## Features
 
-| Area                   | What it does                                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Solve**              | Monaco editor, Run on visible or custom cases, Submit against the full hidden set — C, C++17, Java, Python 3, JavaScript |
-| **Server-owned timer** | The client sends intent, never a duration; elapsed time is derived from an append-only event log                         |
-| **Stuck points**       | Marked by you or suggested by heuristics, and weighted differently                                                       |
-| **Reflections**        | A fixed mistake taxonomy, so "what do I keep getting wrong" is a query, not a reread of notes                            |
-| **Code snapshots**     | How the solution evolved, kept per sitting                                                                               |
-| **Spaced revision**    | A fixed ladder (default) or **FSRS** (opt-in), ordered by a forgetting-risk score                                        |
-| **Mock OA**            | 13 timed papers at `/mocks`; server clock, server-verified scoring, upsolve queue afterwards                             |
-| **AI hint coach**      | Three levels per problem — nudge, approach, next step — never a solution (Gemini, opt-in, disclosed)                     |
-| **Codeforces sync**    | Connect a handle; accepted problems are imported and marked solved through Codeforces' official API                      |
-| **Import / export**    | CSV in and out, idempotent; LeetCode and HackerRank lists come in this way                                               |
-| **Analytics**          | Streak, heatmap, topic strength, recurring mistakes — precomputed rollups, hand-written SVG charts                       |
+| Area                    | What it does                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Solve**               | Monaco editor, Run on visible or custom cases, Submit against the full hidden set — C, C++17, Java, Python 3, JavaScript       |
+| **Server-owned timer**  | The client sends intent, never a duration; elapsed time is derived from an append-only event log                               |
+| **Stuck points**        | Marked by you or suggested by heuristics, and weighted differently                                                             |
+| **Reflections**         | A fixed mistake taxonomy, so "what do I keep getting wrong" is a query, not a reread of notes                                  |
+| **Code snapshots**      | How the solution evolved, kept per sitting                                                                                     |
+| **Spaced revision**     | A fixed ladder (default) or **FSRS** (opt-in), ordered by a forgetting-risk score                                              |
+| **Failing-case finder** | After a failed Submit: which kinds of test failed, and a small generated input your code gets wrong — hidden tests stay hidden |
+| **Mock OA**             | 13 timed papers at `/mocks`; server clock, server-verified scoring, upsolve queue afterwards                                   |
+| **AI hint coach**       | Three levels per problem — nudge, approach, next step — never a solution (Gemini, opt-in, disclosed)                           |
+| **Codeforces sync**     | Connect a handle; accepted problems are imported and marked solved through Codeforces' official API                            |
+| **Import / export**     | CSV in and out, idempotent; LeetCode and HackerRank lists come in this way                                                     |
+| **Analytics**           | Streak, heatmap, topic strength, recurring mistakes — precomputed rollups, hand-written SVG charts                             |
 
 ---
 
