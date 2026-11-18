@@ -67,6 +67,7 @@ const EXPECTED_TABLES = [
   'session_events', // F1.4
   'solve_sessions', // F1.4
   'streak_freezes', // F1.3
+  'stress_searches',
   'stuck_points', // F1.5
   'test_cases',
   'topics',
