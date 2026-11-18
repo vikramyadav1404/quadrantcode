@@ -47,8 +47,8 @@ export { STRESS_GENERATORS } from './generators';
 
 export const STRESS_DAILY_LIMIT = 5;
 export const STRESS_GLOBAL_LIMIT = 30;
-export const STRESS_MAX_RUNS = 32;
-export const STRESS_RANDOM_INPUTS = 16;
+export const STRESS_MAX_RUNS = 40;
+export const STRESS_RANDOM_INPUTS = 24;
 export const STRESS_CONCURRENCY = 3;
 const DEADLINE_MS = 45_000;
 const STALE_CLAIM_MS = 2 * 60_000;
@@ -143,11 +143,12 @@ export async function searchForFailure(input: {
     return null;
   }
 
-  // Smallest first: sizes 1, 1, 2, 2, … so an early failure is already small.
+  // Small but not trivial: lengths up to 3…8, cycling. Lengths of 0–2 rarely show
+  // a bug, and shrinking below makes whatever fails smaller afterwards.
   const seen = new Set<string>();
   const randoms: Candidate[] = [];
   for (let i = 0; i < (input.randomInputs ?? STRESS_RANDOM_INPUTS); i += 1) {
-    const values = input.generator.generate(createRng(input.seed + i), 1 + Math.floor(i / 2));
+    const values = input.generator.generate(createRng(input.seed + i), 3 + (i % 6));
     const item = candidate(values);
     if (item && !seen.has(item.stdin)) {
       seen.add(item.stdin);
