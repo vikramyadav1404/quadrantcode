@@ -16,9 +16,12 @@ export type FindFailingCase = (input: { jobId: string }) => Promise<FailingCaseR
 export function SmallFailingCase({
   jobId,
   onFind,
+  onUseInput,
 }: {
   jobId: string;
   onFind: FindFailingCase;
+  /** Puts the input in a new console case tab. Absent where there is no console. */
+  onUseInput?: (input: string) => void;
 }) {
   const [state, setState] = useState<
     | { kind: 'idle' }
@@ -89,10 +92,23 @@ export function SmallFailingCase({
                 {`\nExpected: ${state.result.expected}`}
                 {`\nYour output: ${state.result.actual ?? '—'}`}
               </pre>
-              <p className="mt-1 text-[var(--text-muted)]">
-                Generated just now, not one of the hidden tests. Paste it into a case tab to
-                debug.
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {onUseInput ? (
+                  <button
+                    className="rounded-[var(--radius)] border border-[var(--border)] px-2 py-1 font-medium hover:bg-[var(--surface-raised)]"
+                    data-testid="failing-case-use"
+                    onClick={() => {
+                      if (state.result.found) onUseInput(state.result.input);
+                    }}
+                    type="button"
+                  >
+                    Use as a test case
+                  </button>
+                ) : null}
+                <span className="text-[var(--text-muted)]">
+                  Generated just now, not one of the hidden tests.
+                </span>
+              </div>
             </>
           ) : (
             <p className="text-[var(--text-muted)]">

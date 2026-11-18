@@ -126,16 +126,16 @@ every language/test combination through the explicitly configured provider.
 Run on 11 September 2026 on `feat/F3.1b-execution-queue`, against a real local
 PostgreSQL test database:
 
-| Gate                         | Result                                                               |
-| ---------------------------- | -------------------------------------------------------------------- |
-| TypeScript, ESLint, Prettier | pass                                                                 |
-| Production build             | pass; 44 page bundles and 22 route handlers                          |
-| Vitest                       | 1,250 pass, 0 fail, 5 skipped (86 files)                             |
-| Playwright                   | 128/128 pass against `next start` and a local Judge0 contract server |
-| Native content               | 100/100 problems and 20/20 papers pass structural validation         |
-| WCAG token contrast          | all pairs pass                                                       |
-| Production dependency audit  | 0 vulnerabilities                                                    |
-| **Execution image lock**     | **expected FAIL — see below**                                        |
+| Gate                         | Result                                                       |
+| ---------------------------- | ------------------------------------------------------------ |
+| TypeScript, ESLint, Prettier | pass                                                         |
+| Production build             | pass                                                         |
+| Vitest                       | pass                                                         |
+| Playwright                   | pass against `next start` and a local Judge0 contract server |
+| Native content               | every problem and paper passes structural validation         |
+| WCAG token contrast          | all pairs pass                                               |
+| Production dependency audit  | 0 vulnerabilities                                            |
+| **Execution image lock**     | **expected FAIL — see below**                                |
 
 `npm run execution:image:verify` reports four issues and is expected to until
 the image is built:

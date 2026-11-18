@@ -87,6 +87,12 @@ export function ConsoleTabs({
 
   const pristine = isPristine(cases);
 
+  /** A found failing input becomes a new, selected case tab. */
+  function addFoundCase(input: string) {
+    commit(editCase(addCase(cases), cases.length, input), cases.length);
+    setTab('testcase');
+  }
+
   return (
     <div className="flex max-h-[45%] min-h-[9rem] flex-col border-t border-[var(--border)]">
       <div className="flex gap-1 px-3">
@@ -184,7 +190,11 @@ export function ConsoleTabs({
             </p>
           </div>
         ) : (
-          <RunOutput onFindFailingCase={onFindFailingCase} result={result} />
+          <RunOutput
+            onFindFailingCase={onFindFailingCase}
+            onUseInput={addFoundCase}
+            result={result}
+          />
         )}
       </div>
     </div>
