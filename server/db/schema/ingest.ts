@@ -229,3 +229,30 @@ export type ImportJobRow = typeof importJobRows.$inferSelect;
  * for a dead process.
  */
 export const IMPORT_HEARTBEAT_STALE_SECONDS = 120;
+
+/**
+ * Codeforces sync: one handle per user, read through the official public API
+ * (`user.status`). Accepted submissions become tracked problems; nothing is
+ * fetched or stored beyond title, link, rating band and tags (C1).
+ *
+ * Deleting this row only disconnects the handle. Problems already imported stay
+ * tracked, like a CSV import.
+ */
+export const codeforcesLinks = pgTable(
+  'codeforces_links',
+  {
+    userId: uuid()
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    handle: text().notNull(),
+    lastSyncedAt: timestamp({ withTimezone: true }),
+    /** Counts from the last sync, or `{ error }` when it failed. Shown back to the user. */
+    lastResult: jsonb().$type<Record<string, unknown>>(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  () => [
+    // Codeforces handles: 3–24 of letters, digits, underscore, dot, hyphen.
+    check('codeforces_links_handle_format', sql`handle ~ '^[A-Za-z0-9_.-]{3,24}$'`),
+  ],
+);
