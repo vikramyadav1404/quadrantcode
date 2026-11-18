@@ -13,6 +13,7 @@ import { type JobRunner, getJobProgress, recordInvalidRows } from './jobs';
 import { IMPORT_LIMITS } from './limits';
 
 export * from './catalog';
+export * from './codeforces-sync';
 export * from './csv';
 export * from './export';
 export * from './import';
