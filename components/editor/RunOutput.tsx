@@ -31,6 +31,8 @@ import {
 } from '@/lib/execution/view';
 import { VERDICT_LABELS } from '@/lib/execution/languages';
 import { COVERAGE_ADVICE, COVERAGE_LABELS, failedByCoverage } from '@/lib/execution/coverage';
+import { FAILING_CASE_VERDICTS } from '@/lib/execution/failing-case';
+import { type FindFailingCase, SmallFailingCase } from './SmallFailingCase';
 
 /** Which token a verdict borrows. Colour is never the only signal — the label is words. */
 const VERDICT_TOKEN: Record<string, string> = {
@@ -43,7 +45,14 @@ const VERDICT_TOKEN: Record<string, string> = {
   internal_error: 'var(--text-muted)',
 };
 
-export function RunOutput({ result }: { result: ExecutionResultView | null }) {
+export function RunOutput({
+  result,
+  onFindFailingCase,
+}: {
+  result: ExecutionResultView | null;
+  /** Practice solve screen only; absent in a mock OA and for external problems. */
+  onFindFailingCase?: FindFailingCase;
+}) {
   if (!result) {
     return (
       <p className="text-sm text-[var(--text-muted)]">Run your code to see its output here.</p>
@@ -180,6 +189,14 @@ export function RunOutput({ result }: { result: ExecutionResultView | null }) {
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {onFindFailingCase &&
+      submitted &&
+      !result.scratchpad &&
+      result.verdict &&
+      FAILING_CASE_VERDICTS.includes(result.verdict) ? (
+        <SmallFailingCase jobId={result.jobId} key={result.jobId} onFind={onFindFailingCase} />
       ) : null}
 
       {result.testResults?.length ? (
