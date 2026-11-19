@@ -222,7 +222,15 @@ export async function requestHint(
 
   const [row] = await db
     .insert(aiHints)
-    .values({ userId: input.userId, problemId: input.problemId, level, hint, model })
+    // Stamped with the same clock the daily limits are counted against.
+    .values({
+      userId: input.userId,
+      problemId: input.problemId,
+      level,
+      hint,
+      model,
+      createdAt: input.now,
+    })
     .returning({ level: aiHints.level, hint: aiHints.hint, createdAt: aiHints.createdAt });
 
   return { ...row!, remainingToday: HINT_DAILY_LIMIT - usedToday - 1 };

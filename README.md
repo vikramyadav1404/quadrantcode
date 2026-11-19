@@ -339,8 +339,8 @@ npm run contrast        # WCAG token audit
 - **The original library is small on purpose.** 56 problems, each published only
   after five reference solutions passed every test on Judge0. They were drafted
   with AI assistance and checked by code: every expected output comes from a
-  separate brute force. An earlier 100-record library turned out to be 16
-  problems under 100 names; the 84 duplicates are archived, not deleted.
+  separate brute force. An earlier, larger library turned out to be mostly the
+  same problems under different names; the duplicates are archived, not deleted.
 - **Judge0 is not a sandbox this project built.** The limits are what gets sent;
   enforcement depends on the instance's configuration.
 - **AI hints use Gemini's free tier**, whose requests Google may use to improve
